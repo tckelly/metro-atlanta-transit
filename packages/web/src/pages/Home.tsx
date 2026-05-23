@@ -1,5 +1,16 @@
 import { Link } from 'react-router-dom';
 
+interface PinnedStop {
+  stopId: string;
+  name: string;
+  direction: string;
+}
+
+const PINNED_STOPS: PinnedStop[] = [
+  { stopId: '902990', name: 'Virginia Ave @ Todd Rd',     direction: 'Westbound' },
+  { stopId: '904428', name: 'Ponce de Leon @ Barnett St', direction: 'Westbound' },
+];
+
 export function Home() {
   return (
     <div className="space-y-6">
@@ -10,17 +21,21 @@ export function Home() {
         </p>
       </header>
 
-      <section className="rounded border border-divider bg-surface-elevated p-4">
-        <h2 className="text-lg font-semibold">Early development</h2>
-        <p className="mt-2 text-sm">
-          The app shell is up. Stop detail pages will start showing real data in the
-          next iteration. For now, you can navigate to a stop page by URL:
-        </p>
-        <p className="mt-3 font-mono text-sm">
-          <Link to="/stop/134013" className="text-primary underline">
-            /stop/134013
-          </Link>
-        </p>
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold">My stops</h2>
+        <ul className="space-y-2">
+          {PINNED_STOPS.map((stop) => (
+            <li key={stop.stopId}>
+              <Link
+                to={`/stop/${stop.stopId}`}
+                className="block rounded border border-divider bg-surface-elevated p-4 transition-colors hover:border-primary"
+              >
+                <div className="font-semibold">{stop.name}</div>
+                <div className="text-sm text-fg-muted">{stop.direction}</div>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
     </div>
   );

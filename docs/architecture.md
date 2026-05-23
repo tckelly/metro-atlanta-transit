@@ -291,6 +291,8 @@ The runtime loader (`services/gtfsStatic.ts`) loads these 5 files in parallel on
 
 ### Real-time — fetched on demand, polled while viewing
 
+> **CORS note (discovered during first browser test):** MARTA's GTFS-RT endpoints do not send `Access-Control-Allow-Origin` headers, so browsers block direct JavaScript fetches even though the server responds with 200. This was a blind spot in ADR-0001's "no backend in v1" assumption. In dev we work around it with a **Vite proxy** (`vite.config.ts` rewrites `/api/marta/*` → `gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService/*` server-side). **Production needs a real proxy** — planned as a Vercel serverless function in M5; will be documented in a new ADR superseding ADR-0001.
+
 `packages/web/src/services/martaRealtime.ts` consumes decoders from `@atl-transit/gtfs` and exposes three functions:
 
 ```ts

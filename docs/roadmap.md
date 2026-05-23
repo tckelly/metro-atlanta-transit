@@ -107,9 +107,9 @@ The two remaining v1 jobs.
 
 ---
 
-### M5 — Polish, accessibility, PWA, i18n
+### M5 — Polish, accessibility, PWA, i18n, **and the backend proxy**
 
-The "this is shippable, not just functional" pass.
+The "this is shippable, not just functional" pass. Now includes a small backend, which became necessary once CORS testing revealed MARTA's realtime endpoints don't allow browser-direct fetches (originally assumed in ADR-0001). Dev currently uses a Vite proxy as a stopgap.
 
 **Done when:**
 
@@ -123,6 +123,8 @@ The "this is shippable, not just functional" pass.
 - Theme bootstrap script in `index.html` prevents flash-of-wrong-theme.
 - Settings screen complete (theme, language, About, attribution, disclaimer, version).
 - Scheduled rebuild cron (`.github/workflows/nightly-rebuild.yml`) at 08:00 UTC.
+- **Backend proxy** (Vercel serverless function) proxies MARTA's GTFS-RT feeds, replacing the dev-only Vite proxy. Same shape as the existing `martaRealtime.ts` client; adds short edge caching for politeness. Documented in a new ADR that supersedes ADR-0001.
+- Static GTFS migrated to the backend at the same time (supersedes ADR-0004), so the deploy is self-contained and the data is continuously fresh rather than nightly-rebuilt.
 
 **Done means:** shippable to strangers, not just to yourself.
 

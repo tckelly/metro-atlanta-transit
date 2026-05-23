@@ -92,7 +92,10 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 - **Tests after for UI.** Writing UI component tests after implementation is fine.
 - **Focus areas:** API response parsing, cache logic, geolocation calculations, arrival time formatting, error/edge cases.
 - **Don't skip type safety for convenience.** Tests should use proper types, not `any` shortcuts.
-- **Testing library:** Vitest + React Testing Library for units; Playwright for E2E (later).
+- **Mock at boundaries, not modules.** Stub network (`fetch`), time (`vi.useFakeTimers`), and browser APIs (geolocation, `visibilitychange`). Never `vi.mock` an internal module — that's a signal the seams are wrong.
+- **Prefer real fixtures over synthesized inputs.** The `sample-data/` snapshots are the truth; tests built against them catch real schema drift.
+- **Behavior over implementation.** Assert what a user (or screen reader) perceives — text, roles, ARIA state. Avoid asserting on CSS class strings or internal data shapes.
+- **Testing library:** Vitest + React Testing Library for units; MSW for hook/integration tests that exercise the fetch pipeline; Playwright for E2E (later).
 
 ## Git & Commits
 

@@ -58,17 +58,17 @@ metro-atlanta-transit/
 ├── pnpm-workspace.yaml
 ├── package.json                  # workspace root: dev deps only
 ├── tsconfig.base.json            # shared TS config
-├── .eslintrc.cjs                 # shared lint config + boundaries
+├── eslint.config.js              # shared lint config + boundaries (flat config)
 ├── docs/
 ├── sample-data/
-├── scripts/
-│   └── preprocess-gtfs.ts        # static GTFS build pipeline
 └── packages/
     ├── web/                      # @atl-transit/web — the PWA
     │   ├── package.json
     │   ├── vite.config.ts
     │   ├── tailwind.config.ts    # extends preset from components
     │   ├── tsconfig.json
+    │   ├── scripts/
+    │   │   └── preprocess-gtfs.ts  # static GTFS build pipeline (web-local)
     │   ├── index.html
     │   ├── public/
     │   │   └── gtfs/             # build-time output, gitignored
@@ -267,17 +267,23 @@ A violation is a build-blocking error in CI. This is what makes the architecture
 
 The static GTFS feed is large (`stop_times.txt` alone can exceed 30 MB). Loading raw GTFS in the browser is unacceptable for the 2-second cold-open target.
 
-**Build-time pipeline (`scripts/preprocess-gtfs.ts`):**
+**Build-time pipeline (`packages/web/scripts/preprocess-gtfs.ts`):**
+
+The pure parse + transform logic lives in `packages/web/src/buildtime/preprocessGtfs.ts` (testable, no I/O). The script above is the orchestrator: it downloads the ZIP, calls into the library, and writes JSON to disk.
 
 1. Download `https://itsmarta.com/google_transit_feed/google_transit.zip`.
-2. Unzip and parse: `stops.txt`, `routes.txt`, `trips.txt`, `stop_times.txt`, `calendar.txt`.
-3. Trim and reshape into lean JSON, keyed for our access patterns:
+2. Unzip and parse: `stops.txt`, `routes.txt`, `trips.txt`, `stop_times.txt`, `calendar.txt`, optional `calendar_dates.txt`.
+3. Trim and reshape into lean JSON, normalized so the runtime can join by ID:
    - `stops.json` — `{ stopId, name, lat, lng, routeIds: string[] }[]`
-   - `routes.json` — `{ routeId, shortName, longName, color }[]`
-   - `trips-by-stop.json` — schedule data joined for "what's coming at this stop?"
+   - `routes.json` — `{ routeId, shortName, longName, color? }[]`
+   - `trips.json` — `{ tripId, routeId, serviceId, headsign, directionId? }[]`
+   - `stop-times.json` — `{ tripId, stopId, stopSequence, arrivalTime, departureTime }[]`
+   - `calendar.json` — `{ rules: CalendarRuleOut[], exceptions: CalendarExceptionOut[] }`
 4. Emit to `packages/web/public/gtfs/` (gitignored — regenerated each build).
 
-**Trigger:** `pnpm --filter @atl-transit/web prebuild` runs the script before Vite builds. A scheduled GitHub Action pushes an empty commit **nightly at 08:00 UTC** (4am EDT in summer, 3am EST in winter — before MARTA's earliest morning service) to trigger a fresh Vercel build, keeping the bundled static data current without manual intervention. See ADR-0004.
+The runtime loader (`services/gtfsStatic.ts`) loads these 5 files in parallel on app startup and exposes query functions like `getScheduledVisitsForStop(bundle, stopId, date)`.
+
+**Trigger:** `pnpm --filter @atl-transit/web preprocess-gtfs` runs the script directly today; will be wired into `prebuild` once Vite is added. A scheduled GitHub Action pushes an empty commit **nightly at 08:00 UTC** (4am EDT in summer, 3am EST in winter — before MARTA's earliest morning service) to trigger a fresh Vercel build, keeping the bundled static data current without manual intervention. See ADR-0004.
 
 **Failure mode:** if the static-GTFS download fails during build, the build fails loudly. We don't ship an app with stale or missing schedule data.
 

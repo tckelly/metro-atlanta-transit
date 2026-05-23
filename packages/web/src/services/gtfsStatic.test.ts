@@ -136,4 +136,38 @@ describe('getScheduledVisitsForStop', () => {
     // S1 at 06:00 EDT 2026-05-22 = 1779444000
     expect(visits[0]?.scheduledTime).toBe(1779444000);
   });
+
+  it('filters to a forward time window when given nowSec, dropping past trips', () => {
+    // 2026-05-22 — bundle has T1 at 06:00 EDT (1779444000) and T2 at 06:30 EDT.
+    // If "now" is 06:15 EDT, we should only see T2 (06:30), not T1 (already happened).
+    const visits = getScheduledVisitsForStop(BUNDLE, 'S1', '20260522', {
+      nowSec: 1779444000 + 15 * 60, // 06:15 EDT
+    });
+    expect(visits.map((v) => v.tripId)).toEqual(['T2']);
+  });
+
+  it('honors a custom forward window in seconds', () => {
+    // Bundle has T1 at 06:00 and T2 at 06:30 EDT.
+    // If "now" is 05:50 EDT and window is 15 min, only T1 should be visible.
+    const visits = getScheduledVisitsForStop(BUNDLE, 'S1', '20260522', {
+      nowSec: 1779444000 - 10 * 60, // 05:50 EDT
+      windowSec: 15 * 60,
+    });
+    expect(visits.map((v) => v.tripId)).toEqual(['T1']);
+  });
+
+  it('includes a small grace window for buses that "just passed"', () => {
+    // If "now" is 06:00:30 EDT (30s after T1's scheduled time), T1 should
+    // still be visible so users at the stop don't lose context on a bus
+    // that may have just passed or is currently boarding.
+    const visits = getScheduledVisitsForStop(BUNDLE, 'S1', '20260522', {
+      nowSec: 1779444000 + 30,
+    });
+    expect(visits.map((v) => v.tripId)).toContain('T1');
+  });
+
+  it('returns the full day when no nowSec is supplied (backwards-compatible default)', () => {
+    const visits = getScheduledVisitsForStop(BUNDLE, 'S1', '20260522');
+    expect(visits).toHaveLength(2);
+  });
 });

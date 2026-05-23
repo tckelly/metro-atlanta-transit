@@ -71,6 +71,10 @@ async function flushPromises(): Promise<void> {
 
 beforeEach(() => {
   vi.useFakeTimers();
+  // Pin the fake clock to 06:00 EDT 2026-05-22 (1779444000s) so the
+  // scheduled visit at 06:01:56 EDT falls inside the forward window
+  // useArrivals applies to scheduled visits.
+  vi.setSystemTime(new Date(1779444000 * 1000));
   setVisibility('visible');
 });
 

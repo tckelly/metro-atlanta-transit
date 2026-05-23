@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { fetchTripUpdates } from '../../services/martaRealtime';
 import { getScheduledVisitsForStop } from '../../services/gtfsStatic';
@@ -69,11 +69,6 @@ export function useArrivals(
   const abortRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const scheduledVisits = useMemo(
-    () => getScheduledVisitsForStop(bundle, stopId, date),
-    [bundle, stopId, date],
-  );
-
   const doFetch = useCallback(async () => {
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -82,6 +77,10 @@ export function useArrivals(
     try {
       const feed = await fetchTripUpdates(controller.signal);
       if (controller.signal.aborted) return;
+      // Recompute scheduled visits with the current time, so the forward
+      // window slides with each poll instead of being frozen at mount.
+      const nowSec = Math.floor(Date.now() / 1000);
+      const scheduledVisits = getScheduledVisitsForStop(bundle, stopId, date, { nowSec });
       const rows = classifyBusRows({
         scheduledVisits,
         tripUpdates: feed.trips,
@@ -90,7 +89,7 @@ export function useArrivals(
       setState({
         status: 'success',
         rows,
-        lastUpdated: Math.floor(Date.now() / 1000),
+        lastUpdated: nowSec,
         isStale: false,
         error: null,
       });
@@ -110,7 +109,7 @@ export function useArrivals(
         };
       });
     }
-  }, [scheduledVisits, stopId]);
+  }, [bundle, stopId, date]);
 
   useEffect(() => {
     let unmounted = false;

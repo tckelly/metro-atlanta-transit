@@ -115,14 +115,32 @@ export function getActiveServiceIds(bundle: GtfsBundle, date: string): Set<strin
   return result;
 }
 
+/** Buses up to this many seconds in the past stay visible (just-passed grace). */
+const PAST_GRACE_SEC = 60;
+/** Default forward window: show the next hour's scheduled visits. */
+const DEFAULT_WINDOW_SEC = 60 * 60;
+
+export interface ScheduledVisitsWindow {
+  /** Unix seconds — current time. When omitted, the function returns all visits for the day. */
+  nowSec?: number;
+  /** Forward window length in seconds (default: 1 hour). Only used when nowSec is provided. */
+  windowSec?: number;
+}
+
 /**
  * Return the scheduled visits at a stop on a given date, ordered by
  * scheduled time ascending. Output is ready for the classifier.
+ *
+ * When `nowSec` is supplied, the result is filtered to upcoming visits
+ * (plus a small grace window for buses that just passed). The default
+ * forward window is one hour — matches docs/ux-guidelines.md "next 60
+ * minutes" rule.
  */
 export function getScheduledVisitsForStop(
   bundle: GtfsBundle,
   stopId: string,
   date: string,
+  window: ScheduledVisitsWindow = {},
 ): ScheduledStopVisit[] {
   const activeServices = getActiveServiceIds(bundle, date);
 
@@ -144,7 +162,12 @@ export function getScheduledVisitsForStop(
     });
   }
 
-  return visits.sort((a, b) => a.scheduledTime - b.scheduledTime);
+  const sorted = visits.sort((a, b) => a.scheduledTime - b.scheduledTime);
+
+  if (window.nowSec === undefined) return sorted;
+  const min = window.nowSec - PAST_GRACE_SEC;
+  const max = window.nowSec + (window.windowSec ?? DEFAULT_WINDOW_SEC);
+  return sorted.filter((v) => v.scheduledTime >= min && v.scheduledTime <= max);
 }
 
 export function getStopMetadata(bundle: GtfsBundle, stopId: string): StopOut | undefined {

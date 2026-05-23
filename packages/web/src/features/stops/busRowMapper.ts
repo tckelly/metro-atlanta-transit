@@ -16,11 +16,20 @@ import type { ClassifiedBusRow } from './busRowClassifier';
 const DELAYED_THRESHOLD_SEC = 180;
 const ARRIVING_THRESHOLD_SEC = 60;
 const SECONDARY_DELAY_THRESHOLD_SEC = 60;
+/**
+ * When the ETA exceeds this many minutes, switch the primary line from
+ * a countdown ("98 min") to the clock time ("06:04"). Large minute
+ * counts are visually quirky in 32px bold and the user is no longer
+ * thinking in countdown terms at that range anyway.
+ */
+const LONG_ETA_THRESHOLD_MIN = 60;
 
 function formatEta(predictedSec: number, nowSec: number): string {
   const deltaSec = predictedSec - nowSec;
   if (deltaSec < ARRIVING_THRESHOLD_SEC) return 'Arriving';
-  return `${Math.round(deltaSec / 60)} min`;
+  const minutes = Math.round(deltaSec / 60);
+  if (minutes >= LONG_ETA_THRESHOLD_MIN) return formatScheduledTime(predictedSec);
+  return `${minutes} min`;
 }
 
 function formatScheduledTime(unixSec: number): string {

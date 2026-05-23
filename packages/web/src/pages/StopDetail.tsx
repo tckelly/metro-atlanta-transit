@@ -5,6 +5,8 @@ import { useArrivals } from '../features/stops/useArrivals';
 import { useGtfsBundle } from '../services/useGtfsBundle';
 import { toBusRowProps } from '../features/stops/busRowMapper';
 import { getStopMetadata } from '../services/gtfsStatic';
+import { formatLastUpdated } from '../utils/formatLastUpdated';
+import { useNowSec } from '../utils/useNowSec';
 import type { GtfsBundle } from '../buildtime/preprocessGtfs';
 
 export function StopDetail() {
@@ -35,7 +37,9 @@ function StopDetailReady({ stopId, bundle }: { stopId: string; bundle: GtfsBundl
   const { status, rows, lastUpdated, isStale, error } = useArrivals(stopId, bundle);
 
   const stop = getStopMetadata(bundle, stopId);
-  const nowSec = Math.floor(Date.now() / 1000);
+  // Tick every 15s so the "Last updated …" text and any ETA countdowns
+  // refresh visibly between data polls.
+  const nowSec = useNowSec(15_000);
 
   return (
     <div className="space-y-4">
@@ -92,9 +96,3 @@ function Message({ title, body }: { title: string; body: string }) {
   );
 }
 
-function formatLastUpdated(lastUpdatedSec: number, nowSec: number): string {
-  const ageSec = Math.max(0, nowSec - lastUpdatedSec);
-  if (ageSec < 60) return `${ageSec} sec ago`;
-  const minutes = Math.round(ageSec / 60);
-  return `${minutes} min ago`;
-}

@@ -34,6 +34,29 @@ describe('toBusRowProps — live, on-time', () => {
     expect(props.severity).toBe('success');
   });
 
+  it('shows scheduled clock time instead of "X min" when ETA is 60+ minutes out', () => {
+    // 98 min away — "98 min" in a 32px bold reads as a quirk, not info.
+    // Switch to the clock-time presentation at the 60-minute boundary.
+    const props = toBusRowProps(
+      liveRow({
+        scheduledTime: 1779465600 + 98 * 60, // 13:38 EDT 2026-05-22
+        predictedTime: 1779465600 + 98 * 60,
+      }),
+      1779465600,
+    );
+    expect(props.primaryText).toBe('13:38');
+  });
+
+  it('still shows minutes when ETA is just under 60 minutes', () => {
+    const props = toBusRowProps(
+      liveRow({
+        predictedTime: NOW_SEC + 59 * 60,
+      }),
+      NOW_SEC,
+    );
+    expect(props.primaryText).toBe('59 min');
+  });
+
   it('includes scheduled time in the secondary line', () => {
     // scheduledTime: 2026-05-22 12:00 EDT = 12:00 in local Atlanta display
     const props = toBusRowProps(liveRow({ scheduledTime: NOW_SEC }), NOW_SEC + 60);

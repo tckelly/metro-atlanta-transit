@@ -68,6 +68,14 @@ describe('gtfsTimeToUnixSec', () => {
     expect(past24).toBe(sameAsNextDay);
   });
 
+  it('accepts space-padded single-digit hours (MARTA quirk: " 6:07:50" instead of "06:07:50")', () => {
+    // MARTA's stop_times.txt uses leading spaces instead of zero-padding
+    // for single-digit hours. Treat that as equivalent.
+    const spacePadded = gtfsTimeToUnixSec('20260522', ' 6:00:00');
+    const zeroPadded = gtfsTimeToUnixSec('20260522', '06:00:00');
+    expect(spacePadded).toBe(zeroPadded);
+  });
+
   it('throws on malformed input', () => {
     expect(() => gtfsTimeToUnixSec('bogus', '06:00:00')).toThrow();
     expect(() => gtfsTimeToUnixSec('20260522', 'not-a-time')).toThrow();

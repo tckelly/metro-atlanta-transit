@@ -61,7 +61,9 @@ export function gtfsTimeToUnixSec(
   if (!/^\d{8}$/.test(serviceDate)) {
     throw new Error(`Invalid service date: ${serviceDate}`);
   }
-  const m = /^(\d{1,3}):(\d{2}):(\d{2})$/.exec(gtfsTime);
+  // MARTA space-pads single-digit hours (" 6:07:50" instead of "06:07:50"),
+  // so trim before matching the regex.
+  const m = /^(\d{1,3}):(\d{2}):(\d{2})$/.exec(gtfsTime.trim());
   if (!m) throw new Error(`Invalid GTFS time: ${gtfsTime}`);
 
   const year = Number(serviceDate.substring(0, 4));

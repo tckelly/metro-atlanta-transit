@@ -32,7 +32,7 @@ describe('fetchTripUpdates', () => {
     const feed = await fetchTripUpdates();
     expect(feed.trips.length).toBe(388);
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService/tripupdate/tripupdates.pb',
+      expect.stringContaining('tripupdate/tripupdates.pb'),
       expect.objectContaining({}),
     );
   });
@@ -69,7 +69,7 @@ describe('fetchVehiclePositions', () => {
     const feed = await fetchVehiclePositions();
     expect(feed.vehicles.length).toBe(198);
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService/vehicle/vehiclepositions.pb',
+      expect.stringContaining('vehicle/vehiclepositions.pb'),
       expect.objectContaining({}),
     );
   });
@@ -82,7 +82,7 @@ describe('fetchAlerts', () => {
     expect(feed.alerts).toEqual([]);
     expect(feed.feedTimestamp).toBe(1779468884);
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService/alert/alerts.pb',
+      expect.stringContaining('alert/alerts.pb'),
       expect.objectContaining({}),
     );
   });

@@ -9,13 +9,22 @@ import {
 
 /**
  * MARTA GTFS-Realtime endpoint URLs. Public, no auth required.
+ *
+ * In dev, we use a relative path that Vite proxies to MARTA's server
+ * (see vite.config.ts) — necessary because MARTA doesn't send
+ * Access-Control-Allow-Origin headers and browser-direct fetches fail
+ * CORS. Production will need a backend proxy; see docs/architecture.md.
+ *
  * See docs/data-and-apis.md.
  */
+const MARTA_BASE = import.meta.env.DEV
+  ? '/api/marta'
+  : 'https://gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService';
+
 const MARTA_URLS = {
-  tripUpdates: 'https://gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService/tripupdate/tripupdates.pb',
-  vehiclePositions:
-    'https://gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService/vehicle/vehiclepositions.pb',
-  alerts: 'https://gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService/alert/alerts.pb',
+  tripUpdates: `${MARTA_BASE}/tripupdate/tripupdates.pb`,
+  vehiclePositions: `${MARTA_BASE}/vehicle/vehiclepositions.pb`,
+  alerts: `${MARTA_BASE}/alert/alerts.pb`,
 } as const;
 
 /**

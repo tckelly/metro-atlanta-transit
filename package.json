@@ -6,6 +6,8 @@
   "description": "Atlanta Transit — unofficial PWA for real-time MARTA bus tracking",
   "license": "MIT",
   "scripts": {
+    "dev": "pnpm --filter @atl-transit/web dev",
+    "build": "pnpm --filter @atl-transit/web build",
     "lint": "eslint .",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test"

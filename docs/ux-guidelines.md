@@ -17,7 +17,7 @@ These are the *philosophy* — every concrete decision below should be traceable
 
 ### Color
 
-Status colors form the semantic spine of the UI. They are not used for decoration. Every token has a light-mode and dark-mode value; Tailwind's `dark:` variant drives the switch.
+Status colors form the semantic spine of the UI. They are not used for decoration. Every token has a light-mode and dark-mode value; CSS variables wired through the Tailwind preset (`packages/components/src/tailwind-preset.ts`) swap with the `.dark` class on `<html>`, so components write one class (`bg-status-live`) and both modes work.
 
 | Token | Light | Dark | Purpose |
 |---|---|---|---|
@@ -25,13 +25,15 @@ Status colors form the semantic spine of the UI. They are not used for decoratio
 | `status-warn` | `#ca8a04` (yellow-600) | `#facc15` (yellow-400) | Delayed, soft disruption warning, stale data |
 | `status-cancelled` | `#dc2626` (red-600) | `#f87171` (red-400) | Cancelled trip, strong disruption, network error |
 | `primary` | `#0066CC` | `#60a5fa` (blue-400) | Brand color, primary actions, links |
-| `text` | `#111827` (gray-900) | `#f9fafb` (gray-50) | Body text |
-| `text-muted` | `#6b7280` (gray-500) | `#9ca3af` (gray-400) | Secondary metadata (timestamps, scheduled time when there's also a live time) |
-| `bg` | `#ffffff` | `#111827` (gray-900) | Page background |
-| `bg-elevated` | `#f9fafb` (gray-50) | `#1f2937` (gray-800) | Cards, surfaces |
-| `border` | `#e5e7eb` (gray-200) | `#374151` (gray-700) | Dividers |
+| `surface` | `#ffffff` | `#111827` (gray-900) | Page background |
+| `surface-elevated` | `#f9fafb` (gray-50) | `#1f2937` (gray-800) | Cards, raised surfaces |
+| `fg` | `#111827` (gray-900) | `#f9fafb` (gray-50) | Body text |
+| `fg-muted` | `#6b7280` (gray-500) | `#9ca3af` (gray-400) | Secondary metadata (timestamps, scheduled time when there's also a live time) |
+| `divider` | `#e5e7eb` (gray-200) | `#374151` (gray-700) | Borders and dividers |
 
-All status colors must pass **WCAG 2.1 AA contrast (4.5:1)** on both `bg` and `bg-elevated`, in both light and dark modes. The chosen tokens above are verified. **Never communicate status with color alone** — pair with text and/or icon.
+Each token becomes a Tailwind utility prefix: `bg-status-live`, `text-fg-muted`, `border-divider`, etc. Opacity modifiers work too (`bg-status-live/10`) thanks to the `<alpha-value>` substitution.
+
+All status colors must pass **WCAG 2.1 AA contrast (4.5:1)** on both `surface` and `surface-elevated`, in both light and dark modes. The chosen tokens above are verified. **Never communicate status with color alone** — pair with text and/or icon.
 
 The dark-mode shades are intentionally *lighter* than their light-mode counterparts. Saturated dark-color status badges (e.g., `red-600` on a near-black background) look harsh and fail contrast; the `-400` variants land in the sweet spot for vividness and readability.
 
@@ -109,7 +111,7 @@ const badge = cva('inline-flex items-center rounded px-2 py-0.5 text-sm font-med
       success: 'bg-status-live/10 text-status-live',
       warning: 'bg-status-warn/10 text-status-warn',
       danger:  'bg-status-cancelled/10 text-status-cancelled',
-      neutral: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+      neutral: 'bg-surface-elevated text-fg-muted',
     },
   },
   defaultVariants: { severity: 'neutral' },

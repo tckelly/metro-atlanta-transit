@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "pnpm --filter @atl-transit/web dev",
     "build": "pnpm --filter @atl-transit/web build",
+    "preprocess-gtfs": "pnpm --filter @atl-transit/web preprocess-gtfs",
     "lint": "eslint .",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test"

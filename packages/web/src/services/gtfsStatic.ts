@@ -1,0 +1,172 @@
+/**
+ * Runtime accessor for the preprocessed static GTFS bundle.
+ *
+ * The bundle ships as a small set of JSON files in /public/gtfs/, produced
+ * at build time by the preprocessGtfs library (see ../buildtime/).
+ *
+ * The query layer here is pure: given a bundle, a stop, and a date, return
+ * the scheduled visits the classifier can combine with realtime data.
+ */
+
+import type {
+  GtfsBundle,
+  StopOut,
+  RouteOut,
+} from '../buildtime/preprocessGtfs';
+import type { ScheduledStopVisit } from '../features/stops/busRowClassifier';
+
+const ATLANTA_TIMEZONE = 'America/New_York';
+
+/**
+ * Compute the millisecond offset of `date` in the given IANA timezone
+ * relative to UTC. Positive when the zone is ahead of UTC (rare for the
+ * Americas).
+ */
+function timezoneOffsetMillis(date: Date, timeZone: string): number {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(date);
+  const get = (type: string): number => {
+    const part = parts.find((p) => p.type === type);
+    return part ? Number(part.value) : NaN;
+  };
+  // Intl returns hour 24 for midnight (non-standard); fold to 0.
+  const hour = get('hour') === 24 ? 0 : get('hour');
+  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), hour, get('minute'), get('second'));
+  return asUtc - date.getTime();
+}
+
+/**
+ * Convert a GTFS service-date + clock time to Unix seconds. The clock time
+ * is in the agency's local timezone (Atlanta), and may exceed 24:00:00 for
+ * trips that span midnight (per GTFS spec).
+ *
+ * @param serviceDate "YYYYMMDD"
+ * @param gtfsTime "HH:MM:SS" with HH potentially >= 24
+ * @param timeZone IANA timezone (default Atlanta)
+ */
+export function gtfsTimeToUnixSec(
+  serviceDate: string,
+  gtfsTime: string,
+  timeZone: string = ATLANTA_TIMEZONE,
+): number {
+  if (!/^\d{8}$/.test(serviceDate)) {
+    throw new Error(`Invalid service date: ${serviceDate}`);
+  }
+  const m = /^(\d{1,3}):(\d{2}):(\d{2})$/.exec(gtfsTime);
+  if (!m) throw new Error(`Invalid GTFS time: ${gtfsTime}`);
+
+  const year = Number(serviceDate.substring(0, 4));
+  const month = Number(serviceDate.substring(4, 6));
+  const day = Number(serviceDate.substring(6, 8));
+  const h = Number(m[1]);
+  const minute = Number(m[2]);
+  const second = Number(m[3]);
+
+  const extraDays = Math.floor(h / 24);
+  const localHour = h % 24;
+
+  // Compute the UTC ms that *would* equal the local time if we treated
+  // (year, month, day+extraDays, localHour, minute, second) as UTC, then
+  // subtract the timezone offset at that moment to recover the real UTC ms.
+  const utcMillisAsLocal = Date.UTC(year, month - 1, day + extraDays, localHour, minute, second);
+  const offset = timezoneOffsetMillis(new Date(utcMillisAsLocal), timeZone);
+  return Math.floor((utcMillisAsLocal - offset) / 1000);
+}
+
+/**
+ * Return the set of service IDs active on the given date, per GTFS
+ * calendar.txt rules plus calendar_dates.txt exceptions.
+ *
+ * @param date "YYYYMMDD"
+ */
+export function getActiveServiceIds(bundle: GtfsBundle, date: string): Set<string> {
+  const result = new Set<string>();
+
+  // Day-of-week index: Mon=0 .. Sun=6 (matching the bundle's weekdays tuple)
+  // JS Date.getUTCDay returns 0=Sun..6=Sat — convert.
+  const year = Number(date.substring(0, 4));
+  const month = Number(date.substring(4, 6));
+  const day = Number(date.substring(6, 8));
+  const jsDay = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  const monIndex = (jsDay + 6) % 7;
+
+  for (const rule of bundle.calendar.rules) {
+    if (date < rule.startDate || date > rule.endDate) continue;
+    if (rule.weekdays[monIndex]) result.add(rule.serviceId);
+  }
+
+  for (const exc of bundle.calendar.exceptions) {
+    if (exc.date !== date) continue;
+    if (exc.type === 'added') result.add(exc.serviceId);
+    else result.delete(exc.serviceId);
+  }
+
+  return result;
+}
+
+/**
+ * Return the scheduled visits at a stop on a given date, ordered by
+ * scheduled time ascending. Output is ready for the classifier.
+ */
+export function getScheduledVisitsForStop(
+  bundle: GtfsBundle,
+  stopId: string,
+  date: string,
+): ScheduledStopVisit[] {
+  const activeServices = getActiveServiceIds(bundle, date);
+
+  const tripsById = new Map(bundle.trips.map((t) => [t.tripId, t]));
+
+  const visits: ScheduledStopVisit[] = [];
+  for (const st of bundle.stopTimes) {
+    if (st.stopId !== stopId) continue;
+    const trip = tripsById.get(st.tripId);
+    if (!trip) continue;
+    if (!activeServices.has(trip.serviceId)) continue;
+
+    visits.push({
+      tripId: trip.tripId,
+      routeId: trip.routeId,
+      stopId: st.stopId,
+      scheduledTime: gtfsTimeToUnixSec(date, st.arrivalTime),
+      headsign: trip.headsign,
+    });
+  }
+
+  return visits.sort((a, b) => a.scheduledTime - b.scheduledTime);
+}
+
+export function getStopMetadata(bundle: GtfsBundle, stopId: string): StopOut | undefined {
+  return bundle.stops.find((s) => s.stopId === stopId);
+}
+
+export function getRouteMetadata(bundle: GtfsBundle, routeId: string): RouteOut | undefined {
+  return bundle.routes.find((r) => r.routeId === routeId);
+}
+
+/**
+ * Fetch and parse the static GTFS bundle from /gtfs/. Designed to be called
+ * once at app startup; the result is then passed into the query functions.
+ *
+ * The service worker (vite-plugin-pwa) precaches these files, so after the
+ * first install this is a cache hit and resolves immediately.
+ */
+export async function loadGtfsBundle(): Promise<GtfsBundle> {
+  const [stops, routes, trips, stopTimes, calendar] = await Promise.all([
+    fetch('/gtfs/stops.json').then((r) => r.json()) as Promise<GtfsBundle['stops']>,
+    fetch('/gtfs/routes.json').then((r) => r.json()) as Promise<GtfsBundle['routes']>,
+    fetch('/gtfs/trips.json').then((r) => r.json()) as Promise<GtfsBundle['trips']>,
+    fetch('/gtfs/stop-times.json').then((r) => r.json()) as Promise<GtfsBundle['stopTimes']>,
+    fetch('/gtfs/calendar.json').then((r) => r.json()) as Promise<GtfsBundle['calendar']>,
+  ]);
+  return { stops, routes, trips, stopTimes, calendar };
+}

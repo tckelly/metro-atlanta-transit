@@ -6,7 +6,20 @@
 
 - **Status:** Greenfield — early development
 - **Audience:** Atlanta bus commuters; solo dev project, open source
-- **Spec:** See `docs/marta-project-spec.md` for the full project vision. Treat it as a directional guide — follow the spirit but adapt specifics. Suggest better approaches when you see them.
+- **Docs:** Authoritative info lives in `docs/` — see the Docs Map below.
+
+## Docs Map
+
+- `docs/vision.md` — problem, user, value, v1 non-goals
+- `docs/personas-and-jobs.md` — primary persona, three jobs-to-be-done
+- `docs/data-and-apis.md` — MARTA feed shape (verified against `sample-data/`)
+- `docs/product-requirements.md` — v1 features with acceptance criteria
+- `docs/ux-guidelines.md` — visual system, components, screens
+- `docs/architecture.md` — workspace layout, data flow, polling lifecycle
+- `docs/adr/` — immutable decision records for load-bearing choices
+- `docs/roadmap.md` — v1 milestones, launch criteria, v2 horizons
+
+`docs/marta-project-spec.md` is the original brain dump, kept as historical context.
 
 ## Tech Stack
 
@@ -40,7 +53,7 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 - Prefer strict typing. Avoid `any`. Use `unknown` and narrow with type guards.
 - Occasional `as` casts are acceptable **with a comment explaining why**.
 - Never use `@ts-ignore` or `eslint-disable` to suppress problems — fix the root cause.
-- Write type guards for runtime type checking of external data (API responses, localStorage).
+- Validate external data (API responses, localStorage reads, URL params) with Zod schemas, not type assertions.
 
 ### Code Style
 
@@ -84,7 +97,7 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 ## Git & Commits
 
 - **Conventional commits:** `feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`
-- **Branches:** `main` (production), `develop` (integration), `feature/*` (individual work)
+- **Branches:** `main` (production), `feature/*` (individual work)
 - **Small, focused commits.** One logical change per commit.
 - **Squash merge** feature branches to main.
 

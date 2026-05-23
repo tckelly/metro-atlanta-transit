@@ -84,6 +84,74 @@ Sparing use. Always paired with a text label or `aria-label`. Recommended icons 
 - ⟳ Refresh — manual refresh
 - ← Back — navigation
 
+## Component implementation patterns
+
+How components are built. These rules apply to every component in `@atl-transit/components`.
+
+### Brand flows in one direction: tokens → preset → variants
+
+1. **Tokens** in `packages/components/src/tokens/` are the source of truth for the brand. Named semantic roles (`statusLive`, `statusCancelled`, `primary`), not raw hex strings scattered through code.
+2. The **Tailwind preset** in `packages/components/src/tailwind-preset.ts` maps those tokens onto Tailwind's theme, producing class names like `bg-status-live` and `text-status-cancelled`. The webapp's Tailwind config extends this preset and inherits the same names.
+3. **Components consume tokens via variants**, never by writing hex codes or by re-declaring colors. If a component needs a color, that color must already exist as a token.
+
+This means the only way to change the brand is to change a token. Single point of edit, no drift.
+
+### Variants declared via CVA
+
+Every visual variant a component supports is declared up-front with `class-variance-authority`. This makes the component's vocabulary explicit and type-safe:
+
+```tsx
+import { cva, type VariantProps } from 'class-variance-authority';
+
+const badge = cva('inline-flex items-center rounded px-2 py-0.5 text-sm font-medium', {
+  variants: {
+    severity: {
+      success: 'bg-status-live/10 text-status-live',
+      warning: 'bg-status-warn/10 text-status-warn',
+      danger:  'bg-status-cancelled/10 text-status-cancelled',
+      neutral: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+    },
+  },
+  defaultVariants: { severity: 'neutral' },
+});
+
+export interface BadgeProps extends VariantProps<typeof badge> {
+  children: React.ReactNode;
+}
+
+export function Badge({ severity, children }: BadgeProps) {
+  return <span className={badge({ severity })}>{children}</span>;
+}
+```
+
+### No styling escape hatches
+
+Components in `@atl-transit/components` **do not accept** `className`, `style`, or any other styling-override prop. Consumers cannot reach in and change how a component looks.
+
+If the webapp needs a Badge to look slightly different, the answer is **not** to override styles. It's to:
+
+1. Check whether an existing variant already covers it.
+2. If not, add a new variant to the component's CVA declaration.
+3. Use it from the webapp via the variant prop.
+
+This is the price of having the components package be a real design system instead of a styling free-for-all. The compensation is that brand changes are mechanical, not archaeological.
+
+### Layout is the parent's job
+
+Components own their *internal* look — colors, padding, typography, icon placement. They do **not** own their *external* layout — margin, position, width in a grid. That's the parent's responsibility.
+
+In practice this means components rarely set `margin-*` or `position` classes on their outermost element. The parent (`features/*/`, a page, or another organism) wraps them in a layout component (`<Stack>`, `<Grid>`) or applies layout classes to a wrapping div.
+
+### Tests live next to the component
+
+Each component has a `.test.tsx` sibling. Coverage expectations:
+
+- One render test per declared variant — asserts the variant prop produces the expected role/text/accessible state. (Not a pixel snapshot — that's brittle.)
+- One behavior test per interaction (click, focus, keyboard) when present.
+- Accessibility assertions: focus visibility, correct ARIA roles, screen-reader text.
+
+Tests use Vitest + React Testing Library. Run on save in dev, gate-blocking in CI.
+
 ## Component patterns
 
 The components below are the building blocks. The screens later in this doc compose them.

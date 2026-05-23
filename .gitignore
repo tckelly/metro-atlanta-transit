@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+coverage/
+*.log
+*.tsbuildinfo
+
+# Build-time output (regenerated each build; never commit)
+packages/web/public/gtfs/
+
+# Local env
+.env
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/

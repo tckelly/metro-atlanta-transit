@@ -1,0 +1,15 @@
+{
+  "name": "@atl-transit/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@atl-transit/components": "workspace:*",
+    "@atl-transit/gtfs": "workspace:*",
+    "@atl-transit/utils": "workspace:*"
+  }
+}

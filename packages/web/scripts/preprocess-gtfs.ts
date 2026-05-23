@@ -11,16 +11,35 @@
  * this is build-time rather than runtime.
  */
 
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseGtfsZip, transformGtfs } from '../src/buildtime/preprocessGtfs';
 
 const MARTA_GTFS_URL = 'https://itsmarta.com/google_transit_feed/google_transit.zip';
+const STALE_AFTER_HOURS = 24;
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(here, '..', 'public', 'gtfs');
+
+/**
+ * Returns true when the bundled GTFS data exists and is less than
+ * STALE_AFTER_HOURS old. Lets local dev skip the network round trip
+ * on subsequent builds without serving stale data indefinitely.
+ *
+ * Vercel containers are ephemeral, so production never has a cache
+ * hit here — the nightly cron always downloads fresh.
+ */
+async function isBundleFresh(): Promise<boolean> {
+  try {
+    const s = await stat(join(OUT_DIR, 'stops.json'));
+    const ageHours = (Date.now() - s.mtimeMs) / (1000 * 60 * 60);
+    return ageHours < STALE_AFTER_HOURS;
+  } catch {
+    return false;
+  }
+}
 
 async function downloadZip(url: string): Promise<Uint8Array> {
   console.log(`Downloading ${url}...`);
@@ -39,6 +58,15 @@ async function writeJson(filename: string, data: unknown): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  const force = process.argv.includes('--force');
+  if (!force && (await isBundleFresh())) {
+    console.log(
+      `GTFS bundle is less than ${STALE_AFTER_HOURS}h old — skipping download. ` +
+        `Use --force to refresh anyway.`,
+    );
+    return;
+  }
+
   const zipBytes = await downloadZip(MARTA_GTFS_URL);
   console.log(`Downloaded ${zipBytes.length} bytes`);
 

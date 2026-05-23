@@ -283,7 +283,9 @@ The pure parse + transform logic lives in `packages/web/src/buildtime/preprocess
 
 The runtime loader (`services/gtfsStatic.ts`) loads these 5 files in parallel on app startup and exposes query functions like `getScheduledVisitsForStop(bundle, stopId, date)`.
 
-**Trigger:** `pnpm --filter @atl-transit/web preprocess-gtfs` runs the script directly today; will be wired into `prebuild` once Vite is added. A scheduled GitHub Action pushes an empty commit **nightly at 08:00 UTC** (4am EDT in summer, 3am EST in winter — before MARTA's earliest morning service) to trigger a fresh Vercel build, keeping the bundled static data current without manual intervention. See ADR-0004.
+**Trigger:** `pnpm --filter @atl-transit/web preprocess-gtfs` runs the script directly today; will be wired into `prebuild` once Vite is added.
+
+**Freshness skip:** the script checks whether `packages/web/public/gtfs/stops.json` exists and was modified less than 24 hours ago. If yes, it skips the download and exits — so local dev builds are instant after the first run. Vercel containers are ephemeral (no cache between builds), so production always downloads fresh anyway. Pass `--force` to bypass the check and refresh on demand. A scheduled GitHub Action pushes an empty commit **nightly at 08:00 UTC** (4am EDT in summer, 3am EST in winter — before MARTA's earliest morning service) to trigger a fresh Vercel build, keeping the bundled static data current without manual intervention. See ADR-0004.
 
 **Failure mode:** if the static-GTFS download fails during build, the build fails loudly. We don't ship an app with stale or missing schedule data.
 

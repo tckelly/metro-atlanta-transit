@@ -170,4 +170,23 @@ describe('getScheduledVisitsForStop', () => {
     const visits = getScheduledVisitsForStop(BUNDLE, 'S1', '20260522');
     expect(visits).toHaveLength(2);
   });
+
+  it('caps results at the provided count', () => {
+    // Bundle has T1 at 06:00 and T2 at 06:30 — both upcoming if now is 05:30.
+    // count=1 should return only the next one (T1).
+    const visits = getScheduledVisitsForStop(BUNDLE, 'S1', '20260522', {
+      nowSec: 1779444000 - 30 * 60,
+      count: 1,
+    });
+    expect(visits.map((v) => v.tripId)).toEqual(['T1']);
+  });
+
+  it('returns next visits even when they are hours away (no implicit time cap)', () => {
+    // Now is 05:00 EDT — first bus (T1 at 06:00) is an hour away. With no
+    // explicit windowSec, the result should still include it.
+    const visits = getScheduledVisitsForStop(BUNDLE, 'S1', '20260522', {
+      nowSec: 1779444000 - 60 * 60,
+    });
+    expect(visits.map((v) => v.tripId)).toEqual(['T1', 'T2']);
+  });
 });

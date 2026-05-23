@@ -117,13 +117,19 @@ export function getActiveServiceIds(bundle: GtfsBundle, date: string): Set<strin
 
 /** Buses up to this many seconds in the past stay visible (just-passed grace). */
 const PAST_GRACE_SEC = 60;
-/** Default forward window: show the next hour's scheduled visits. */
-const DEFAULT_WINDOW_SEC = 60 * 60;
+/** Default cap on number of upcoming visits returned. */
+const DEFAULT_COUNT = 5;
 
 export interface ScheduledVisitsWindow {
   /** Unix seconds — current time. When omitted, the function returns all visits for the day. */
   nowSec?: number;
-  /** Forward window length in seconds (default: 1 hour). Only used when nowSec is provided. */
+  /** Maximum number of upcoming visits to return. Default 5. Only used when `nowSec` is provided. */
+  count?: number;
+  /**
+   * Optional hard cap on how far ahead to look, in seconds. When omitted,
+   * the only cap is `count`. Useful for "show buses in the next hour"
+   * without surprises if a route has thousands of trips.
+   */
   windowSec?: number;
 }
 
@@ -131,10 +137,11 @@ export interface ScheduledVisitsWindow {
  * Return the scheduled visits at a stop on a given date, ordered by
  * scheduled time ascending. Output is ready for the classifier.
  *
- * When `nowSec` is supplied, the result is filtered to upcoming visits
- * (plus a small grace window for buses that just passed). The default
- * forward window is one hour — matches docs/ux-guidelines.md "next 60
- * minutes" rule.
+ * When `nowSec` is supplied, the result is the next `count` upcoming
+ * visits (with a small grace window for buses that just passed). Default
+ * count is 5 — enough that the user always sees a useful answer if any
+ * service runs today, no matter the time of day. An optional `windowSec`
+ * adds a hard time cap on top.
  */
 export function getScheduledVisitsForStop(
   bundle: GtfsBundle,
@@ -166,8 +173,9 @@ export function getScheduledVisitsForStop(
 
   if (window.nowSec === undefined) return sorted;
   const min = window.nowSec - PAST_GRACE_SEC;
-  const max = window.nowSec + (window.windowSec ?? DEFAULT_WINDOW_SEC);
-  return sorted.filter((v) => v.scheduledTime >= min && v.scheduledTime <= max);
+  const max = window.windowSec !== undefined ? window.nowSec + window.windowSec : Infinity;
+  const count = window.count ?? DEFAULT_COUNT;
+  return sorted.filter((v) => v.scheduledTime >= min && v.scheduledTime <= max).slice(0, count);
 }
 
 export function getStopMetadata(bundle: GtfsBundle, stopId: string): StopOut | undefined {

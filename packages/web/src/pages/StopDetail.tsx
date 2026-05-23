@@ -60,7 +60,7 @@ function StopDetailReady({ stopId, bundle }: { stopId: string; bundle: GtfsBundl
       {status === 'success' && rows.length === 0 && (
         <Message
           title="No upcoming buses"
-          body="No scheduled service at this stop right now."
+          body="No more buses scheduled at this stop today. Check back tomorrow morning, or try a different stop."
         />
       )}
 

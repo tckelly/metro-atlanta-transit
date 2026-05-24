@@ -39,11 +39,11 @@ function StopDetailReady({ stopId, bundle }: { stopId: string; bundle: GtfsBundl
   const { status, rows, lastUpdated, isStale, error, refresh } = useArrivals(stopId, bundle);
 
   const stop = getStopMetadata(bundle, stopId);
-  // Tick every 5s so the "Last updated …" text and any ETA countdowns
+  // Tick every 15s so the "Last updated …" text and any ETA countdowns
   // refresh visibly between data polls. Matches formatLastUpdated's
-  // 5-second bucket size — anything faster would re-render without
+  // 15-second bucket size — anything faster would re-render without
   // visible change.
-  const nowSec = useNowSec(5_000);
+  const nowSec = useNowSec(15_000);
 
   return (
     <div className="space-y-4">

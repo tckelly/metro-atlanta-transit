@@ -117,7 +117,7 @@ describe('useArrivals', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('polls every 30 seconds while visible', async () => {
+  it('polls every 60 seconds while visible', async () => {
     const fetchMock = mockFetchWith(tuBytes);
     renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }));
 
@@ -125,12 +125,12 @@ describe('useArrivals', () => {
     expect(tripUpdateCalls(fetchMock)).toBe(1);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(60_000);
     });
     expect(tripUpdateCalls(fetchMock)).toBe(2);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(60_000);
     });
     expect(tripUpdateCalls(fetchMock)).toBe(3);
   });
@@ -142,10 +142,12 @@ describe('useArrivals', () => {
     await flushPromises();
     expect(tripUpdateCalls(fetchMock)).toBe(1);
 
-    // Hide the tab — the scheduled poll should be cancelled
+    // Hide the tab — the scheduled poll should be cancelled. Advance
+    // past two full polling cycles to make sure we're not just inside
+    // the first one.
     await act(async () => {
       setVisibility('hidden');
-      await vi.advanceTimersByTimeAsync(60_000);
+      await vi.advanceTimersByTimeAsync(120_000);
     });
     expect(tripUpdateCalls(fetchMock)).toBe(1);
 
@@ -172,7 +174,7 @@ describe('useArrivals', () => {
     ok.mockImplementationOnce(async () => new Response('', { status: 503 }));
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(60_000);
     });
     await flushPromises();
 

@@ -6,23 +6,22 @@ import { formatLastUpdated } from './formatLastUpdated';
 const NOW = 1779465600;
 
 describe('formatLastUpdated', () => {
-  it('shows "now" for ages under 5 seconds', () => {
+  it('shows "now" for ages under 15 seconds', () => {
     expect(formatLastUpdated(NOW, NOW)).toBe('now');
-    expect(formatLastUpdated(NOW - 2, NOW)).toBe('now');
-    expect(formatLastUpdated(NOW - 4, NOW)).toBe('now');
+    expect(formatLastUpdated(NOW - 5, NOW)).toBe('now');
+    expect(formatLastUpdated(NOW - 14, NOW)).toBe('now');
   });
 
-  it('switches to "5 seconds ago" at exactly 5 seconds', () => {
-    expect(formatLastUpdated(NOW - 5, NOW)).toBe('5 seconds ago');
+  it('switches to "15 seconds ago" at exactly 15 seconds', () => {
+    expect(formatLastUpdated(NOW - 15, NOW)).toBe('15 seconds ago');
   });
 
-  it('buckets sub-minute ages to the nearest 5 seconds (floored)', () => {
-    expect(formatLastUpdated(NOW - 9, NOW)).toBe('5 seconds ago');
-    expect(formatLastUpdated(NOW - 10, NOW)).toBe('10 seconds ago');
-    expect(formatLastUpdated(NOW - 14, NOW)).toBe('10 seconds ago');
+  it('buckets sub-minute ages to the nearest 15 seconds (floored)', () => {
+    expect(formatLastUpdated(NOW - 29, NOW)).toBe('15 seconds ago');
     expect(formatLastUpdated(NOW - 30, NOW)).toBe('30 seconds ago');
+    expect(formatLastUpdated(NOW - 44, NOW)).toBe('30 seconds ago');
     expect(formatLastUpdated(NOW - 45, NOW)).toBe('45 seconds ago');
-    expect(formatLastUpdated(NOW - 59, NOW)).toBe('55 seconds ago');
+    expect(formatLastUpdated(NOW - 59, NOW)).toBe('45 seconds ago');
   });
 
   it('switches to minutes at 60 seconds', () => {

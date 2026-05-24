@@ -5,8 +5,13 @@ import { getScheduledVisitsForStop } from '../../services/gtfsStatic';
 import { classifyBusRows, type ClassifiedBusRow } from './busRowClassifier';
 import type { GtfsBundle } from '../../buildtime/preprocessGtfs';
 
-/** 30 seconds — matches MARTA's own feed cadence (see docs/data-and-apis.md). */
-const POLL_INTERVAL_MS = 30_000;
+/**
+ * 60 seconds — half of MARTA's own ~30s feed cadence. Slightly stale
+ * data is acceptable for the "is my bus coming?" use case, and easier
+ * on phone battery / network than polling at the feed's natural rate.
+ * See docs/data-and-apis.md.
+ */
+const POLL_INTERVAL_MS = 60_000;
 
 export interface UseArrivalsResult {
   status: 'loading' | 'success' | 'error';

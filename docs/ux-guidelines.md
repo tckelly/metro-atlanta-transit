@@ -33,7 +33,7 @@ Status colors form the semantic spine of the UI. They are not used for decoratio
 
 Each token becomes a Tailwind utility prefix: `bg-status-live`, `text-fg-muted`, `border-divider`, etc. Opacity modifiers work too (`bg-status-live/10`) thanks to the `<alpha-value>` substitution.
 
-All status colors must pass **WCAG 2.1 AA contrast (4.5:1)** on both `surface` and `surface-elevated`, in both light and dark modes. The chosen tokens above are verified. **Never communicate status with color alone** — pair with text and/or icon.
+All status colors must pass **WCAG 2.2 AA contrast (4.5:1)** on both `surface` and `surface-elevated`, in both light and dark modes. The chosen tokens above are verified. **Never communicate status with color alone** — pair with text and/or icon.
 
 The dark-mode shades are intentionally *lighter* than their light-mode counterparts. Saturated dark-color status badges (e.g., `red-600` on a near-black background) look harsh and fail contrast; the `-400` variants land in the sweet spot for vividness and readability.
 
@@ -90,13 +90,15 @@ Sparing use. Always paired with a text label or `aria-label`. Recommended icons 
 
 How components are built. These rules apply to every component in `@atl-transit/components`.
 
-### Brand flows in one direction: tokens → preset → variants
+### Brand flows in one direction: tokens → preset → consumption
+
+**The brand should be reachable from a single edit.** Brand values — color, typography, surface — are addressed through semantic tokens defined in `@atl-transit/components/tailwind-preset.ts`, not through raw palette classes anywhere in the repo. A brand refresh should edit the preset, not require archaeology across pages and components. If no token fits, add one to the preset before using it.
+
+This rule applies to **all** packages — `@atl-transit/components`, `@atl-transit/web`, and any future package alike. Pages and features in the webapp may not reach for raw Tailwind palette classes (`bg-green-500`, `text-gray-700`) any more than components may.
 
 1. **Tokens** in `packages/components/src/tokens/` are the source of truth for the brand. Named semantic roles (`statusLive`, `statusCancelled`, `primary`), not raw hex strings scattered through code.
 2. The **Tailwind preset** in `packages/components/src/tailwind-preset.ts` maps those tokens onto Tailwind's theme, producing class names like `bg-status-live` and `text-status-cancelled`. The webapp's Tailwind config extends this preset and inherits the same names.
-3. **Components consume tokens via variants**, never by writing hex codes or by re-declaring colors. If a component needs a color, that color must already exist as a token.
-
-This means the only way to change the brand is to change a token. Single point of edit, no drift.
+3. **All consumers — components, pages, and features — address brand values via tokens**, never by writing hex codes or by re-declaring colors. If a piece of UI needs a color that doesn't exist as a token, add the token to the preset first, then use it.
 
 ### Variants declared via CVA
 

@@ -61,6 +61,7 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 - **Self-documenting names.** Code should read clearly without comments. Add comments only for non-obvious intent, trade-offs, or workarounds.
 - **Conservative dependencies.** Don't add a package for something we can do simply. Justify new dependencies.
 - **No premature abstraction.** Build for what we need now. Don't speculate on future functionality or over-engineer.
+- **Brand values through semantic tokens.** Color, typography, and surface come from the design-system preset, never raw Tailwind palette classes. A brand refresh should be a single edit. See `docs/ux-guidelines.md`.
 
 ### Architecture
 
@@ -83,16 +84,15 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 - Semantic HTML elements (`nav`, `main`, `article`, `button` not `div` with onClick).
 - ARIA labels where semantic HTML isn't sufficient.
 - Keyboard navigation for all interactive elements.
-- Color contrast meeting WCAG 2.1 AA minimum.
+- Color contrast meeting WCAG 2.2 AA minimum.
 - Screen reader tested for core flows.
 
 ## Testing
 
-- **TDD for complex logic.** Write tests first for business logic, data transformations, and tricky workflows. This yields better-designed code.
-- **Tests after for UI.** Writing UI component tests after implementation is fine.
+- **TDD for non-trivial logic — run the failing test before writing the implementation.** A test that's never been red doesn't prove it can catch a regression; it only proves the assertion matches today's code. Tests-after is fine for UI components and trivial glue.
 - **Focus areas:** API response parsing, cache logic, geolocation calculations, arrival time formatting, error/edge cases.
 - **Don't skip type safety for convenience.** Tests should use proper types, not `any` shortcuts.
-- **Mock at boundaries, not modules.** Stub network (`fetch`), time (`vi.useFakeTimers`), and browser APIs (geolocation, `visibilitychange`). Never `vi.mock` an internal module — that's a signal the seams are wrong.
+- **Tests should not rewrite the module graph.** Reaching into another module's identity to swap it out couples the test to import paths and consumer wiring, and usually signals that the unit under test has no seam to receive its dependencies — pass collaborators in instead. `vi.mock` is a last resort; when you reach for it, leave a comment naming the seam that was missing.
 - **Prefer real fixtures over synthesized inputs.** The `sample-data/` snapshots are the truth; tests built against them catch real schema drift.
 - **Behavior over implementation.** Assert what a user (or screen reader) perceives — text, roles, ARIA state. Avoid asserting on CSS class strings or internal data shapes.
 - **Testing library:** Vitest + React Testing Library for units; MSW for hook/integration tests that exercise the fetch pipeline; Playwright for E2E (later).

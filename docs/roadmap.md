@@ -113,7 +113,7 @@ The "this is shippable, not just functional" pass. Now includes a small backend,
 
 **Done when:**
 
-- Accessibility audit completed: keyboard nav, screen reader on three core flows, WCAG 2.1 AA contrast verified in both light and dark modes, ARIA live regions on the "last updated" indicator and disruption badges.
+- Accessibility audit completed: keyboard nav, screen reader on three core flows, WCAG 2.2 AA contrast verified in both light and dark modes, ARIA live regions on the "last updated" indicator and disruption badges.
 - Dark mode QA on every screen.
 - All user-facing strings in `i18n/en.json` and `i18n/es.json`. Spanish translations reviewed (ideally by a native speaker; minimally by careful review against a glossary).
 - Error boundaries at every route. Network failure, geolocation denial, static GTFS missing all have explicit UX states.

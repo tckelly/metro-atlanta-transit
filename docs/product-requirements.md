@@ -108,7 +108,7 @@ These apply to every screen and feature.
 
 ### Accessibility *(Must-have)*
 
-- Meet WCAG 2.1 AA on every shipped screen.
+- Meet WCAG 2.2 AA on every shipped screen.
 - Semantic HTML: `nav`, `main`, `article`, real `<button>` elements.
 - Keyboard-navigable: every interactive element reachable via Tab, activatable via Enter/Space.
 - Screen-reader tested on the three core flows (favorites view, stop detail, nearby stops).

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { decodeTripUpdates, type TripUpdate } from '@atl-transit/gtfs';
+import { decodeTripUpdates, type TripUpdate, type VehiclePosition } from '@atl-transit/gtfs';
 
 import { classifyBusRows, type ScheduledStopVisit } from './busRowClassifier';
 
@@ -19,6 +19,19 @@ function fakeTrip(overrides: Partial<TripUpdate>): TripUpdate {
     routeId: 'FAKE_ROUTE',
     scheduleRelationship: 'SCHEDULED',
     stopTimeUpdates: [],
+    ...overrides,
+  };
+}
+
+// Build a synthetic VehiclePosition for fabricated cases.
+function fakeVehicle(overrides: Partial<VehiclePosition>): VehiclePosition {
+  return {
+    vehicleId: 'V1',
+    tripId: 'FAKE',
+    routeId: 'FAKE_ROUTE',
+    latitude: 33.7,
+    longitude: -84.4,
+    timestamp: 1779465600,
     ...overrides,
   };
 }
@@ -39,6 +52,7 @@ describe('classifyBusRows', () => {
     const rows = classifyBusRows({
       scheduledVisits,
       tripUpdates: realTripUpdates,
+      vehiclePositions: [],
       stopId: '134013',
     });
 
@@ -68,6 +82,7 @@ describe('classifyBusRows', () => {
     const rows = classifyBusRows({
       scheduledVisits,
       tripUpdates: realTripUpdates,
+      vehiclePositions: [],
       stopId: '213374',
     });
 
@@ -91,6 +106,7 @@ describe('classifyBusRows', () => {
     const rows = classifyBusRows({
       scheduledVisits,
       tripUpdates: [],
+      vehiclePositions: [],
       stopId: '134013',
     });
 
@@ -111,6 +127,7 @@ describe('classifyBusRows', () => {
     const rows = classifyBusRows({
       scheduledVisits,
       tripUpdates: realTripUpdates,
+      vehiclePositions: [],
       stopId: 'STOP_NOT_ON_THIS_TRIP',
     });
 
@@ -143,7 +160,12 @@ describe('classifyBusRows', () => {
       },
     ];
 
-    const rows = classifyBusRows({ scheduledVisits, tripUpdates, stopId: 'OUR_STOP' });
+    const rows = classifyBusRows({
+      scheduledVisits,
+      tripUpdates,
+      vehiclePositions: [],
+      stopId: 'OUR_STOP',
+    });
     expect(rows[0]?.status).toBe('cancelled');
   });
 
@@ -153,7 +175,158 @@ describe('classifyBusRows', () => {
       { tripId: 'B', routeId: '1', stopId: 'X', scheduledTime: 1779468000, headsign: 'X' },
       { tripId: 'C', routeId: '1', stopId: 'X', scheduledTime: 1779469000, headsign: 'X' },
     ];
-    const rows = classifyBusRows({ scheduledVisits, tripUpdates: [], stopId: 'X' });
+    const rows = classifyBusRows({
+      scheduledVisits,
+      tripUpdates: [],
+      vehiclePositions: [],
+      stopId: 'X',
+    });
     expect(rows.map((r) => r.scheduledTime)).toEqual([1779468000, 1779469000, 1779470000]);
+  });
+
+  it('attaches occupancyStatus to a live row when a matching vehicle reports it', () => {
+    const scheduledVisits: ScheduledStopVisit[] = [
+      {
+        tripId: 'TRIP_LIVE',
+        routeId: '36',
+        stopId: 'OUR_STOP',
+        scheduledTime: 1779470000,
+        headsign: 'Somewhere',
+      },
+    ];
+    const tripUpdates: TripUpdate[] = [
+      fakeTrip({
+        tripId: 'TRIP_LIVE',
+        routeId: '36',
+        stopTimeUpdates: [
+          {
+            stopSequence: 1,
+            stopId: 'OUR_STOP',
+            scheduleRelationship: 'SCHEDULED',
+            arrivalTime: 1779470100,
+          },
+        ],
+      }),
+    ];
+    const vehiclePositions: VehiclePosition[] = [
+      fakeVehicle({ tripId: 'TRIP_LIVE', occupancyStatus: 'FEW_SEATS_AVAILABLE' }),
+    ];
+
+    const rows = classifyBusRows({ scheduledVisits, tripUpdates, vehiclePositions, stopId: 'OUR_STOP' });
+    expect(rows[0]?.status).toBe('live');
+    expect(rows[0]?.occupancy).toBe('FEW_SEATS_AVAILABLE');
+  });
+
+  it('omits occupancy when the matching vehicle does not report it', () => {
+    const scheduledVisits: ScheduledStopVisit[] = [
+      {
+        tripId: 'TRIP_LIVE',
+        routeId: '36',
+        stopId: 'OUR_STOP',
+        scheduledTime: 1779470000,
+        headsign: 'Somewhere',
+      },
+    ];
+    const tripUpdates: TripUpdate[] = [
+      fakeTrip({
+        tripId: 'TRIP_LIVE',
+        stopTimeUpdates: [
+          {
+            stopSequence: 1,
+            stopId: 'OUR_STOP',
+            scheduleRelationship: 'SCHEDULED',
+            arrivalTime: 1779470100,
+          },
+        ],
+      }),
+    ];
+    const vehiclePositions: VehiclePosition[] = [
+      // matched by tripId but no occupancyStatus reported
+      fakeVehicle({ tripId: 'TRIP_LIVE' }),
+    ];
+
+    const rows = classifyBusRows({ scheduledVisits, tripUpdates, vehiclePositions, stopId: 'OUR_STOP' });
+    expect(rows[0]?.status).toBe('live');
+    expect(rows[0]?.occupancy).toBeUndefined();
+  });
+
+  it('omits occupancy when no vehicle is matched to the trip', () => {
+    const scheduledVisits: ScheduledStopVisit[] = [
+      {
+        tripId: 'TRIP_LIVE',
+        routeId: '36',
+        stopId: 'OUR_STOP',
+        scheduledTime: 1779470000,
+        headsign: 'Somewhere',
+      },
+    ];
+    const tripUpdates: TripUpdate[] = [
+      fakeTrip({
+        tripId: 'TRIP_LIVE',
+        stopTimeUpdates: [
+          {
+            stopSequence: 1,
+            stopId: 'OUR_STOP',
+            scheduleRelationship: 'SCHEDULED',
+            arrivalTime: 1779470100,
+          },
+        ],
+      }),
+    ];
+
+    const rows = classifyBusRows({
+      scheduledVisits,
+      tripUpdates,
+      vehiclePositions: [],
+      stopId: 'OUR_STOP',
+    });
+    expect(rows[0]?.status).toBe('live');
+    expect(rows[0]?.occupancy).toBeUndefined();
+  });
+
+  it('never attaches occupancy to a cancelled row even when the vehicle reports it', () => {
+    const scheduledVisits: ScheduledStopVisit[] = [
+      {
+        tripId: 'TRIP_CANCEL',
+        routeId: '36',
+        stopId: 'OUR_STOP',
+        scheduledTime: 1779470000,
+        headsign: 'Somewhere',
+      },
+    ];
+    const tripUpdates: TripUpdate[] = [
+      fakeTrip({ tripId: 'TRIP_CANCEL', scheduleRelationship: 'CANCELED' }),
+    ];
+    const vehiclePositions: VehiclePosition[] = [
+      fakeVehicle({ tripId: 'TRIP_CANCEL', occupancyStatus: 'MANY_SEATS_AVAILABLE' }),
+    ];
+
+    const rows = classifyBusRows({ scheduledVisits, tripUpdates, vehiclePositions, stopId: 'OUR_STOP' });
+    expect(rows[0]?.status).toBe('cancelled');
+    expect(rows[0]?.occupancy).toBeUndefined();
+  });
+
+  it('never attaches occupancy to a no_live_data row', () => {
+    const scheduledVisits: ScheduledStopVisit[] = [
+      {
+        tripId: 'TRIP_GHOST',
+        routeId: '36',
+        stopId: 'OUR_STOP',
+        scheduledTime: 1779470000,
+        headsign: 'Somewhere',
+      },
+    ];
+    const vehiclePositions: VehiclePosition[] = [
+      fakeVehicle({ tripId: 'TRIP_GHOST', occupancyStatus: 'MANY_SEATS_AVAILABLE' }),
+    ];
+
+    const rows = classifyBusRows({
+      scheduledVisits,
+      tripUpdates: [],
+      vehiclePositions,
+      stopId: 'OUR_STOP',
+    });
+    expect(rows[0]?.status).toBe('no_live_data');
+    expect(rows[0]?.occupancy).toBeUndefined();
   });
 });

@@ -143,6 +143,69 @@ describe('toBusRowProps — cancelled', () => {
   });
 });
 
+describe('toBusRowProps — occupancy', () => {
+  it('appends "Seats available" for EMPTY', () => {
+    const props = toBusRowProps(liveRow({ occupancy: 'EMPTY' }), NOW_SEC);
+    expect(props.secondaryText).toMatch(/Seats available/);
+  });
+
+  it('appends "Seats available" for MANY_SEATS_AVAILABLE', () => {
+    const props = toBusRowProps(liveRow({ occupancy: 'MANY_SEATS_AVAILABLE' }), NOW_SEC);
+    expect(props.secondaryText).toMatch(/Seats available/);
+  });
+
+  it('appends "Filling up" for FEW_SEATS_AVAILABLE', () => {
+    const props = toBusRowProps(liveRow({ occupancy: 'FEW_SEATS_AVAILABLE' }), NOW_SEC);
+    expect(props.secondaryText).toMatch(/Filling up/);
+  });
+
+  it('appends "Standing room only" for STANDING_ROOM_ONLY', () => {
+    const props = toBusRowProps(liveRow({ occupancy: 'STANDING_ROOM_ONLY' }), NOW_SEC);
+    expect(props.secondaryText).toMatch(/Standing room only/);
+  });
+
+  it('appends "Very crowded" for CRUSHED_STANDING_ROOM_ONLY and FULL', () => {
+    expect(
+      toBusRowProps(liveRow({ occupancy: 'CRUSHED_STANDING_ROOM_ONLY' }), NOW_SEC).secondaryText,
+    ).toMatch(/Very crowded/);
+    expect(toBusRowProps(liveRow({ occupancy: 'FULL' }), NOW_SEC).secondaryText).toMatch(
+      /Very crowded/,
+    );
+  });
+
+  it('appends "Not accepting riders" for NOT_ACCEPTING_PASSENGERS', () => {
+    const props = toBusRowProps(liveRow({ occupancy: 'NOT_ACCEPTING_PASSENGERS' }), NOW_SEC);
+    expect(props.secondaryText).toMatch(/Not accepting riders/);
+  });
+
+  it('omits the label entirely for NO_DATA_AVAILABLE and NOT_BOARDABLE', () => {
+    // These categorical values aren't meaningful to passengers — treat as absent.
+    const noData = toBusRowProps(liveRow({ occupancy: 'NO_DATA_AVAILABLE' }), NOW_SEC);
+    const notBoardable = toBusRowProps(liveRow({ occupancy: 'NOT_BOARDABLE' }), NOW_SEC);
+    expect(noData.secondaryText).not.toMatch(/Seats|crowded|riders|Filling|Standing/);
+    expect(notBoardable.secondaryText).not.toMatch(/Seats|crowded|riders|Filling|Standing/);
+  });
+
+  it('omits the label entirely when occupancy is not reported', () => {
+    // No `occupancy` set on the row at all — the default for ~45% of buses.
+    const props = toBusRowProps(liveRow(), NOW_SEC);
+    expect(props.secondaryText).not.toMatch(/Seats|crowded|riders|Filling|Standing/);
+  });
+
+  it('keeps occupancy text separate from delay text in the secondary line', () => {
+    const props = toBusRowProps(
+      liveRow({
+        predictedTime: NOW_SEC + 600,
+        delaySec: 240,
+        occupancy: 'FEW_SEATS_AVAILABLE',
+      }),
+      NOW_SEC,
+    );
+    expect(props.secondaryText).toMatch(/4 min late/);
+    expect(props.secondaryText).toMatch(/Filling up/);
+  });
+});
+
 describe('toBusRowProps — no live data', () => {
   it('shows the scheduled time as the primary text', () => {
     const row: ClassifiedBusRow = {

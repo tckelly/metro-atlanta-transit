@@ -1,11 +1,13 @@
 import { Link, useParams } from 'react-router-dom';
-import { BusRow } from '@atl-transit/components';
+import { BusRow, Icon } from '@atl-transit/components';
 
 import { useArrivals } from '../features/stops/useArrivals';
 import { useGtfsBundle } from '../services/useGtfsBundle';
 import { toBusRowProps } from '../features/stops/busRowMapper';
-import { getStopMetadata } from '../services/gtfsStatic';
+import { groupRowsByRoute, type RouteGroup } from '../features/stops/groupRowsByRoute';
+import { getRouteMetadata, getStopMetadata } from '../services/gtfsStatic';
 import { formatLastUpdated } from '../utils/formatLastUpdated';
+import { freshnessTier, type FreshnessTier } from '../utils/freshnessTier';
 import { useNowSec } from '../utils/useNowSec';
 import type { GtfsBundle } from '../buildtime/preprocessGtfs';
 
@@ -34,7 +36,7 @@ export function StopDetail() {
 }
 
 function StopDetailReady({ stopId, bundle }: { stopId: string; bundle: GtfsBundle }) {
-  const { status, rows, lastUpdated, isStale, error } = useArrivals(stopId, bundle);
+  const { status, rows, lastUpdated, isStale, error, refresh } = useArrivals(stopId, bundle);
 
   const stop = getStopMetadata(bundle, stopId);
   // Tick every 15s so the "Last updated …" text and any ETA countdowns
@@ -69,21 +71,96 @@ function StopDetailReady({ stopId, bundle }: { stopId: string; bundle: GtfsBundl
       )}
 
       {status === 'success' && rows.length > 0 && (
-        <ul className="divide-y divide-divider">
-          {rows.map((row) => {
-            const props = toBusRowProps(row, nowSec);
-            return <BusRow key={row.tripId} {...props} />;
-          })}
-        </ul>
+        <div className="space-y-6">
+          {groupRowsByRoute(rows).map((group) => (
+            <RouteSection key={`${group.routeId} ${group.headsign}`} group={group} bundle={bundle} nowSec={nowSec} />
+          ))}
+        </div>
       )}
 
-      {lastUpdated !== null && (
-        <p className="text-xs text-fg-muted" aria-live="polite">
-          {isStale ? 'Couldn’t refresh — ' : ''}
-          Last updated {formatLastUpdated(lastUpdated, nowSec)}
-        </p>
+      {(status === 'success' || status === 'error') && (
+        <div className="flex items-center justify-between gap-3">
+          <span>
+            {lastUpdated !== null && (
+              <LastUpdatedIndicator
+                tier={freshnessTier({ lastUpdatedSec: lastUpdated, isStale, nowSec })}
+                lastUpdated={lastUpdated}
+                nowSec={nowSec}
+              />
+            )}
+          </span>
+          <RefreshButton onClick={refresh} />
+        </div>
       )}
     </div>
+  );
+}
+
+function RefreshButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-divider px-3 text-sm font-medium text-fg hover:bg-surface-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      <Icon name="refresh" />
+      Refresh
+    </button>
+  );
+}
+
+function RouteSection({
+  group,
+  bundle,
+  nowSec,
+}: {
+  group: RouteGroup;
+  bundle: GtfsBundle;
+  nowSec: number;
+}) {
+  const route = getRouteMetadata(bundle, group.routeId);
+  const shortName = route?.shortName ?? group.routeId;
+  return (
+    <section>
+      <h2 className="text-base font-semibold text-fg">
+        Route {shortName} — {group.headsign}
+      </h2>
+      <ul className="mt-2 divide-y divide-divider">
+        {group.rows.map((row) => {
+          const props = toBusRowProps(row, nowSec);
+          return <BusRow key={row.tripId} {...props} />;
+        })}
+      </ul>
+    </section>
+  );
+}
+
+const TIER_CLASS: Record<FreshnessTier, string> = {
+  fresh: 'text-fg-muted',
+  stale: 'text-status-warn',
+  very_stale: 'text-status-cancelled',
+};
+
+const TIER_SUFFIX: Record<FreshnessTier, string> = {
+  fresh: '',
+  stale: ' — couldn’t refresh',
+  very_stale: ' — data may be wrong',
+};
+
+function LastUpdatedIndicator({
+  tier,
+  lastUpdated,
+  nowSec,
+}: {
+  tier: FreshnessTier;
+  lastUpdated: number;
+  nowSec: number;
+}) {
+  return (
+    <p className={`text-xs ${TIER_CLASS[tier]}`} aria-live="polite">
+      Last updated {formatLastUpdated(lastUpdated, nowSec)}
+      {TIER_SUFFIX[tier]}
+    </p>
   );
 }
 

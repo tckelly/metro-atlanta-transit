@@ -1,4 +1,5 @@
 import type { BusRowProps } from '@atl-transit/components';
+import type { OccupancyStatus } from '@atl-transit/gtfs';
 
 import type { ClassifiedBusRow } from './busRowClassifier';
 
@@ -48,6 +49,32 @@ function formatDelay(delaySec: number): string | undefined {
   return delaySec > 0 ? `${minutes} min late` : `${minutes} min early`;
 }
 
+/**
+ * Translate a GTFS-RT OccupancyStatus into the passenger-facing label per
+ * docs/ux-guidelines.md. Returns undefined for values we don't surface
+ * (NO_DATA_AVAILABLE, NOT_BOARDABLE) so callers can omit the segment.
+ */
+function occupancyLabel(status: OccupancyStatus | undefined): string | undefined {
+  switch (status) {
+    case 'EMPTY':
+    case 'MANY_SEATS_AVAILABLE':
+      return 'Seats available';
+    case 'FEW_SEATS_AVAILABLE':
+      return 'Filling up';
+    case 'STANDING_ROOM_ONLY':
+      return 'Standing room only';
+    case 'CRUSHED_STANDING_ROOM_ONLY':
+    case 'FULL':
+      return 'Very crowded';
+    case 'NOT_ACCEPTING_PASSENGERS':
+      return 'Not accepting riders';
+    case 'NO_DATA_AVAILABLE':
+    case 'NOT_BOARDABLE':
+    case undefined:
+      return undefined;
+  }
+}
+
 export function toBusRowProps(row: ClassifiedBusRow, nowSec: number): BusRowProps {
   const scheduledStr = formatScheduledTime(row.scheduledTime);
 
@@ -76,9 +103,10 @@ export function toBusRowProps(row: ClassifiedBusRow, nowSec: number): BusRowProp
   const isDelayed = delaySec > DELAYED_THRESHOLD_SEC;
 
   const delayLabel = formatDelay(delaySec);
-  const secondaryText = delayLabel
-    ? `Scheduled ${scheduledStr} · ${delayLabel}`
-    : `Scheduled ${scheduledStr}`;
+  const occupancyText = occupancyLabel(row.occupancy);
+  const secondaryText = [`Scheduled ${scheduledStr}`, delayLabel, occupancyText]
+    .filter((part): part is string => part !== undefined)
+    .join(' · ');
 
   return {
     primaryText: formatEta(predictedSec, nowSec),

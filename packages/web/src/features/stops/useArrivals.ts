@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { fetchTripUpdates } from '../../services/martaRealtime';
+import { fetchTripUpdates, fetchVehiclePositions } from '../../services/martaRealtime';
 import { getScheduledVisitsForStop } from '../../services/gtfsStatic';
 import { classifyBusRows, type ClassifiedBusRow } from './busRowClassifier';
 import type { GtfsBundle } from '../../buildtime/preprocessGtfs';
@@ -75,15 +75,34 @@ export function useArrivals(
     abortRef.current = controller;
 
     try {
-      const feed = await fetchTripUpdates(controller.signal);
+      // Fetch both feeds in parallel. Vehicle positions are a secondary
+      // signal (only ~55% of buses report occupancy per data-and-apis.md),
+      // so a vehicle-positions failure must not break primary arrivals —
+      // we keep the user's "is my bus coming?" answer working and drop
+      // only the occupancy column.
+      const [tripResult, vehicleResult] = await Promise.allSettled([
+        fetchTripUpdates(controller.signal),
+        fetchVehiclePositions(controller.signal),
+      ]);
       if (controller.signal.aborted) return;
+
+      if (tripResult.status === 'rejected') {
+        throw tripResult.reason instanceof Error
+          ? tripResult.reason
+          : new Error(String(tripResult.reason));
+      }
+
+      const vehiclePositions =
+        vehicleResult.status === 'fulfilled' ? vehicleResult.value.vehicles : [];
+
       // Recompute scheduled visits with the current time, so the forward
       // window slides with each poll instead of being frozen at mount.
       const nowSec = Math.floor(Date.now() / 1000);
       const scheduledVisits = getScheduledVisitsForStop(bundle, stopId, date, { nowSec });
       const rows = classifyBusRows({
         scheduledVisits,
-        tripUpdates: feed.trips,
+        tripUpdates: tripResult.value.trips,
+        vehiclePositions,
         stopId,
       });
       setState({

@@ -1,4 +1,4 @@
-import type { TripUpdate } from '@atl-transit/gtfs';
+import type { OccupancyStatus, TripUpdate, VehiclePosition } from '@atl-transit/gtfs';
 
 /**
  * Status of a single scheduled bus at a stop. Carries the "show all buses,
@@ -38,11 +38,18 @@ export interface ClassifiedBusRow {
   predictedTime?: number;
   /** predictedTime - scheduledTime; negative if ahead of schedule. */
   delaySec?: number;
+  /**
+   * Vehicle-reported occupancy, present only when `status === 'live'` AND
+   * a matching VehiclePosition reports `occupancyStatus`. About 55% of
+   * in-progress MARTA buses report this — see docs/data-and-apis.md.
+   */
+  occupancy?: OccupancyStatus;
 }
 
 export interface ClassifyInput {
   scheduledVisits: ScheduledStopVisit[];
   tripUpdates: TripUpdate[];
+  vehiclePositions: VehiclePosition[];
   stopId: string;
 }
 
@@ -53,8 +60,9 @@ export interface ClassifyInput {
  * no scheduled bus is ever silently dropped.
  */
 export function classifyBusRows(input: ClassifyInput): ClassifiedBusRow[] {
-  const { scheduledVisits, tripUpdates, stopId } = input;
+  const { scheduledVisits, tripUpdates, vehiclePositions, stopId } = input;
   const updatesByTripId = new Map(tripUpdates.map((t) => [t.tripId, t]));
+  const vehiclesByTripId = new Map(vehiclePositions.map((v) => [v.tripId, v]));
 
   const rows = scheduledVisits.map((visit): ClassifiedBusRow => {
     const baseRow = {
@@ -81,11 +89,13 @@ export function classifyBusRows(input: ClassifyInput): ClassifiedBusRow[] {
     }
 
     if (stopUpdate?.arrivalTime !== undefined) {
+      const occupancy = vehiclesByTripId.get(visit.tripId)?.occupancyStatus;
       return {
         ...baseRow,
         status: 'live',
         predictedTime: stopUpdate.arrivalTime,
         delaySec: stopUpdate.arrivalTime - visit.scheduledTime,
+        ...(occupancy !== undefined ? { occupancy } : {}),
       };
     }
 

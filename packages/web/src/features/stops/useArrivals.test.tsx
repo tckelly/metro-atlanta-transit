@@ -53,6 +53,18 @@ function mockFetchWith(bytes: Uint8Array): ReturnType<typeof vi.fn> {
   return fn;
 }
 
+/**
+ * Each refresh cycle fetches BOTH tripUpdates and vehiclePositions in
+ * parallel — counting raw calls would double-count. The cadence tests
+ * want to know how many *cycles* happened, which is one tripUpdates
+ * fetch per cycle.
+ */
+function tripUpdateCalls(fn: ReturnType<typeof vi.fn>): number {
+  return fn.mock.calls.filter(
+    ([url]) => typeof url === 'string' && url.includes('tripupdate'),
+  ).length;
+}
+
 function setVisibility(state: 'visible' | 'hidden'): void {
   Object.defineProperty(document, 'visibilityState', { value: state, configurable: true });
   document.dispatchEvent(new Event('visibilitychange'));
@@ -110,17 +122,17 @@ describe('useArrivals', () => {
     renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }));
 
     await flushPromises();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(tripUpdateCalls(fetchMock)).toBe(1);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(tripUpdateCalls(fetchMock)).toBe(2);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(tripUpdateCalls(fetchMock)).toBe(3);
   });
 
   it('pauses polling while the tab is hidden and resumes on visibility', async () => {
@@ -128,21 +140,21 @@ describe('useArrivals', () => {
     renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }));
 
     await flushPromises();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(tripUpdateCalls(fetchMock)).toBe(1);
 
     // Hide the tab — the scheduled poll should be cancelled
     await act(async () => {
       setVisibility('hidden');
       await vi.advanceTimersByTimeAsync(60_000);
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(tripUpdateCalls(fetchMock)).toBe(1);
 
     // Return to the tab — should fetch immediately
     await act(async () => {
       setVisibility('visible');
     });
     await flushPromises();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(tripUpdateCalls(fetchMock)).toBe(2);
   });
 
   it('marks data as stale (not error) when refresh fails after a prior success', async () => {
@@ -217,12 +229,49 @@ describe('useArrivals', () => {
     );
 
     await flushPromises();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(tripUpdateCalls(fetchMock)).toBe(1);
 
     await act(async () => {
       result.current.refresh();
     });
     await flushPromises();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(tripUpdateCalls(fetchMock)).toBe(2);
+  });
+
+  it('fetches both tripUpdates and vehiclePositions each cycle', async () => {
+    const fetchMock = mockFetchWith(tuBytes);
+    renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }));
+
+    await flushPromises();
+
+    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(urls.some((u) => u.includes('tripupdate'))).toBe(true);
+    expect(urls.some((u) => u.includes('vehiclepositions'))).toBe(true);
+  });
+
+  it('keeps primary data working when vehiclePositions fetch fails', async () => {
+    // tripUpdates succeeds, vehiclePositions 503s. Occupancy is a
+    // secondary signal — its absence should not surface as an error.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (String(url).includes('vehiclepositions')) {
+          return new Response('', { status: 503 });
+        }
+        return bytesToFreshResponse(tuBytes);
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useArrivals('134013', BUNDLE, { date: '20260522' }),
+    );
+
+    await flushPromises();
+
+    expect(result.current.status).toBe('success');
+    expect(result.current.isStale).toBe(false);
+    expect(result.current.error).toBeNull();
+    expect(result.current.rows).toHaveLength(1);
+    expect(result.current.rows[0]?.occupancy).toBeUndefined();
   });
 });

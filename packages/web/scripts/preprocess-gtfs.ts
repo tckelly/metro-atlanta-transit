@@ -31,17 +31,23 @@ const SQLITE_DIR = join(here, '..', 'api', '_data');
 const SQLITE_PATH = join(SQLITE_DIR, 'gtfs.sqlite');
 
 /**
- * Returns true when the bundled GTFS data exists and is less than
- * STALE_AFTER_HOURS old. Lets local dev skip the network round trip
- * on subsequent builds without serving stale data indefinitely.
+ * Returns true when *all* bundled GTFS artifacts (small JSON + the
+ * backend SQLite) exist and the JSON is less than STALE_AFTER_HOURS
+ * old. Both must be present — a missing SQLite from a previously-
+ * failed run shouldn't be hidden by a recent stops.json mtime, or
+ * we'd skip the next build and ship an inconsistent state.
  *
  * Vercel containers are ephemeral, so production never has a cache
  * hit here — the nightly cron always downloads fresh.
  */
 async function isBundleFresh(): Promise<boolean> {
   try {
-    const s = await stat(join(JSON_OUT_DIR, 'stops.json'));
-    const ageHours = (Date.now() - s.mtimeMs) / (1000 * 60 * 60);
+    const [stopsStat] = await Promise.all([
+      stat(join(JSON_OUT_DIR, 'stops.json')),
+      stat(join(JSON_OUT_DIR, 'routes.json')),
+      stat(SQLITE_PATH),
+    ]);
+    const ageHours = (Date.now() - stopsStat.mtimeMs) / (1000 * 60 * 60);
     return ageHours < STALE_AFTER_HOURS;
   } catch {
     return false;

@@ -30,4 +30,20 @@ describe('Icon', () => {
     const { container } = render(<Icon name="clock" />);
     expect(container.querySelector('svg')).toHaveAttribute('stroke', 'currentColor');
   });
+
+  it('renders the outline star icon with no fill', () => {
+    const { container } = render(<Icon name="star" />);
+    const svg = container.querySelector('svg');
+    expect(svg).toHaveAttribute('data-icon', 'star');
+    expect(svg).toHaveAttribute('fill', 'none');
+    expect(svg?.children.length).toBeGreaterThan(0);
+  });
+
+  it('renders the filled star icon with currentColor fill', () => {
+    const { container } = render(<Icon name="star-filled" />);
+    const svg = container.querySelector('svg');
+    expect(svg).toHaveAttribute('data-icon', 'star-filled');
+    expect(svg).toHaveAttribute('fill', 'currentColor');
+    expect(svg?.children.length).toBeGreaterThan(0);
+  });
 });

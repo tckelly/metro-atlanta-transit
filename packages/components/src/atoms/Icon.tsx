@@ -8,19 +8,20 @@
  * to *be* the accessible label, wrap it in an element with `aria-label`.
  */
 
-export type IconName = 'clock' | 'warning' | 'refresh';
+export type IconName = 'clock' | 'warning' | 'refresh' | 'star' | 'star-filled';
 
 export interface IconProps {
   name: IconName;
 }
 
 export function Icon({ name }: IconProps) {
+  const fill = name === 'star-filled' ? 'currentColor' : 'none';
   return (
     <svg
       width="20"
       height="20"
       viewBox="0 0 24 24"
-      fill="none"
+      fill={fill}
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
@@ -47,6 +48,9 @@ export function Icon({ name }: IconProps) {
           <polyline points="1 20 1 14 7 14" />
           <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
         </>
+      )}
+      {(name === 'star' || name === 'star-filled') && (
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
       )}
     </svg>
   );

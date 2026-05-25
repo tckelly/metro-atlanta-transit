@@ -3,6 +3,7 @@ import { MessageCard } from '@atl-transit/components';
 
 import { useFavorites } from '../features/favorites/FavoritesContext';
 import { FavoriteStopCard } from '../features/favorites/FavoriteStopCard';
+import { InstallPrompt } from '../features/install/InstallPrompt';
 import { NearbyStops } from '../features/nearby/NearbyStops';
 
 export function Home() {
@@ -45,6 +46,8 @@ export function Home() {
           Browse all routes →
         </Link>
       </p>
+
+      <InstallPrompt />
     </div>
   );
 }

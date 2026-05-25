@@ -8,3 +8,5 @@ export { Icon } from './Icon';
 export type { IconName, IconProps } from './Icon';
 export { MessageCard } from './MessageCard';
 export type { MessageCardProps } from './MessageCard';
+export { Skeleton } from './Skeleton';
+export type { SkeletonProps } from './Skeleton';

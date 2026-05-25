@@ -5,6 +5,7 @@
  * → N fetches" cost is gone.
  */
 import { Link } from 'react-router-dom';
+import { Skeleton } from '@atl-transit/components';
 
 import { useArrivals } from '../stops/useArrivals';
 import { toBusRowProps } from '../stops/busRowMapper';
@@ -39,7 +40,17 @@ export function FavoriteStopCard({ stopId }: FavoriteStopCardProps) {
       </div>
 
       <div className="mt-2 text-sm">
-        {status === 'loading' && <span className="text-fg-muted">Loading arrivals…</span>}
+        {status === 'loading' && (
+          <div
+            role="status"
+            aria-live="polite"
+            aria-label="Loading arrivals"
+            className="space-y-2"
+          >
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+        )}
         {status === 'error' && (
           <span className="text-status-cancelled">Couldn’t load arrivals</span>
         )}

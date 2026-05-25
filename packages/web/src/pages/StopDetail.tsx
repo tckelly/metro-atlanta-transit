@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { BusRow, Button, Icon, MessageCard } from '@atl-transit/components';
+import { BusRow, Button, Icon, MessageCard, Skeleton } from '@atl-transit/components';
 
 import { useArrivals } from '../features/stops/useArrivals';
 import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
@@ -44,9 +44,7 @@ function StopDetailReady({ stopId }: { stopId: string }) {
         <FavoriteStarButton stopId={stopId} stopName={stopName} />
       </header>
 
-      {status === 'loading' && (
-        <MessageCard title="Loading arrivals..." body="Fetching the latest from MARTA." />
-      )}
+      {status === 'loading' && <ArrivalsLoadingSkeleton />}
 
       {status === 'error' && (
         <MessageCard
@@ -88,6 +86,30 @@ function StopDetailReady({ stopId }: { stopId: string }) {
           <RefreshButton onClick={refresh} />
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Skeleton bars sized to match a real BusRow stack — same icon + two
+ * lines of text. Wrapped in a polite live region so a screen reader
+ * announces "Loading arrivals…" instead of the visual shimmer.
+ */
+function ArrivalsLoadingSkeleton() {
+  return (
+    <div role="status" aria-live="polite" aria-label="Loading arrivals">
+      <span className="sr-only">Loading arrivals…</span>
+      <ul className="divide-y divide-divider">
+        {[0, 1, 2].map((i) => (
+          <li key={i} className="flex gap-3 py-3">
+            <Skeleton className="mt-1 h-5 w-5" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

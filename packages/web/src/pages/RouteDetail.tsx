@@ -11,7 +11,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MessageCard } from '@atl-transit/components';
+import { MessageCard, Skeleton } from '@atl-transit/components';
 
 import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
 import type { RouteDirection } from '../features/routes/getRouteDirections';
@@ -68,9 +68,7 @@ export function RouteDetail() {
         </div>
       </header>
 
-      {state.kind === 'loading' && (
-        <MessageCard title="Loading route…" body="One moment." />
-      )}
+      {state.kind === 'loading' && <RouteLoadingSkeleton />}
 
       {state.kind === 'error' && (
         <MessageCard title="Couldn’t load route data" body={state.message} />
@@ -83,8 +81,7 @@ export function RouteDetail() {
         />
       )}
 
-      {state.kind === 'success' &&
-        state.directions.map((direction) => (
+      {state.kind === 'success' && state.directions.map((direction) => (
           <section key={direction.headsign} aria-labelledby={`dir-${direction.headsign}`}>
             <h2 id={`dir-${direction.headsign}`} className="text-base font-semibold">
               Toward {direction.headsign}
@@ -103,6 +100,31 @@ export function RouteDetail() {
             </ol>
           </section>
         ))}
+    </div>
+  );
+}
+
+/**
+ * Two direction sections with skeleton bars for header + a handful
+ * of stop names. Matches the shape RouteDetail renders on success so
+ * the layout doesn't shift when data arrives.
+ */
+function RouteLoadingSkeleton() {
+  return (
+    <div role="status" aria-live="polite" aria-label="Loading route">
+      <span className="sr-only">Loading route…</span>
+      {[0, 1].map((dirIdx) => (
+        <section key={dirIdx} className="mt-6 first:mt-0">
+          <Skeleton className="h-5 w-32" />
+          <ol className="mt-2 divide-y divide-divider rounded border border-divider bg-surface-elevated">
+            {[0, 1, 2, 3].map((i) => (
+              <li key={i} className="px-4 py-3">
+                <Skeleton className="h-4 w-48" />
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
     </div>
   );
 }

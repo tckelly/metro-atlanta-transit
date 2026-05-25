@@ -139,6 +139,19 @@ export default tseslint.config(
     },
   },
 
+  // Context files intentionally export Provider + hook + Context
+  // together — the trinity is conceptually one unit, and splitting it
+  // across three files per concern (~15 new files total) for an
+  // HMR-only dev convenience is a bad trade. The cost is losing
+  // in-memory state on save while editing these files, which is rare
+  // since they're foundational and change infrequently.
+  {
+    files: ['packages/web/src/**/*Context.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+
   // i18n: catch hardcoded user-facing strings in JSX so future code
   // can't drift back to inline English. Surgical — only flags JSX
   // text content (not attributes, not template strings, not

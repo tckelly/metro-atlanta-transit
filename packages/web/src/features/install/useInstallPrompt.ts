@@ -45,9 +45,16 @@ function defaultEnvironment(): InstallEnvironment {
       eventTarget: new EventTarget(),
     };
   }
+  // Feature-detect matchMedia. Real browsers always have it; jsdom
+  // does not. Fall back to a non-matching shim so a11y tests can
+  // render this hook's consumers without a test-side polyfill.
+  const mql =
+    typeof window.matchMedia === 'function'
+      ? (q: string) => window.matchMedia(q)
+      : () => ({ matches: false });
   return {
     navigator: window.navigator,
-    matchMedia: (q) => window.matchMedia(q),
+    matchMedia: mql,
     eventTarget: window,
   };
 }

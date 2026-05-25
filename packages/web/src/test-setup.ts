@@ -16,20 +16,3 @@ import './i18n/init';
 // real-browser pass (Lighthouse, axe DevTools, or future Playwright +
 // @axe-core/playwright) for contrast and focus-order verification.
 expect.extend(matchers);
-
-// jsdom doesn't implement window.matchMedia. `useInstallPrompt` reads
-// it to detect display-mode: standalone. Stub a non-matching shim so
-// the install prompt renders its non-installed path during tests.
-if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
-  window.matchMedia = (query: string): MediaQueryList =>
-    ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => false,
-    }) as unknown as MediaQueryList;
-}

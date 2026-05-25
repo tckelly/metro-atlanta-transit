@@ -11,6 +11,7 @@
  * `environment` is the same DI seam the hook uses — tests pass a
  * fake; the default is `window` / `navigator` / `window.matchMedia`.
  */
+import { useTranslation } from 'react-i18next';
 import { Button, MessageCard } from '@atl-transit/components';
 
 import { useInstallPrompt, type InstallEnvironment } from './useInstallPrompt';
@@ -20,6 +21,7 @@ export interface InstallPromptProps {
 }
 
 export function InstallPrompt({ environment }: InstallPromptProps = {}) {
+  const { t } = useTranslation();
   const state = useInstallPrompt(environment);
 
   if (state.kind === 'hidden') return null;
@@ -30,11 +32,11 @@ export function InstallPrompt({ environment }: InstallPromptProps = {}) {
 
   return (
     <MessageCard
-      title="Install Atlanta Transit"
-      body="Add the app to your home screen for one-tap arrivals."
+      title={t('install.title')}
+      body={t('install.body')}
       action={
         <Button variant="primary" onClick={() => void state.prompt()}>
-          Install app
+          {t('install.button')}
         </Button>
       }
     />
@@ -42,18 +44,23 @@ export function InstallPrompt({ environment }: InstallPromptProps = {}) {
 }
 
 function IOSInstallInstructions() {
+  const { t } = useTranslation();
+  // Each step is split into lead / bold / trail so the bold span
+  // survives translation without falling back to Trans components.
   return (
     <MessageCard
-      title="Install on iPhone or iPad"
+      title={t('install.iosTitle')}
       body={
         <ol className="ml-5 list-decimal space-y-1">
           <li>
-            Tap the <strong>Share</strong> button at the bottom of Safari.
+            {t('install.iosStep1Lead')} <strong>{t('install.iosStep1Bold')}</strong> {t('install.iosStep1Trail')}
           </li>
           <li>
-            Scroll down and choose <strong>Add to Home Screen</strong>.
+            {t('install.iosStep2Lead')} <strong>{t('install.iosStep2Bold')}</strong>{t('install.iosStep2Trail')}
           </li>
-          <li>Tap <strong>Add</strong>.</li>
+          <li>
+            {t('install.iosStep3Lead')} <strong>{t('install.iosStep3Bold')}</strong>{t('install.iosStep3Trail')}
+          </li>
         </ol>
       }
     />

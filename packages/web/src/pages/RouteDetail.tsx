@@ -11,6 +11,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { MessageCard, Skeleton } from '@atl-transit/components';
 
 import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
@@ -22,6 +23,7 @@ type State =
   | { kind: 'error'; message: string };
 
 export function RouteDetail() {
+  const { t } = useTranslation();
   const { routeId } = useParams<{ routeId: string }>();
   const repo = useGtfsRepository();
   const [state, setState] = useState<State>({ kind: 'loading' });
@@ -49,7 +51,7 @@ export function RouteDetail() {
   }, [repo, routeId]);
 
   if (routeId === undefined) {
-    return <MessageCard title="No route ID" body="The URL is missing a route ID." />;
+    return <MessageCard title={t('routeDetail.noRouteIdTitle')} body={t('routeDetail.noRouteIdBody')} />;
   }
 
   const route = repo.getRoute(routeId);
@@ -59,7 +61,7 @@ export function RouteDetail() {
   return (
     <div className="space-y-6">
       <header className="flex items-center gap-3">
-        <Link to="/routes" aria-label="Back to all routes" className="text-2xl text-primary">
+        <Link to="/routes" aria-label={t('routeDetail.backToRoutes')} className="text-2xl text-primary">
           ←
         </Link>
         <div className="min-w-0">
@@ -71,20 +73,20 @@ export function RouteDetail() {
       {state.kind === 'loading' && <RouteLoadingSkeleton />}
 
       {state.kind === 'error' && (
-        <MessageCard title="Couldn’t load route data" body={state.message} />
+        <MessageCard title={t('routeDetail.loadErrorTitle')} body={state.message} />
       )}
 
       {state.kind === 'success' && state.directions.length === 0 && (
         <MessageCard
-          title="No stops found"
-          body="This route doesn’t have any stop information in the current schedule data."
+          title={t('routeDetail.noStopsTitle')}
+          body={t('routeDetail.noStopsBody')}
         />
       )}
 
       {state.kind === 'success' && state.directions.map((direction) => (
           <section key={direction.headsign} aria-labelledby={`dir-${direction.headsign}`}>
             <h2 id={`dir-${direction.headsign}`} className="text-base font-semibold">
-              Toward {direction.headsign}
+              {t('routeDetail.toward', { headsign: direction.headsign })}
             </h2>
             <ol className="mt-2 divide-y divide-divider rounded border border-divider bg-surface-elevated">
               {direction.stops.map((stop) => (
@@ -110,9 +112,10 @@ export function RouteDetail() {
  * the layout doesn't shift when data arrives.
  */
 function RouteLoadingSkeleton() {
+  const { t } = useTranslation();
   return (
-    <div role="status" aria-live="polite" aria-label="Loading route">
-      <span className="sr-only">Loading route…</span>
+    <div role="status" aria-live="polite" aria-label={t('loading.route')}>
+      <span className="sr-only">{t('loading.routeDots')}</span>
       {[0, 1].map((dirIdx) => (
         <section key={dirIdx} className="mt-6 first:mt-0">
           <Skeleton className="h-5 w-32" />

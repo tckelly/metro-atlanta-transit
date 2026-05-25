@@ -11,6 +11,7 @@
  */
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button, MessageCard } from '@atl-transit/components';
 
 import type { NearbyStop } from './getNearbyStops';
@@ -66,6 +67,7 @@ async function applyResult(
 }
 
 export function NearbyStops({ geolocation }: NearbyStopsProps = {}) {
+  const { t } = useTranslation();
   const repo = useGtfsRepository();
   const [state, setState] = useState<State>({ kind: 'idle' });
 
@@ -81,46 +83,36 @@ export function NearbyStops({ geolocation }: NearbyStopsProps = {}) {
   return (
     <section aria-labelledby="nearby-heading" className="space-y-3">
       <h2 id="nearby-heading" className="text-lg font-semibold">
-        Nearby stops
+        {t('nearby.title')}
       </h2>
 
       {state.kind === 'idle' && <IdleView onFind={find} />}
       {state.kind === 'loading' && (
         <p role="status" className="text-sm text-fg-muted">
-          Finding your location…
+          {t('nearby.finding')}
         </p>
       )}
       {state.kind === 'success' && <StopList stops={state.stops} />}
-      {state.kind === 'denied' && (
-        <FailureView
-          message="Location access denied. Enable it in your browser settings to find stops near you."
-        />
-      )}
-      {state.kind === 'unavailable' && (
-        <FailureView message="We can’t find your location on this device." />
-      )}
+      {state.kind === 'denied' && <FailureView message={t('nearby.denied')} />}
+      {state.kind === 'unavailable' && <FailureView message={t('nearby.unavailable')} />}
       {state.kind === 'timeout' && (
-        <FailureView message="That took too long. Make sure location is on and try again." onRetry={find} />
+        <FailureView message={t('nearby.timeout')} onRetry={find} />
       )}
       {state.kind === 'error' && (
-        <FailureView message="Couldn’t get your location. Try again in a moment." onRetry={find} />
+        <FailureView message={t('nearby.error')} onRetry={find} />
       )}
     </section>
   );
 }
 
 function IdleView({ onFind }: { onFind: () => void }) {
+  const { t } = useTranslation();
   return (
     <MessageCard
-      body={
-        <p>
-          We use your location only on this device to find the nearest bus stops. Nothing
-          leaves your phone.
-        </p>
-      }
+      body={<p>{t('nearby.rationale')}</p>}
       action={
         <Button variant="primary" onClick={onFind}>
-          Find stops near me
+          {t('nearby.findButton')}
         </Button>
       }
     />
@@ -128,8 +120,9 @@ function IdleView({ onFind }: { onFind: () => void }) {
 }
 
 function StopList({ stops }: { stops: NearbyStop[] }) {
+  const { t } = useTranslation();
   if (stops.length === 0) {
-    return <p className="text-sm text-fg-muted">No bus stops found near you.</p>;
+    return <p className="text-sm text-fg-muted">{t('nearby.noResults')}</p>;
   }
   return (
     <ul className="space-y-2">
@@ -151,13 +144,14 @@ function StopList({ stops }: { stops: NearbyStop[] }) {
 }
 
 function FailureView({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const { t } = useTranslation();
   return (
     <MessageCard
       body={message}
       action={
         onRetry !== undefined ? (
           <Button variant="neutral" onClick={onRetry}>
-            Try again
+            {t('nearby.tryAgain')}
           </Button>
         ) : undefined
       }

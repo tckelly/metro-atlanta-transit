@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BusRow, Button, Icon, MessageCard, Skeleton } from '@atl-transit/components';
 
 import { useArrivals } from '../features/stops/useArrivals';
@@ -13,15 +14,17 @@ import { freshnessTier, type FreshnessTier } from '../utils/freshnessTier';
 import { useNowSec } from '../utils/useNowSec';
 
 export function StopDetail() {
+  const { t } = useTranslation();
   const { stopId } = useParams<{ stopId: string }>();
 
   if (!stopId) {
-    return <MessageCard title="No stop ID" body="The URL is missing a stop ID." />;
+    return <MessageCard title={t('stopDetail.noStopIdTitle')} body={t('stopDetail.noStopIdBody')} />;
   }
   return <StopDetailReady stopId={stopId} />;
 }
 
 function StopDetailReady({ stopId }: { stopId: string }) {
+  const { t } = useTranslation();
   const repo = useGtfsRepository();
   const { status, rows, lastUpdated, isStale, error, refresh } = useArrivals(stopId);
 
@@ -37,7 +40,7 @@ function StopDetailReady({ stopId }: { stopId: string }) {
   return (
     <div className="space-y-4">
       <header className="flex items-center gap-3">
-        <Link to="/" aria-label="Back to home" className="text-2xl text-primary">
+        <Link to="/" aria-label={t('stopDetail.backToHome')} className="text-2xl text-primary">
           ←
         </Link>
         <h1 className="flex-1 text-xl font-bold">{stopName}</h1>
@@ -48,15 +51,15 @@ function StopDetailReady({ stopId }: { stopId: string }) {
 
       {status === 'error' && (
         <MessageCard
-          title="Couldn't load arrivals"
+          title={t('stopDetail.loadErrorTitle')}
           body={error?.message ?? 'Unknown error.'}
         />
       )}
 
       {status === 'success' && rows.length === 0 && (
         <MessageCard
-          title="No upcoming buses"
-          body="No more buses scheduled at this stop today. Check back tomorrow morning, or try a different stop."
+          title={t('stopDetail.noUpcomingTitle')}
+          body={t('stopDetail.noUpcomingBody')}
         />
       )}
 
@@ -96,9 +99,10 @@ function StopDetailReady({ stopId }: { stopId: string }) {
  * announces "Loading arrivals…" instead of the visual shimmer.
  */
 function ArrivalsLoadingSkeleton() {
+  const { t } = useTranslation();
   return (
-    <div role="status" aria-live="polite" aria-label="Loading arrivals">
-      <span className="sr-only">Loading arrivals…</span>
+    <div role="status" aria-live="polite" aria-label={t('loading.arrivals')}>
+      <span className="sr-only">{t('loading.arrivalsDots')}</span>
       <ul className="divide-y divide-divider">
         {[0, 1, 2].map((i) => (
           <li key={i} className="flex gap-3 py-3">
@@ -115,15 +119,17 @@ function ArrivalsLoadingSkeleton() {
 }
 
 function RefreshButton({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
   return (
     <Button variant="neutral" onClick={onClick} className="gap-1.5 px-3">
       <Icon name="refresh" />
-      Refresh
+      {t('stopDetail.refresh')}
     </Button>
   );
 }
 
 function RouteSection({ group, nowSec }: { group: RouteGroup; nowSec: number }) {
+  const { t } = useTranslation();
   const repo = useGtfsRepository();
   const route = repo.getRoute(group.routeId);
   const shortName = route?.shortName ?? group.routeId;
@@ -133,7 +139,7 @@ function RouteSection({ group, nowSec }: { group: RouteGroup; nowSec: number }) 
     <section>
       <div className="flex items-center gap-2">
         <h2 className="text-base font-semibold text-fg">
-          Route {shortName} — {group.headsign}
+          {t('stopDetail.routeHeader', { shortName, headsign: group.headsign })}
         </h2>
         <DisruptionBadge level={level} cancellations={cancellations} />
       </div>
@@ -153,12 +159,6 @@ const TIER_CLASS: Record<FreshnessTier, string> = {
   very_stale: 'text-status-cancelled',
 };
 
-const TIER_SUFFIX: Record<FreshnessTier, string> = {
-  fresh: '',
-  stale: ' — couldn’t refresh',
-  very_stale: ' — data may be wrong',
-};
-
 function LastUpdatedIndicator({
   tier,
   lastUpdated,
@@ -168,10 +168,17 @@ function LastUpdatedIndicator({
   lastUpdated: number;
   nowSec: number;
 }) {
+  const { t } = useTranslation();
+  const suffix =
+    tier === 'stale'
+      ? t('stopDetail.lastUpdatedStaleSuffix')
+      : tier === 'very_stale'
+      ? t('stopDetail.lastUpdatedVeryStaleSuffix')
+      : '';
   return (
     <p className={`text-xs ${TIER_CLASS[tier]}`} aria-live="polite">
-      Last updated {formatLastUpdated(lastUpdated, nowSec)}
-      {TIER_SUFFIX[tier]}
+      {t('stopDetail.lastUpdatedPrefix')} {formatLastUpdated(lastUpdated, nowSec)}
+      {suffix}
     </p>
   );
 }

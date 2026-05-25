@@ -8,12 +8,14 @@
  */
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
 
 const naturalCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
 
 export function Routes() {
+  const { t } = useTranslation();
   const repo = useGtfsRepository();
 
   const sorted = useMemo(
@@ -25,10 +27,10 @@ export function Routes() {
   return (
     <div className="space-y-4">
       <header className="flex items-center gap-3">
-        <Link to="/" aria-label="Back to home" className="text-2xl text-primary">
+        <Link to="/" aria-label={t('routes.backToHome')} className="text-2xl text-primary">
           ←
         </Link>
-        <h1 className="text-xl font-bold">All routes</h1>
+        <h1 className="text-xl font-bold">{t('routes.title')}</h1>
       </header>
 
       <ul className="divide-y divide-divider rounded border border-divider bg-surface-elevated">

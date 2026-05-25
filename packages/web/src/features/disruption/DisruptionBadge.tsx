@@ -7,6 +7,7 @@
  * to spell out the level (the color + count carries that for sighted
  * users).
  */
+import { useTranslation } from 'react-i18next';
 import { Badge } from '@atl-transit/components';
 
 import type { DisruptionLevel } from './thresholds';
@@ -17,14 +18,15 @@ export interface DisruptionBadgeProps {
 }
 
 export function DisruptionBadge({ level, cancellations }: DisruptionBadgeProps) {
+  const { t } = useTranslation();
   if (level === 'none') return null;
 
   const severity = level === 'strong' ? 'danger' : 'warning';
-  const text = `${cancellations} cancelled`;
+  const text = t('disruption.badge', { count: cancellations });
   const ariaLabel =
     level === 'strong'
-      ? `Significant route disruption: ${cancellations} cancelled`
-      : `Route disruption: ${cancellations} cancelled`;
+      ? t('disruption.ariaStrong', { count: cancellations })
+      : t('disruption.ariaSoft', { count: cancellations });
 
   return (
     <span role="status" aria-label={ariaLabel}>

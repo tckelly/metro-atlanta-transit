@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { I18nextProvider } from 'react-i18next';
+import { I18nextProvider, useTranslation } from 'react-i18next';
 import { Link, Routes, Route, useLocation } from 'react-router-dom';
 import { ErrorBoundary, MessageCard } from '@atl-transit/components';
 
@@ -54,10 +54,11 @@ export function App() {
  * (ADR-0006), not bundled with the client.
  */
 function BundleGate({ children }: { children: (bundle: SmallGtfsBundle) => ReactNode }) {
+  const { t } = useTranslation();
   const { bundle, loading, error } = useSmallGtfsBundle();
-  if (loading) return <MessageCard title="Loading schedule data…" body="One moment." />;
+  if (loading) return <MessageCard title={t('bundle.loadingTitle')} body={t('bundle.loadingBody')} />;
   if (error !== null) {
-    return <MessageCard title="Couldn’t load schedule data" body={error.message} />;
+    return <MessageCard title={t('bundle.errorTitle')} body={error.message} />;
   }
   if (bundle === null) return null;
   return <>{children(bundle)}</>;
@@ -89,20 +90,21 @@ function RepositoryGate({
  * mounts cleanly.
  */
 function RouteShield({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const location = useLocation();
   return (
     <ErrorBoundary
       resetKey={location.pathname}
       fallback={(error) => (
         <MessageCard
-          title="Something went wrong on this page"
-          body={`${error.message}. Try refreshing — or head back to the home screen below.`}
+          title={t('routeShield.title')}
+          body={t('routeShield.body', { message: error.message })}
           action={
             <Link
               to="/"
               className="inline-flex min-h-[44px] items-center rounded-md border border-divider px-4 text-sm font-medium text-fg hover:border-primary hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              ← Back to home
+              {t('routeShield.backHome')}
             </Link>
           }
         />

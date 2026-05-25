@@ -5,6 +5,7 @@
  * → N fetches" cost is gone.
  */
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@atl-transit/components';
 
 import { useArrivals } from '../stops/useArrivals';
@@ -19,6 +20,7 @@ export interface FavoriteStopCardProps {
 }
 
 export function FavoriteStopCard({ stopId }: FavoriteStopCardProps) {
+  const { t } = useTranslation();
   const repo = useGtfsRepository();
   const { status, rows } = useArrivals(stopId);
   const nowSec = useNowSec(15_000);
@@ -44,7 +46,7 @@ export function FavoriteStopCard({ stopId }: FavoriteStopCardProps) {
           <div
             role="status"
             aria-live="polite"
-            aria-label="Loading arrivals"
+            aria-label={t('loading.arrivals')}
             className="space-y-2"
           >
             <Skeleton className="h-4 w-3/4" />
@@ -52,10 +54,10 @@ export function FavoriteStopCard({ stopId }: FavoriteStopCardProps) {
           </div>
         )}
         {status === 'error' && (
-          <span className="text-status-cancelled">Couldn’t load arrivals</span>
+          <span className="text-status-cancelled">{t('favorites.loadError')}</span>
         )}
         {status === 'success' && preview.length === 0 && (
-          <span className="text-fg-muted">No upcoming buses</span>
+          <span className="text-fg-muted">{t('favorites.noUpcoming')}</span>
         )}
         {status === 'success' && preview.length > 0 && (
           <ul className="space-y-1">
@@ -66,7 +68,7 @@ export function FavoriteStopCard({ stopId }: FavoriteStopCardProps) {
               return (
                 <li key={row.tripId} className="flex items-baseline justify-between gap-3">
                   <span className="min-w-0 truncate text-fg">
-                    Route {shortName} → {row.headsign}
+                    {t('favorites.rowPreview', { shortName, headsign: row.headsign })}
                   </span>
                   <span className={severityClass(props.severity)}>{props.primaryText}</span>
                 </li>

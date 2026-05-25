@@ -31,6 +31,7 @@
     "noUpcomingBody": "No more buses scheduled at this stop today. Check back tomorrow morning, or try a different stop.",
     "refresh": "Refresh",
     "routeHeader": "Route {{shortName}} — {{headsign}}",
+    "lastUpdatedPrefix": "Last updated",
     "lastUpdatedStaleSuffix": " — couldn’t refresh",
     "lastUpdatedVeryStaleSuffix": " — data may be wrong"
   },
@@ -82,9 +83,15 @@
     "body": "Add the app to your home screen for one-tap arrivals.",
     "button": "Install app",
     "iosTitle": "Install on iPhone or iPad",
-    "iosStep1": "Tap the **Share** button at the bottom of Safari.",
-    "iosStep2": "Scroll down and choose **Add to Home Screen**.",
-    "iosStep3": "Tap **Add**."
+    "iosStep1Lead": "Tap the",
+    "iosStep1Bold": "Share",
+    "iosStep1Trail": "button at the bottom of Safari.",
+    "iosStep2Lead": "Scroll down and choose",
+    "iosStep2Bold": "Add to Home Screen",
+    "iosStep2Trail": ".",
+    "iosStep3Lead": "Tap",
+    "iosStep3Bold": "Add",
+    "iosStep3Trail": "."
   },
   "routeShield": {
     "title": "Something went wrong on this page",

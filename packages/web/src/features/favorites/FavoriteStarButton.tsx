@@ -6,6 +6,7 @@
  * ("Removed Virginia Ave"), and so undo never strands an unlabeled action
  * referring to a stop the user can't see anymore.
  */
+import { useTranslation } from 'react-i18next';
 import { Button, Icon } from '@atl-transit/components';
 
 import { useFavorites } from './FavoritesContext';
@@ -17,6 +18,7 @@ export interface FavoriteStarButtonProps {
 }
 
 export function FavoriteStarButton({ stopId, stopName }: FavoriteStarButtonProps) {
+  const { t } = useTranslation();
   const { has, add, remove, isFull } = useFavorites();
   const { show } = useToast();
   const favorited = has(stopId);
@@ -24,24 +26,24 @@ export function FavoriteStarButton({ stopId, stopName }: FavoriteStarButtonProps
   const handleClick = () => {
     if (favorited) {
       remove(stopId);
-      show(`Removed ${stopName}`, {
-        action: { label: 'Undo', onClick: () => add(stopId) },
+      show(t('favorites.toastRemoved', { stopName }), {
+        action: { label: t('favorites.toastUndo'), onClick: () => add(stopId) },
       });
       return;
     }
     if (isFull) {
-      show(`Favorites full (max 10). Remove one to add a new stop.`);
+      show(t('favorites.toastFull'));
       return;
     }
     add(stopId);
-    show(`Added ${stopName}`, {
-      action: { label: 'Undo', onClick: () => remove(stopId) },
+    show(t('favorites.toastAdded', { stopName }), {
+      action: { label: t('favorites.toastUndo'), onClick: () => remove(stopId) },
     });
   };
 
   const label = favorited
-    ? `Remove ${stopName} from favorites`
-    : `Add ${stopName} to favorites`;
+    ? t('favorites.ariaRemove', { stopName })
+    : t('favorites.ariaAdd', { stopName });
 
   return (
     <Button

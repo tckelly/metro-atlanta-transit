@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { Link, Routes, Route, useLocation } from 'react-router-dom';
 import { ErrorBoundary, MessageCard } from '@atl-transit/components';
 
+import { i18next } from './i18n/init';
 import { FavoritesProvider } from './features/favorites/FavoritesContext';
 import { RealtimeFeedProvider } from './features/realtime/RealtimeFeedContext';
 import { ToastProvider } from './features/toast/ToastContext';
@@ -19,28 +21,30 @@ import { StopDetail } from './pages/StopDetail';
 
 export function App() {
   return (
-    <ToastProvider>
-      <FavoritesProvider>
-        <main className="mx-auto max-w-2xl px-4 py-6">
-          <BundleGate>
-            {(bundle) => (
-              <RepositoryGate bundle={bundle}>
-                <RealtimeFeedProvider>
-                  <RouteShield>
-                    <Routes>
-                      <Route path="/" element={<Home />} />
-                      <Route path="/routes" element={<RoutesPage />} />
-                      <Route path="/route/:routeId" element={<RouteDetail />} />
-                      <Route path="/stop/:stopId" element={<StopDetail />} />
-                    </Routes>
-                  </RouteShield>
-                </RealtimeFeedProvider>
-              </RepositoryGate>
-            )}
-          </BundleGate>
-        </main>
-      </FavoritesProvider>
-    </ToastProvider>
+    <I18nextProvider i18n={i18next}>
+      <ToastProvider>
+        <FavoritesProvider>
+          <main className="mx-auto max-w-2xl px-4 py-6">
+            <BundleGate>
+              {(bundle) => (
+                <RepositoryGate bundle={bundle}>
+                  <RealtimeFeedProvider>
+                    <RouteShield>
+                      <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/routes" element={<RoutesPage />} />
+                        <Route path="/route/:routeId" element={<RouteDetail />} />
+                        <Route path="/stop/:stopId" element={<StopDetail />} />
+                      </Routes>
+                    </RouteShield>
+                  </RealtimeFeedProvider>
+                </RepositoryGate>
+              )}
+            </BundleGate>
+          </main>
+        </FavoritesProvider>
+      </ToastProvider>
+    </I18nextProvider>
   );
 }
 

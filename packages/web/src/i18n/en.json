@@ -1,0 +1,125 @@
+{
+  "app": {
+    "name": "Atlanta Transit",
+    "tagline": "Real-time MARTA bus arrivals. Unofficial."
+  },
+  "home": {
+    "myStops": "My stops",
+    "browseRoutes": "Browse all routes →",
+    "favoritesEmptyTitle": "No favorites yet",
+    "favoritesEmptyBody": "Find a stop below and tap the star on its page to keep it here for your commute."
+  },
+  "routes": {
+    "title": "All routes",
+    "backToHome": "Back to home"
+  },
+  "routeDetail": {
+    "noRouteIdTitle": "No route ID",
+    "noRouteIdBody": "The URL is missing a route ID.",
+    "backToRoutes": "Back to all routes",
+    "loadErrorTitle": "Couldn’t load route data",
+    "noStopsTitle": "No stops found",
+    "noStopsBody": "This route doesn’t have any stop information in the current schedule data.",
+    "toward": "Toward {{headsign}}"
+  },
+  "stopDetail": {
+    "noStopIdTitle": "No stop ID",
+    "noStopIdBody": "The URL is missing a stop ID.",
+    "backToHome": "Back to home",
+    "loadErrorTitle": "Couldn't load arrivals",
+    "noUpcomingTitle": "No upcoming buses",
+    "noUpcomingBody": "No more buses scheduled at this stop today. Check back tomorrow morning, or try a different stop.",
+    "refresh": "Refresh",
+    "routeHeader": "Route {{shortName}} — {{headsign}}",
+    "lastUpdatedStaleSuffix": " — couldn’t refresh",
+    "lastUpdatedVeryStaleSuffix": " — data may be wrong"
+  },
+  "bundle": {
+    "loadingTitle": "Loading schedule data…",
+    "loadingBody": "One moment.",
+    "errorTitle": "Couldn’t load schedule data"
+  },
+  "loading": {
+    "arrivals": "Loading arrivals",
+    "route": "Loading route",
+    "arrivalsDots": "Loading arrivals…",
+    "routeDots": "Loading route…"
+  },
+  "nearby": {
+    "title": "Nearby stops",
+    "finding": "Finding your location…",
+    "denied": "Location access denied. Enable it in your browser settings to find stops near you.",
+    "unavailable": "We can’t find your location on this device.",
+    "timeout": "That took too long. Make sure location is on and try again.",
+    "error": "Couldn’t get your location. Try again in a moment.",
+    "rationale": "We use your location only on this device to find the nearest bus stops. Nothing leaves your phone.",
+    "findButton": "Find stops near me",
+    "noResults": "No bus stops found near you.",
+    "tryAgain": "Try again"
+  },
+  "favorites": {
+    "toastRemoved": "Removed {{stopName}}",
+    "toastAdded": "Added {{stopName}}",
+    "toastFull": "Favorites full (max 10). Remove one to add a new stop.",
+    "toastUndo": "Undo",
+    "ariaRemove": "Remove {{stopName}} from favorites",
+    "ariaAdd": "Add {{stopName}} to favorites",
+    "loadingArrivals": "Loading arrivals…",
+    "loadError": "Couldn’t load arrivals",
+    "noUpcoming": "No upcoming buses",
+    "rowPreview": "Route {{shortName}} → {{headsign}}"
+  },
+  "disruption": {
+    "badge_one": "{{count}} cancelled",
+    "badge_other": "{{count}} cancelled",
+    "ariaSoft_one": "Route disruption: {{count}} cancelled",
+    "ariaSoft_other": "Route disruption: {{count}} cancelled",
+    "ariaStrong_one": "Significant route disruption: {{count}} cancelled",
+    "ariaStrong_other": "Significant route disruption: {{count}} cancelled"
+  },
+  "install": {
+    "title": "Install Atlanta Transit",
+    "body": "Add the app to your home screen for one-tap arrivals.",
+    "button": "Install app",
+    "iosTitle": "Install on iPhone or iPad",
+    "iosStep1": "Tap the **Share** button at the bottom of Safari.",
+    "iosStep2": "Scroll down and choose **Add to Home Screen**.",
+    "iosStep3": "Tap **Add**."
+  },
+  "routeShield": {
+    "title": "Something went wrong on this page",
+    "body": "{{message}}. Try refreshing — or head back to the home screen below.",
+    "backHome": "← Back to home"
+  },
+  "time": {
+    "now": "now",
+    "secondsAgo_one": "{{count}} second ago",
+    "secondsAgo_other": "{{count}} seconds ago",
+    "minutesAgo_one": "{{count}} min ago",
+    "minutesAgo_other": "{{count}} min ago"
+  },
+  "walking": {
+    "under1Min": "<1 min walk",
+    "minutes_one": "{{count}} min walk",
+    "minutes_other": "{{count}} min walk"
+  },
+  "eta": {
+    "arriving": "Arriving",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "scheduled": "Scheduled {{time}}",
+    "delayLate_one": "{{count}} min late",
+    "delayLate_other": "{{count}} min late",
+    "delayEarly_one": "{{count}} min early",
+    "delayEarly_other": "{{count}} min early",
+    "noLiveData": "Scheduled · No live data",
+    "cancelled": "Cancelled"
+  },
+  "occupancy": {
+    "seatsAvailable": "Seats available",
+    "fillingUp": "Filling up",
+    "standingRoomOnly": "Standing room only",
+    "veryCrowded": "Very crowded",
+    "notAccepting": "Not accepting riders"
+  }
+}

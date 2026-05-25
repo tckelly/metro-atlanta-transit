@@ -7,6 +7,8 @@ import { toBusRowProps } from '../features/stops/busRowMapper';
 import { groupRowsByRoute, type RouteGroup } from '../features/stops/groupRowsByRoute';
 import { getRouteMetadata, getStopMetadata } from '../services/gtfsStatic';
 import { FavoriteStarButton } from '../features/favorites/FavoriteStarButton';
+import { assessDisruption } from '../features/disruption/assessDisruption';
+import { DisruptionBadge } from '../features/disruption/DisruptionBadge';
 import { formatLastUpdated } from '../utils/formatLastUpdated';
 import { freshnessTier, type FreshnessTier } from '../utils/freshnessTier';
 import { useNowSec } from '../utils/useNowSec';
@@ -126,11 +128,16 @@ function RouteSection({
 }) {
   const route = getRouteMetadata(bundle, group.routeId);
   const shortName = route?.shortName ?? group.routeId;
+  const level = assessDisruption(group.rows);
+  const cancellations = group.rows.filter((r) => r.status === 'cancelled').length;
   return (
     <section>
-      <h2 className="text-base font-semibold text-fg">
-        Route {shortName} — {group.headsign}
-      </h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-base font-semibold text-fg">
+          Route {shortName} — {group.headsign}
+        </h2>
+        <DisruptionBadge level={level} cancellations={cancellations} />
+      </div>
       <ul className="mt-2 divide-y divide-divider">
         {group.rows.map((row) => {
           const props = toBusRowProps(row, nowSec);

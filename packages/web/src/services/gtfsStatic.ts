@@ -186,33 +186,3 @@ export function getRouteMetadata(bundle: GtfsBundle, routeId: string): RouteOut 
   return bundle.routes.find((r) => r.routeId === routeId);
 }
 
-async function fetchJson<T>(path: string): Promise<T> {
-  const res = await fetch(path);
-  if (!res.ok) {
-    throw new Error(
-      `Failed to load ${path}: ${res.status} ${res.statusText}. ` +
-        `Did you run \`pnpm preprocess-gtfs\` to generate the static GTFS bundle?`,
-    );
-  }
-  return res.json() as Promise<T>;
-}
-
-/**
- * Fetch and parse the static GTFS bundle from /gtfs/. Designed to be called
- * once at app startup; the result is then passed into the query functions.
- *
- * The service worker (vite-plugin-pwa, forthcoming) will precache these
- * files, so after the first install this is a cache hit and resolves
- * immediately. Throws a descriptive error if the JSON files don't exist
- * (i.e., preprocess-gtfs hasn't been run).
- */
-export async function loadGtfsBundle(): Promise<GtfsBundle> {
-  const [stops, routes, trips, stopTimes, calendar] = await Promise.all([
-    fetchJson<GtfsBundle['stops']>('/gtfs/stops.json'),
-    fetchJson<GtfsBundle['routes']>('/gtfs/routes.json'),
-    fetchJson<GtfsBundle['trips']>('/gtfs/trips.json'),
-    fetchJson<GtfsBundle['stopTimes']>('/gtfs/stop-times.json'),
-    fetchJson<GtfsBundle['calendar']>('/gtfs/calendar.json'),
-  ]);
-  return { stops, routes, trips, stopTimes, calendar };
-}

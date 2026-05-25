@@ -91,16 +91,12 @@ async function main(): Promise<void> {
   await mkdir(JSON_OUT_DIR, { recursive: true });
   await mkdir(SQLITE_DIR, { recursive: true });
 
-  // Client-side JSON. Today we still emit the full set; once
-  // HybridGtfsRepository is wired in (ADR-0006 Phase 3c), the big
-  // three (trips, stop-times, calendar) get dropped from this list
-  // and only stops + routes ship.
+  // Client-side JSON: only stops + routes per ADR-0006. The big three
+  // (trips, stop_times, calendar) live in the SQLite the backend
+  // reads — they don't ship to the client at all anymore.
   await Promise.all([
     writeJson('stops.json', bundle.stops),
     writeJson('routes.json', bundle.routes),
-    writeJson('trips.json', bundle.trips),
-    writeJson('stop-times.json', bundle.stopTimes),
-    writeJson('calendar.json', bundle.calendar),
   ]);
 
   // Schedule tables → backend SQLite (ADR-0006). The Vercel Node

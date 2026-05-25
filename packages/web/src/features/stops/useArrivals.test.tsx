@@ -1,20 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import type { ReactNode } from 'react';
+import type { TripUpdate, VehiclePosition } from '@atl-transit/gtfs';
 
 import { useArrivals } from './useArrivals';
+import {
+  RealtimeFeedContext,
+  type RealtimeFeedSnapshot,
+} from '../realtime/RealtimeFeedContext';
 import type { GtfsBundle } from '../../buildtime/preprocessGtfs';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const tuBytes = new Uint8Array(
-  readFileSync(join(here, '../../../../../sample-data/marta-gtfs-rt-2026-05-22/tu.pb')),
-);
-
-// Bundle with one scheduled visit at 06:00 EDT on 2026-05-22 for stop 134013,
-// matching trip 10802068 from the realtime fixture (which has a live
-// prediction for that stop).
+// Single scheduled visit at 06:01:56 EDT on 2026-05-22 for stop 134013.
 const BUNDLE: GtfsBundle = {
   stops: [{ stopId: '134013', name: 'Test Stop', lat: 0, lng: 0, routeIds: ['116'] }],
   routes: [{ routeId: '116', shortName: '116', longName: 'Test' }],
@@ -41,239 +37,173 @@ const BUNDLE: GtfsBundle = {
   },
 };
 
-function bytesToFreshResponse(bytes: Uint8Array): Response {
-  const ab = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(ab).set(bytes);
-  return new Response(ab);
-}
+const LIVE_TRIP_UPDATE: TripUpdate = {
+  tripId: '10802068',
+  routeId: '116',
+  scheduleRelationship: 'SCHEDULED',
+  stopTimeUpdates: [
+    {
+      stopId: '134013',
+      stopSequence: 53,
+      arrivalTime: 1779467993, // 06:39:53 EDT
+      scheduleRelationship: 'SCHEDULED',
+    },
+  ],
+};
 
-function mockFetchWith(bytes: Uint8Array): ReturnType<typeof vi.fn> {
-  const fn = vi.fn(async () => bytesToFreshResponse(bytes));
-  vi.stubGlobal('fetch', fn);
-  return fn;
-}
+const SUCCESS_SNAPSHOT = (overrides: Partial<RealtimeFeedSnapshot> = {}): RealtimeFeedSnapshot => ({
+  status: 'success',
+  tripUpdates: [LIVE_TRIP_UPDATE],
+  vehiclePositions: [],
+  lastUpdated: 1779444000,
+  isStale: false,
+  error: null,
+  refresh: vi.fn(async () => {}),
+  ...overrides,
+});
 
-/**
- * Each refresh cycle fetches BOTH tripUpdates and vehiclePositions in
- * parallel — counting raw calls would double-count. The cadence tests
- * want to know how many *cycles* happened, which is one tripUpdates
- * fetch per cycle.
- */
-function tripUpdateCalls(fn: ReturnType<typeof vi.fn>): number {
-  return fn.mock.calls.filter(
-    ([url]) => typeof url === 'string' && url.includes('tripupdate'),
-  ).length;
-}
-
-function setVisibility(state: 'visible' | 'hidden'): void {
-  Object.defineProperty(document, 'visibilityState', { value: state, configurable: true });
-  document.dispatchEvent(new Event('visibilitychange'));
-}
-
-/**
- * Flush pending microtasks without advancing the fake clock. This lets the
- * initial fetch's promise chain (fetch → arrayBuffer → decode → setState)
- * resolve without accidentally firing the scheduled 30s poll timer.
- */
-async function flushPromises(): Promise<void> {
-  await act(async () => {
-    for (let i = 0; i < 30; i++) await Promise.resolve();
-  });
+function wrap(snapshot: RealtimeFeedSnapshot) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <RealtimeFeedContext.Provider value={snapshot}>{children}</RealtimeFeedContext.Provider>
+    );
+  };
 }
 
 beforeEach(() => {
   vi.useFakeTimers();
-  // Pin the fake clock to 06:00 EDT 2026-05-22 (1779444000s) so the
-  // scheduled visit at 06:01:56 EDT falls inside the forward window
-  // useArrivals applies to scheduled visits.
+  // Pin clock to 06:00 EDT 2026-05-22 so the scheduled visit at 06:01:56
+  // falls inside the forward window.
   vi.setSystemTime(new Date(1779444000 * 1000));
-  setVisibility('visible');
 });
 
 afterEach(() => {
   vi.useRealTimers();
-  vi.unstubAllGlobals();
 });
 
 describe('useArrivals', () => {
-  it('starts in loading state and transitions to success with classified rows', async () => {
-    mockFetchWith(tuBytes);
-    const { result } = renderHook(() =>
-      useArrivals('134013', BUNDLE, { date: '20260522' }),
-    );
+  it('returns empty rows while the feed is still loading', () => {
+    const snapshot = SUCCESS_SNAPSHOT({
+      status: 'loading',
+      tripUpdates: [],
+      lastUpdated: null,
+    });
+    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+      wrapper: wrap(snapshot),
+    });
 
     expect(result.current.status).toBe('loading');
     expect(result.current.rows).toEqual([]);
-    expect(result.current.lastUpdated).toBeNull();
+  });
 
-    await flushPromises();
+  it('classifies scheduled visits with live trip updates for the requested stop', () => {
+    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+      wrapper: wrap(SUCCESS_SNAPSHOT()),
+    });
 
     expect(result.current.status).toBe('success');
     expect(result.current.rows).toHaveLength(1);
     expect(result.current.rows[0]?.status).toBe('live');
     expect(result.current.rows[0]?.predictedTime).toBe(1779467993);
-    expect(result.current.lastUpdated).not.toBeNull();
-    expect(result.current.isStale).toBe(false);
-    expect(result.current.error).toBeNull();
   });
 
-  it('polls every 60 seconds while visible', async () => {
-    const fetchMock = mockFetchWith(tuBytes);
-    renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }));
-
-    await flushPromises();
-    expect(tripUpdateCalls(fetchMock)).toBe(1);
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(60_000);
+  it('passes through lastUpdated, isStale, and error from the feed', () => {
+    const error = new Error('boom');
+    const snapshot = SUCCESS_SNAPSHOT({
+      isStale: true,
+      error,
+      lastUpdated: 1779443999,
     });
-    expect(tripUpdateCalls(fetchMock)).toBe(2);
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(60_000);
+    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+      wrapper: wrap(snapshot),
     });
-    expect(tripUpdateCalls(fetchMock)).toBe(3);
-  });
 
-  it('pauses polling while the tab is hidden and resumes on visibility', async () => {
-    const fetchMock = mockFetchWith(tuBytes);
-    renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }));
-
-    await flushPromises();
-    expect(tripUpdateCalls(fetchMock)).toBe(1);
-
-    // Hide the tab — the scheduled poll should be cancelled. Advance
-    // past two full polling cycles to make sure we're not just inside
-    // the first one.
-    await act(async () => {
-      setVisibility('hidden');
-      await vi.advanceTimersByTimeAsync(120_000);
-    });
-    expect(tripUpdateCalls(fetchMock)).toBe(1);
-
-    // Return to the tab — should fetch immediately
-    await act(async () => {
-      setVisibility('visible');
-    });
-    await flushPromises();
-    expect(tripUpdateCalls(fetchMock)).toBe(2);
-  });
-
-  it('marks data as stale (not error) when refresh fails after a prior success', async () => {
-    const ok = vi.fn(async () => bytesToFreshResponse(tuBytes));
-    vi.stubGlobal('fetch', ok);
-
-    const { result } = renderHook(() =>
-      useArrivals('134013', BUNDLE, { date: '20260522' }),
-    );
-
-    await flushPromises();
-    expect(result.current.status).toBe('success');
-
-    // Next call fails
-    ok.mockImplementationOnce(async () => new Response('', { status: 503 }));
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(60_000);
-    });
-    await flushPromises();
-
-    expect(result.current.status).toBe('success'); // not 'error' — keep prior data
+    expect(result.current.lastUpdated).toBe(1779443999);
     expect(result.current.isStale).toBe(true);
-    expect(result.current.rows).toHaveLength(1);
-    expect(result.current.error).toBeInstanceOf(Error);
+    expect(result.current.error).toBe(error);
   });
 
-  it('surfaces error status when the initial fetch fails', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => new Response('', { status: 503 })),
-    );
-
-    const { result } = renderHook(() =>
-      useArrivals('134013', BUNDLE, { date: '20260522' }),
-    );
-
-    await flushPromises();
+  it('returns empty rows when the feed is in error and there is no prior data', () => {
+    const snapshot = SUCCESS_SNAPSHOT({
+      status: 'error',
+      tripUpdates: [],
+      lastUpdated: null,
+      error: new Error('upstream'),
+    });
+    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+      wrapper: wrap(snapshot),
+    });
 
     expect(result.current.status).toBe('error');
     expect(result.current.rows).toEqual([]);
-    expect(result.current.error).toBeInstanceOf(Error);
   });
 
-  it('aborts the in-flight request when the component unmounts', async () => {
-    let capturedSignal: AbortSignal | undefined;
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (_url: string, init?: RequestInit) => {
-        capturedSignal = init?.signal ?? undefined;
-        return new Promise<Response>(() => {}); // hang forever
-      }),
-    );
-
-    const { unmount } = renderHook(() =>
-      useArrivals('134013', BUNDLE, { date: '20260522' }),
-    );
-
-    await act(async () => {
-      await Promise.resolve();
+  it('filters by stopId — only rows for the requested stop are returned', () => {
+    // Two scheduled visits across two stops; ask for one stop, get one row.
+    const bundle: GtfsBundle = {
+      ...BUNDLE,
+      stops: [
+        ...BUNDLE.stops,
+        { stopId: 'other', name: 'Other', lat: 0, lng: 0, routeIds: ['116'] },
+      ],
+      trips: [
+        ...BUNDLE.trips,
+        { tripId: 'other-trip', routeId: '116', serviceId: 'WEEKDAY', headsign: 'Decatur' },
+      ],
+      stopTimes: [
+        ...BUNDLE.stopTimes,
+        {
+          tripId: 'other-trip',
+          stopId: 'other',
+          stopSequence: 1,
+          arrivalTime: '06:02:00',
+          departureTime: '06:02:00',
+        },
+      ],
+    };
+    const { result } = renderHook(() => useArrivals('134013', bundle, { date: '20260522' }), {
+      wrapper: wrap(SUCCESS_SNAPSHOT()),
     });
 
-    expect(capturedSignal?.aborted).toBe(false);
-    unmount();
-    expect(capturedSignal?.aborted).toBe(true);
+    expect(result.current.rows.every((r) => r.tripId === '10802068')).toBe(true);
   });
 
-  it('manual refresh triggers an immediate fetch outside the polling cadence', async () => {
-    const fetchMock = mockFetchWith(tuBytes);
-    const { result } = renderHook(() =>
-      useArrivals('134013', BUNDLE, { date: '20260522' }),
-    );
+  it('attaches occupancy from a matching vehicle position', () => {
+    const vehicle: VehiclePosition = {
+      tripId: '10802068',
+      routeId: '116',
+      vehicleId: 'V1',
+      timestamp: 1779444000,
+      latitude: 33.7540,
+      longitude: -84.3915,
+      occupancyStatus: 'FEW_SEATS_AVAILABLE',
+    };
+    const snapshot = SUCCESS_SNAPSHOT({ vehiclePositions: [vehicle] });
+    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+      wrapper: wrap(snapshot),
+    });
 
-    await flushPromises();
-    expect(tripUpdateCalls(fetchMock)).toBe(1);
+    expect(result.current.rows[0]?.occupancy).toBe('FEW_SEATS_AVAILABLE');
+  });
 
-    await act(async () => {
+  it('refresh() proxies to feed.refresh()', () => {
+    const refresh = vi.fn(async () => {});
+    const snapshot = SUCCESS_SNAPSHOT({ refresh });
+    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+      wrapper: wrap(snapshot),
+    });
+
+    act(() => {
       result.current.refresh();
     });
-    await flushPromises();
-    expect(tripUpdateCalls(fetchMock)).toBe(2);
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('fetches both tripUpdates and vehiclePositions each cycle', async () => {
-    const fetchMock = mockFetchWith(tuBytes);
-    renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }));
-
-    await flushPromises();
-
-    const urls = fetchMock.mock.calls.map(([url]) => String(url));
-    expect(urls.some((u) => u.includes('tripupdate'))).toBe(true);
-    expect(urls.some((u) => u.includes('vehiclepositions'))).toBe(true);
-  });
-
-  it('keeps primary data working when vehiclePositions fetch fails', async () => {
-    // tripUpdates succeeds, vehiclePositions 503s. Occupancy is a
-    // secondary signal — its absence should not surface as an error.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url: string) => {
-        if (String(url).includes('vehiclepositions')) {
-          return new Response('', { status: 503 });
-        }
-        return bytesToFreshResponse(tuBytes);
-      }),
-    );
-
-    const { result } = renderHook(() =>
-      useArrivals('134013', BUNDLE, { date: '20260522' }),
-    );
-
-    await flushPromises();
-
-    expect(result.current.status).toBe('success');
-    expect(result.current.isStale).toBe(false);
-    expect(result.current.error).toBeNull();
-    expect(result.current.rows).toHaveLength(1);
-    expect(result.current.rows[0]?.occupancy).toBeUndefined();
+  it('throws when called outside a RealtimeFeedProvider', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() =>
+      renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' })),
+    ).toThrow(/RealtimeFeedProvider/);
+    spy.mockRestore();
   });
 });

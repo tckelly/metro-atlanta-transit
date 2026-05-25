@@ -6,7 +6,7 @@
  * ("Removed Virginia Ave"), and so undo never strands an unlabeled action
  * referring to a stop the user can't see anymore.
  */
-import { Icon } from '@atl-transit/components';
+import { Button, Icon } from '@atl-transit/components';
 
 import { useFavorites } from './FavoritesContext';
 import { useToast } from '../toast/ToastContext';
@@ -44,18 +44,14 @@ export function FavoriteStarButton({ stopId, stopName }: FavoriteStarButtonProps
     : `Add ${stopName} to favorites`;
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="icon"
       onClick={handleClick}
       aria-label={label}
       aria-pressed={favorited}
-      // 44px hit target keeps WCAG 2.2 target-size compliance on a phone;
-      // the star sits inside it visually.
-      className={`inline-flex h-11 w-11 items-center justify-center rounded-md hover:bg-surface-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-        favorited ? 'text-status-warn' : 'text-fg-muted'
-      }`}
+      className={favorited ? 'text-status-warn' : 'text-fg-muted'}
     >
       <Icon name={favorited ? 'star-filled' : 'star'} />
-    </button>
+    </Button>
   );
 }

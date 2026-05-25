@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { BusRow, Icon } from '@atl-transit/components';
+import { BusRow, Button, Icon, MessageCard } from '@atl-transit/components';
 
 import { useArrivals } from '../features/stops/useArrivals';
 import { useGtfsBundle } from '../services/useGtfsBundle';
@@ -19,16 +19,16 @@ export function StopDetail() {
   const { bundle, loading: bundleLoading, error: bundleError } = useGtfsBundle();
 
   if (!stopId) {
-    return <Message title="No stop ID" body="The URL is missing a stop ID." />;
+    return <MessageCard title="No stop ID" body="The URL is missing a stop ID." />;
   }
 
   if (bundleLoading) {
-    return <Message title="Loading schedule data..." body="One moment." />;
+    return <MessageCard title="Loading schedule data..." body="One moment." />;
   }
 
   if (bundleError || !bundle) {
     return (
-      <Message
+      <MessageCard
         title="Couldn't load schedule data"
         body={bundleError?.message ?? 'Unknown error.'}
       />
@@ -61,18 +61,18 @@ function StopDetailReady({ stopId, bundle }: { stopId: string; bundle: GtfsBundl
       </header>
 
       {status === 'loading' && (
-        <Message title="Loading arrivals..." body="Fetching the latest from MARTA." />
+        <MessageCard title="Loading arrivals..." body="Fetching the latest from MARTA." />
       )}
 
       {status === 'error' && (
-        <Message
+        <MessageCard
           title="Couldn't load arrivals"
           body={error?.message ?? 'Unknown error.'}
         />
       )}
 
       {status === 'success' && rows.length === 0 && (
-        <Message
+        <MessageCard
           title="No upcoming buses"
           body="No more buses scheduled at this stop today. Check back tomorrow morning, or try a different stop."
         />
@@ -106,14 +106,10 @@ function StopDetailReady({ stopId, bundle }: { stopId: string; bundle: GtfsBundl
 
 function RefreshButton({ onClick }: { onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-divider px-3 text-sm font-medium text-fg hover:bg-surface-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-    >
+    <Button variant="neutral" onClick={onClick} className="gap-1.5 px-3">
       <Icon name="refresh" />
       Refresh
-    </button>
+    </Button>
   );
 }
 
@@ -174,15 +170,6 @@ function LastUpdatedIndicator({
       Last updated {formatLastUpdated(lastUpdated, nowSec)}
       {TIER_SUFFIX[tier]}
     </p>
-  );
-}
-
-function Message({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded border border-divider bg-surface-elevated p-4">
-      <h2 className="font-semibold">{title}</h2>
-      <p className="mt-1 text-sm text-fg-muted">{body}</p>
-    </div>
   );
 }
 

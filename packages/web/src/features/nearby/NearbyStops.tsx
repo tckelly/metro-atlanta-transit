@@ -8,6 +8,7 @@
  */
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Button, MessageCard } from '@atl-transit/components';
 
 import { getNearbyStops, type NearbyStop } from './getNearbyStops';
 import {
@@ -103,18 +104,19 @@ export function NearbyStops({ bundle, geolocation }: NearbyStopsProps) {
 
 function IdleView({ onFind }: { onFind: () => void }) {
   return (
-    <div className="space-y-3 rounded border border-divider bg-surface-elevated p-4">
-      <p className="text-sm text-fg-muted">
-        We use your location only on this device to find the nearest bus stops. Nothing leaves your phone.
-      </p>
-      <button
-        type="button"
-        onClick={onFind}
-        className="inline-flex min-h-[44px] items-center rounded-md border border-primary px-4 text-sm font-semibold text-primary hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      >
-        Find stops near me
-      </button>
-    </div>
+    <MessageCard
+      body={
+        <p>
+          We use your location only on this device to find the nearest bus stops. Nothing
+          leaves your phone.
+        </p>
+      }
+      action={
+        <Button variant="primary" onClick={onFind}>
+          Find stops near me
+        </Button>
+      }
+    />
   );
 }
 
@@ -143,17 +145,15 @@ function StopList({ stops }: { stops: NearbyStop[] }) {
 
 function FailureView({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="space-y-3 rounded border border-divider bg-surface-elevated p-4">
-      <p className="text-sm text-fg">{message}</p>
-      {onRetry !== undefined && (
-        <button
-          type="button"
-          onClick={onRetry}
-          className="inline-flex min-h-[44px] items-center rounded-md border border-divider px-4 text-sm font-medium text-fg hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          Try again
-        </button>
-      )}
-    </div>
+    <MessageCard
+      body={message}
+      action={
+        onRetry !== undefined ? (
+          <Button variant="neutral" onClick={onRetry}>
+            Try again
+          </Button>
+        ) : undefined
+      }
+    />
   );
 }

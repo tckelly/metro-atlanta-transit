@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 import { useFavorites } from '../features/favorites/FavoritesContext';
 import { FavoriteStopCard } from '../features/favorites/FavoriteStopCard';
 import { NearbyStops } from '../features/nearby/NearbyStops';
@@ -46,6 +48,15 @@ export function Home() {
       </section>
 
       {!bundleLoading && !bundleError && bundle !== null && <NearbyStops bundle={bundle} />}
+
+      <p className="text-sm">
+        <Link
+          to="/routes"
+          className="text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          Browse all routes →
+        </Link>
+      </p>
     </div>
   );
 }

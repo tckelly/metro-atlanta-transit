@@ -7,6 +7,7 @@
  */
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { MessageCard } from '@atl-transit/components';
 
 import { useGtfsBundle } from '../services/useGtfsBundle';
 import { getRouteDirections } from '../features/routes/getRouteDirections';
@@ -22,13 +23,13 @@ export function RouteDetail() {
   }, [bundle, routeId]);
 
   if (routeId === undefined) {
-    return <Message title="No route ID" body="The URL is missing a route ID." />;
+    return <MessageCard title="No route ID" body="The URL is missing a route ID." />;
   }
 
-  if (loading) return <Message title="Loading route…" body="One moment." />;
+  if (loading) return <MessageCard title="Loading route…" body="One moment." />;
   if (error !== null || bundle === null) {
     return (
-      <Message
+      <MessageCard
         title="Couldn’t load route data"
         body={error?.message ?? 'Unknown error.'}
       />
@@ -52,7 +53,7 @@ export function RouteDetail() {
       </header>
 
       {directions.length === 0 && (
-        <Message
+        <MessageCard
           title="No stops found"
           body="This route doesn’t have any stop information in the current schedule data."
         />
@@ -81,11 +82,3 @@ export function RouteDetail() {
   );
 }
 
-function Message({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded border border-divider bg-surface-elevated p-4">
-      <h2 className="font-semibold">{title}</h2>
-      <p className="mt-1 text-sm text-fg-muted">{body}</p>
-    </div>
-  );
-}

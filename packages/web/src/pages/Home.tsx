@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { MessageCard } from '@atl-transit/components';
 
 import { useFavorites } from '../features/favorites/FavoritesContext';
 import { FavoriteStopCard } from '../features/favorites/FavoriteStopCard';
@@ -63,11 +64,10 @@ export function Home() {
 
 function EmptyState() {
   return (
-    <div className="rounded border border-divider bg-surface-elevated p-4">
-      <p className="font-semibold">No favorites yet</p>
-      <p className="mt-1 text-sm text-fg-muted">
-        Find a stop below and tap the star on its page to keep it here for your commute.
-      </p>
-    </div>
+    <MessageCard
+      title="No favorites yet"
+      titleAs="p"
+      body="Find a stop below and tap the star on its page to keep it here for your commute."
+    />
   );
 }

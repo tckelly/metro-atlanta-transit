@@ -4,7 +4,7 @@ How the app is built. Translates the *what* and *how good* from `product-require
 
 ## Overview
 
-A client-side Progressive Web App, structured as a **pnpm monorepo** with flat `packages/*` layout. No backend in v1 — the browser talks directly to MARTA's public GTFS-Realtime feeds, and static GTFS data is preprocessed at build time and bundled with the app.
+A client-side Progressive Web App, structured as a **pnpm monorepo** with flat `packages/*` layout. The browser fetches MARTA's realtime data through a thin Vercel Edge Function proxy (one per feed — the smallest backend that makes browsers happy with MARTA's missing CORS headers; see ADR-0005). Static GTFS data is preprocessed at build time and bundled with the app. User state lives in `localStorage` only; no accounts, no server-side state.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -291,7 +291,7 @@ The runtime loader (`services/gtfsStatic.ts`) loads these 5 files in parallel on
 
 ### Real-time — fetched on demand, polled while viewing
 
-> **CORS note (discovered during first browser test):** MARTA's GTFS-RT endpoints do not send `Access-Control-Allow-Origin` headers, so browsers block direct JavaScript fetches even though the server responds with 200. This was a blind spot in ADR-0001's "no backend in v1" assumption. In dev we work around it with a **Vite proxy** (`vite.config.ts` rewrites `/api/marta/*` → `gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService/*` server-side). **Production needs a real proxy** — planned as a Vercel serverless function in M5; will be documented in a new ADR superseding ADR-0001.
+**Realtime proxy.** The client always requests `/api/marta/tripupdates`, `/api/marta/vehiclepositions`, and `/api/marta/alerts` — never MARTA's hostname directly. In production these paths are served by Vercel Edge Functions (`packages/web/api/marta/*.ts`); in dev they're served by a matching Vite proxy (`vite.config.ts`). Both rewrite to the corresponding `gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService/*` path server-to-server, sidestepping CORS. MARTA's GTFS-RT endpoints do not send `Access-Control-Allow-Origin` (a blind spot in the original ADR-0001 assumption), so this is the smallest backend that lets the PWA actually load. The Edge Functions set `Cache-Control: s-maxage=10, stale-while-revalidate=30` so co-located clients collapse onto one upstream call per ~10s. See ADR-0005.
 
 `packages/web/src/services/martaRealtime.ts` consumes decoders from `@atl-transit/gtfs` and exposes three functions:
 
@@ -452,12 +452,13 @@ Per CLAUDE.md, TDD for complex logic, tests-after for UI. Coverage focus:
 
 ## Cross-cutting decisions (ADRs)
 
-The four load-bearing architectural decisions have dedicated ADRs in `docs/adr/`. They cover the choices most likely to be questioned or forgotten — and where re-deriving the reasoning would cost the most:
+The load-bearing architectural decisions have dedicated ADRs in `docs/adr/`. They cover the choices most likely to be questioned or forgotten — and where re-deriving the reasoning would cost the most:
 
-- **ADR-0001:** No backend in v1
+- **ADR-0001:** No backend in v1 — *Superseded (partial) by ADR-0005*
 - **ADR-0002:** pnpm monorepo with flat `packages/*` layout
 - **ADR-0003:** Atomic-design `components` package with Option B (visual-semantics) boundary
 - **ADR-0004:** Build-time static GTFS preprocessing with nightly rebuilds
+- **ADR-0005:** Minimal backend proxy for MARTA realtime (Vercel Edge Functions)
 
 Other decisions (PWA-over-native, React-not-Svelte, Context-not-Redux, Tailwind, en+es-only, no-Turborepo, dark-mode-day-one, no-gesture-favorites) are defended in `vision.md`, `architecture.md`, `ux-guidelines.md`, or `product-requirements.md` and don't currently warrant standalone ADRs. If any of them gets seriously challenged, that's the signal to write one.
 

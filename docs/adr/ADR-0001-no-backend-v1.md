@@ -1,6 +1,6 @@
 # ADR-0001: No backend in v1
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0005](./ADR-0005-minimal-backend-proxy.md) (partial — realtime only; the no-backend stance still holds for user state and static GTFS)
 **Date:** 2026-05-23
 
 ## Context

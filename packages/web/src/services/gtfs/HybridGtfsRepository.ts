@@ -52,10 +52,14 @@ const RouteDirectionWireSchema = z.object({
 const RouteDirectionsResponseSchema = z.array(RouteDirectionWireSchema);
 
 export class HybridGtfsRepository implements GtfsRepository {
-  constructor(private readonly config: HybridGtfsConfig) {}
+  private readonly fetchFn: typeof globalThis.fetch;
 
-  private get fetchFn(): typeof globalThis.fetch {
-    return this.config.fetch ?? globalThis.fetch;
+  constructor(private readonly config: HybridGtfsConfig) {
+    // Bind to globalThis so the global fetch isn't invoked with `this`
+    // pointing at the repository instance — `Window.fetch` rejects any
+    // other receiver with "Illegal invocation."
+    const provided = config.fetch ?? globalThis.fetch;
+    this.fetchFn = provided.bind(globalThis);
   }
 
   private get baseUrl(): string {

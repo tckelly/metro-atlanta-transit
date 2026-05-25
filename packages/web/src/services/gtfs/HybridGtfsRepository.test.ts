@@ -186,6 +186,29 @@ describe('HybridGtfsRepository — findNearbyStops', () => {
   });
 });
 
+describe('HybridGtfsRepository — fetch invocation', () => {
+  // Regression: `globalThis.fetch` throws "Illegal invocation" when called
+  // with a receiver other than the global object (Window). If we invoke it
+  // as `this.fetchFn(...)` the receiver becomes the repository instance,
+  // which is the exact symptom that broke /route/:routeId in dev.
+  it('does not bind fetch to the repository instance as `this`', async () => {
+    let capturedThis: unknown = '<<not-captured>>';
+    // Capturing `this` is the assertion target — the linter rule against
+    // aliasing is what we're deliberately doing here.
+    function captor(this: unknown): Promise<Response> {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      capturedThis = this;
+      return Promise.resolve(jsonResponse([]));
+    }
+    const repo = new HybridGtfsRepository({
+      bundle: BUNDLE,
+      fetch: captor as unknown as typeof globalThis.fetch,
+    });
+    await repo.getScheduledVisitsForStop({ stopId: 'S1', date: '20260105' });
+    expect(capturedThis).not.toBe(repo);
+  });
+});
+
 describe('HybridGtfsRepository — baseUrl', () => {
   it('honors a configured baseUrl (for testing against staging deploys, etc.)', async () => {
     const fetch = fakeFetch({

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/gtfs/stop-times.ts": {
+      "includeFiles": "api/_data/**"
+    },
+    "api/gtfs/route-directions.ts": {
+      "includeFiles": "api/_data/**"
+    }
+  }
+}

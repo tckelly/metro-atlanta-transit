@@ -6,6 +6,7 @@ import { useGtfsBundle } from '../services/useGtfsBundle';
 import { toBusRowProps } from '../features/stops/busRowMapper';
 import { groupRowsByRoute, type RouteGroup } from '../features/stops/groupRowsByRoute';
 import { getRouteMetadata, getStopMetadata } from '../services/gtfsStatic';
+import { FavoriteStarButton } from '../features/favorites/FavoriteStarButton';
 import { formatLastUpdated } from '../utils/formatLastUpdated';
 import { freshnessTier, type FreshnessTier } from '../utils/freshnessTier';
 import { useNowSec } from '../utils/useNowSec';
@@ -45,13 +46,16 @@ function StopDetailReady({ stopId, bundle }: { stopId: string; bundle: GtfsBundl
   // visible change.
   const nowSec = useNowSec(15_000);
 
+  const stopName = stop?.name ?? `Stop ${stopId}`;
+
   return (
     <div className="space-y-4">
       <header className="flex items-center gap-3">
         <Link to="/" aria-label="Back to home" className="text-2xl text-primary">
           ←
         </Link>
-        <h1 className="text-xl font-bold">{stop?.name ?? `Stop ${stopId}`}</h1>
+        <h1 className="flex-1 text-xl font-bold">{stopName}</h1>
+        <FavoriteStarButton stopId={stopId} stopName={stopName} />
       </header>
 
       {status === 'loading' && (

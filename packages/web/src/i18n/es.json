@@ -1,1 +1,148 @@
-{}
+{
+  "app": {
+    "name": "Atlanta Transit",
+    "tagline": "Llegadas de autobuses MARTA en tiempo real. No oficial."
+  },
+  "home": {
+    "myStops": "Mis paradas",
+    "browseRoutes": "Ver todas las rutas →",
+    "favoritesEmptyTitle": "Aún no tienes favoritos",
+    "favoritesEmptyBody": "Busca una parada abajo y toca la estrella en su página para guardarla aquí para tu viaje."
+  },
+  "routes": {
+    "title": "Todas las rutas",
+    "backToHome": "Volver al inicio"
+  },
+  "routeDetail": {
+    "noRouteIdTitle": "Sin ID de ruta",
+    "noRouteIdBody": "Falta el ID de ruta en la URL.",
+    "backToRoutes": "Volver a todas las rutas",
+    "loadErrorTitle": "No se pudieron cargar los datos de la ruta",
+    "noStopsTitle": "No se encontraron paradas",
+    "noStopsBody": "Esta ruta no tiene información de paradas en los datos del horario actual.",
+    "toward": "Hacia {{headsign}}"
+  },
+  "stopDetail": {
+    "noStopIdTitle": "Sin ID de parada",
+    "noStopIdBody": "Falta el ID de parada en la URL.",
+    "backToHome": "Volver al inicio",
+    "loadErrorTitle": "No se pudieron cargar las llegadas",
+    "noUpcomingTitle": "No hay próximos autobuses",
+    "noUpcomingBody": "No hay más autobuses programados en esta parada hoy. Vuelve mañana por la mañana o prueba con otra parada.",
+    "refresh": "Actualizar",
+    "routeHeader": "Ruta {{shortName}} — {{headsign}}",
+    "lastUpdatedPrefix": "Última actualización",
+    "lastUpdatedStaleSuffix": " — no se pudo actualizar",
+    "lastUpdatedVeryStaleSuffix": " — los datos podrían ser incorrectos"
+  },
+  "bundle": {
+    "loadingTitle": "Cargando datos del horario…",
+    "loadingBody": "Un momento.",
+    "errorTitle": "No se pudieron cargar los datos del horario"
+  },
+  "loading": {
+    "arrivals": "Cargando llegadas",
+    "route": "Cargando ruta",
+    "arrivalsDots": "Cargando llegadas…",
+    "routeDots": "Cargando ruta…"
+  },
+  "nearby": {
+    "title": "Paradas cercanas",
+    "finding": "Buscando tu ubicación…",
+    "denied": "Acceso a la ubicación denegado. Actívalo en la configuración de tu navegador para encontrar paradas cerca de ti.",
+    "unavailable": "No podemos encontrar tu ubicación en este dispositivo.",
+    "timeout": "Tardó demasiado. Asegúrate de que la ubicación esté activada e inténtalo de nuevo.",
+    "error": "No se pudo obtener tu ubicación. Inténtalo de nuevo en un momento.",
+    "rationale": "Usamos tu ubicación solo en este dispositivo para encontrar las paradas de autobús más cercanas. Nada sale de tu teléfono.",
+    "findButton": "Buscar paradas cerca de mí",
+    "noResults": "No se encontraron paradas de autobús cerca de ti.",
+    "tryAgain": "Reintentar"
+  },
+  "favorites": {
+    "toastRemoved": "Se eliminó {{stopName}}",
+    "toastAdded": "Se agregó {{stopName}}",
+    "toastFull": "Favoritos llenos (máx. 10). Elimina uno para agregar una nueva parada.",
+    "toastUndo": "Deshacer",
+    "ariaRemove": "Quitar {{stopName}} de favoritos",
+    "ariaAdd": "Agregar {{stopName}} a favoritos",
+    "loadingArrivals": "Cargando llegadas…",
+    "loadError": "No se pudieron cargar las llegadas",
+    "noUpcoming": "No hay próximos autobuses",
+    "rowPreview": "Ruta {{shortName}} → {{headsign}}"
+  },
+  "disruption": {
+    "badge_one": "{{count}} cancelado",
+    "badge_other": "{{count}} cancelados",
+    "ariaSoft_one": "Interrupción de ruta: {{count}} cancelado",
+    "ariaSoft_other": "Interrupción de ruta: {{count}} cancelados",
+    "ariaStrong_one": "Interrupción significativa de ruta: {{count}} cancelado",
+    "ariaStrong_other": "Interrupción significativa de ruta: {{count}} cancelados"
+  },
+  "install": {
+    "title": "Instalar Atlanta Transit",
+    "body": "Agrega la app a tu pantalla de inicio para ver llegadas con un toque.",
+    "button": "Instalar app",
+    "iosTitle": "Instalar en iPhone o iPad",
+    "iosStep1Lead": "Toca el botón",
+    "iosStep1Bold": "Compartir",
+    "iosStep1Trail": "en la parte inferior de Safari.",
+    "iosStep2Lead": "Desplázate hacia abajo y elige",
+    "iosStep2Bold": "Add to Home Screen",
+    "iosStep2Trail": ".",
+    "iosStep3Lead": "Toca",
+    "iosStep3Bold": "Add",
+    "iosStep3Trail": "."
+  },
+  "routeShield": {
+    "title": "Algo salió mal en esta página",
+    "body": "{{message}}. Intenta actualizar — o vuelve a la pantalla de inicio abajo.",
+    "backHome": "← Volver al inicio"
+  },
+  "time": {
+    "now": "ahora",
+    "secondsAgo_one": "hace {{count}} segundo",
+    "secondsAgo_other": "hace {{count}} segundos",
+    "minutesAgo_one": "hace {{count}} min",
+    "minutesAgo_other": "hace {{count}} min"
+  },
+  "walking": {
+    "under1Min": "<1 min a pie",
+    "minutes_one": "{{count}} min a pie",
+    "minutes_other": "{{count}} min a pie"
+  },
+  "eta": {
+    "arriving": "Llegando",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "scheduled": "Programado {{time}}",
+    "delayLate_one": "{{count}} min de retraso",
+    "delayLate_other": "{{count}} min de retraso",
+    "delayEarly_one": "{{count}} min de adelanto",
+    "delayEarly_other": "{{count}} min de adelanto",
+    "noLiveData": "Programado · Sin datos en vivo",
+    "cancelled": "Cancelado"
+  },
+  "settings": {
+    "title": "Configuración",
+    "backToHome": "Volver al inicio",
+    "languageHeading": "Idioma",
+    "languageEnglish": "English",
+    "languageSpanish": "Español",
+    "clockFormatHeading": "Formato de hora",
+    "clockFormat12": "12 horas (1:30 PM)",
+    "clockFormat24": "24 horas (13:30)",
+    "clockFormatAuto": "Seguir mi idioma",
+    "aboutHeading": "Acerca de",
+    "aboutBody": "Atlanta Transit es una Progressive Web App no oficial para llegadas de autobuses MARTA en tiempo real. No afiliado ni respaldado por MARTA.",
+    "aboutAttribution": "Datos en tiempo real y horarios proporcionados por MARTA (Metropolitan Atlanta Rapid Transit Authority).",
+    "aboutVersion": "Versión {{version}}",
+    "homeLink": "Configuración"
+  },
+  "occupancy": {
+    "seatsAvailable": "Asientos disponibles",
+    "fillingUp": "Llenándose",
+    "standingRoomOnly": "Solo lugar de pie",
+    "veryCrowded": "Muy lleno",
+    "notAccepting": "No acepta pasajeros"
+  }
+}

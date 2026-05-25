@@ -18,6 +18,7 @@ import { useSmallGtfsBundle } from './services/useSmallGtfsBundle';
 import { Home } from './pages/Home';
 import { Routes as RoutesPage } from './pages/Routes';
 import { RouteDetail } from './pages/RouteDetail';
+import { Settings } from './pages/Settings';
 import { StopDetail } from './pages/StopDetail';
 
 export function App() {
@@ -37,6 +38,7 @@ export function App() {
                           <Route path="/routes" element={<RoutesPage />} />
                           <Route path="/route/:routeId" element={<RouteDetail />} />
                           <Route path="/stop/:stopId" element={<StopDetail />} />
+                          <Route path="/settings" element={<Settings />} />
                         </Routes>
                       </RouteShield>
                     </RealtimeFeedProvider>

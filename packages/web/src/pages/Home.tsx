@@ -48,6 +48,15 @@ export function Home() {
       </p>
 
       <InstallPrompt />
+
+      <p className="text-sm">
+        <Link
+          to="/settings"
+          className="text-fg-muted underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          {t('settings.homeLink')}
+        </Link>
+      </p>
     </div>
   );
 }

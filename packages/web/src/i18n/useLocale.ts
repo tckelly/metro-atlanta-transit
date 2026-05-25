@@ -14,6 +14,8 @@ import { useTranslation } from 'react-i18next';
 
 import { LOCALE_STORAGE_KEY, type Locale } from './init';
 
+export type { Locale };
+
 export interface UseLocaleResult {
   locale: Locale;
   setLocale: (locale: Locale) => void;

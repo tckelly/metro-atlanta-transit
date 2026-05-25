@@ -1,9 +1,10 @@
 /**
- * Single-slot toast system.
+ * Single-slot toast orchestration.
  *
  * One toast at a time, replaced on subsequent `show()` calls. The
- * rendered region uses `role="status"` + `aria-live="polite"` so screen
- * readers announce confirmation and undo actions without interrupting.
+ * visual molecule lives in `@atl-transit/components`; this provider
+ * owns the state machine (current toast, auto-dismiss timer) and wraps
+ * each action's onClick with the dismiss call.
  */
 import {
   createContext,
@@ -15,6 +16,7 @@ import {
   useState,
 } from 'react';
 import type { ReactNode } from 'react';
+import { Toast } from '@atl-transit/components';
 
 /**
  * 6 seconds — long enough to read a sentence and reach for the undo
@@ -73,25 +75,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       {toast !== null && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-md bg-surface-elevated px-4 py-3 text-sm shadow-lg ring-1 ring-divider"
-        >
-          <span className="text-fg">{toast.message}</span>
-          {toast.action !== undefined && (
-            <button
-              type="button"
-              className="rounded px-2 py-1 text-sm font-semibold text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              onClick={() => {
-                toast.action?.onClick();
-                dismiss();
-              }}
-            >
-              {toast.action.label}
-            </button>
-          )}
-        </div>
+        <Toast
+          message={toast.message}
+          {...(toast.action !== undefined
+            ? {
+                action: {
+                  label: toast.action.label,
+                  onClick: () => {
+                    toast.action?.onClick();
+                    dismiss();
+                  },
+                },
+              }
+            : {})}
+        />
       )}
     </ToastContext.Provider>
   );

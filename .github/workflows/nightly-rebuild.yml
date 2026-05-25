@@ -36,6 +36,10 @@ jobs:
           git config user.name 'atl-transit-bot'
           git config user.email 'atl-transit-bot@users.noreply.github.com'
       - name: Push empty commit to trigger Vercel deploy
+        # The "chore: nightly rebuild" subject prefix is load-bearing:
+        # `packages/web/vercel.json`'s ignoreCommand matches it to force a
+        # build for an otherwise-empty diff. Don't rename without updating
+        # both files in the same change.
         run: |
           git commit --allow-empty -m "chore: nightly rebuild $(date -u +%Y-%m-%d)"
           git push

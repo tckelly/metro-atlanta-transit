@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "git log -1 --pretty=%s | grep -q '^chore: nightly rebuild' && exit 1; git diff --quiet HEAD^ HEAD -- ':(exclude)docs/**' ':(exclude)*.md' ':(exclude).github/**'",
   "functions": {
     "api/gtfs/stop-times.ts": {
       "includeFiles": "api/_data/**"

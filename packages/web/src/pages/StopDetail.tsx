@@ -6,6 +6,7 @@ import { useArrivals } from '../features/stops/useArrivals';
 import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
 import { toBusRowProps } from '../features/stops/busRowMapper';
 import { groupRowsByRoute, type RouteGroup } from '../features/stops/groupRowsByRoute';
+import { useFormatTime } from '../i18n/formatters';
 import { FavoriteStarButton } from '../features/favorites/FavoriteStarButton';
 import { assessDisruption } from '../features/disruption/assessDisruption';
 import { DisruptionBadge } from '../features/disruption/DisruptionBadge';
@@ -131,6 +132,7 @@ function RefreshButton({ onClick }: { onClick: () => void }) {
 function RouteSection({ group, nowSec }: { group: RouteGroup; nowSec: number }) {
   const { t } = useTranslation();
   const repo = useGtfsRepository();
+  const formatTime = useFormatTime();
   const route = repo.getRoute(group.routeId);
   const shortName = route?.shortName ?? group.routeId;
   const level = assessDisruption(group.rows);
@@ -145,7 +147,7 @@ function RouteSection({ group, nowSec }: { group: RouteGroup; nowSec: number }) 
       </div>
       <ul className="mt-2 divide-y divide-divider">
         {group.rows.map((row) => {
-          const props = toBusRowProps(row, nowSec);
+          const props = toBusRowProps(row, nowSec, { t, formatTime });
           return <BusRow key={row.tripId} {...props} />;
         })}
       </ul>
@@ -177,7 +179,7 @@ function LastUpdatedIndicator({
       : '';
   return (
     <p className={`text-xs ${TIER_CLASS[tier]}`} aria-live="polite">
-      {t('stopDetail.lastUpdatedPrefix')} {formatLastUpdated(lastUpdated, nowSec)}
+      {t('stopDetail.lastUpdatedPrefix')} {formatLastUpdated(lastUpdated, nowSec, t)}
       {suffix}
     </p>
   );

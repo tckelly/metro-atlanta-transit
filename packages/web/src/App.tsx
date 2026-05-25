@@ -7,6 +7,7 @@ import { ErrorBoundary, MessageCard } from '@atl-transit/components';
 import { i18next } from './i18n/init';
 import { FavoritesProvider } from './features/favorites/FavoritesContext';
 import { RealtimeFeedProvider } from './features/realtime/RealtimeFeedContext';
+import { SettingsProvider } from './features/settings/SettingsContext';
 import { ToastProvider } from './features/toast/ToastContext';
 import { GtfsRepositoryProvider } from './services/gtfs/GtfsRepositoryContext';
 import {
@@ -22,28 +23,30 @@ import { StopDetail } from './pages/StopDetail';
 export function App() {
   return (
     <I18nextProvider i18n={i18next}>
-      <ToastProvider>
-        <FavoritesProvider>
-          <main className="mx-auto max-w-2xl px-4 py-6">
-            <BundleGate>
-              {(bundle) => (
-                <RepositoryGate bundle={bundle}>
-                  <RealtimeFeedProvider>
-                    <RouteShield>
-                      <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/routes" element={<RoutesPage />} />
-                        <Route path="/route/:routeId" element={<RouteDetail />} />
-                        <Route path="/stop/:stopId" element={<StopDetail />} />
-                      </Routes>
-                    </RouteShield>
-                  </RealtimeFeedProvider>
-                </RepositoryGate>
-              )}
-            </BundleGate>
-          </main>
-        </FavoritesProvider>
-      </ToastProvider>
+      <SettingsProvider>
+        <ToastProvider>
+          <FavoritesProvider>
+            <main className="mx-auto max-w-2xl px-4 py-6">
+              <BundleGate>
+                {(bundle) => (
+                  <RepositoryGate bundle={bundle}>
+                    <RealtimeFeedProvider>
+                      <RouteShield>
+                        <Routes>
+                          <Route path="/" element={<Home />} />
+                          <Route path="/routes" element={<RoutesPage />} />
+                          <Route path="/route/:routeId" element={<RouteDetail />} />
+                          <Route path="/stop/:stopId" element={<StopDetail />} />
+                        </Routes>
+                      </RouteShield>
+                    </RealtimeFeedProvider>
+                  </RepositoryGate>
+                )}
+              </BundleGate>
+            </main>
+          </FavoritesProvider>
+        </ToastProvider>
+      </SettingsProvider>
     </I18nextProvider>
   );
 }

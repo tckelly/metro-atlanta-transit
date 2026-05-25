@@ -11,6 +11,7 @@ import { Skeleton } from '@atl-transit/components';
 import { useArrivals } from '../stops/useArrivals';
 import { toBusRowProps } from '../stops/busRowMapper';
 import { useGtfsRepository } from '../../services/gtfs/GtfsRepositoryContext';
+import { useFormatTime } from '../../i18n/formatters';
 import { useNowSec } from '../../utils/useNowSec';
 
 const PREVIEW_COUNT = 2;
@@ -22,6 +23,7 @@ export interface FavoriteStopCardProps {
 export function FavoriteStopCard({ stopId }: FavoriteStopCardProps) {
   const { t } = useTranslation();
   const repo = useGtfsRepository();
+  const formatTime = useFormatTime();
   const { status, rows } = useArrivals(stopId);
   const nowSec = useNowSec(15_000);
   const stop = repo.getStop(stopId);
@@ -64,7 +66,7 @@ export function FavoriteStopCard({ stopId }: FavoriteStopCardProps) {
             {preview.map((row) => {
               const route = repo.getRoute(row.routeId);
               const shortName = route?.shortName ?? row.routeId;
-              const props = toBusRowProps(row, nowSec);
+              const props = toBusRowProps(row, nowSec, { t, formatTime });
               return (
                 <li key={row.tripId} className="flex items-baseline justify-between gap-3">
                   <span className="min-w-0 truncate text-fg">

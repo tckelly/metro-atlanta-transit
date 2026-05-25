@@ -1,5 +1,6 @@
 import type { BusRowProps } from '@atl-transit/components';
 import type { OccupancyStatus } from '@atl-transit/gtfs';
+import type { TFunction } from 'i18next';
 
 import type { ClassifiedBusRow } from './busRowClassifier';
 
@@ -12,6 +13,12 @@ import type { ClassifiedBusRow } from './busRowClassifier';
  * - `row`: classified bus row from `busRowClassifier.ts`
  * - `nowSec`: current Unix seconds, passed explicitly so tests are
  *   deterministic and the function is pure.
+ * - `formatters.t`: i18n translator. Strings come from `en.json` (and
+ *   eventually `es.json`); callers pass it down so this module stays
+ *   pure / synchronous.
+ * - `formatters.formatTime`: bound clock formatter that knows the
+ *   active locale + the user's 12h/24h preference. The caller
+ *   typically gets it from `useFormatTime()`.
  */
 
 const DELAYED_THRESHOLD_SEC = 180;
@@ -25,28 +32,32 @@ const SECONDARY_DELAY_THRESHOLD_SEC = 60;
  */
 const LONG_ETA_THRESHOLD_MIN = 60;
 
-function formatEta(predictedSec: number, nowSec: number): string {
+export interface BusRowMapperFormatters {
+  t: TFunction;
+  formatTime: (unixSec: number) => string;
+}
+
+function formatEta(
+  predictedSec: number,
+  nowSec: number,
+  formatters: BusRowMapperFormatters,
+): string {
   const deltaSec = predictedSec - nowSec;
-  if (deltaSec < ARRIVING_THRESHOLD_SEC) return 'Arriving';
+  if (deltaSec < ARRIVING_THRESHOLD_SEC) return formatters.t('eta.arriving');
   const minutes = Math.round(deltaSec / 60);
-  if (minutes >= LONG_ETA_THRESHOLD_MIN) return formatScheduledTime(predictedSec);
-  return `${minutes} min`;
+  if (minutes >= LONG_ETA_THRESHOLD_MIN) return formatters.formatTime(predictedSec);
+  return formatters.t('eta.minutes', { count: minutes });
 }
 
-function formatScheduledTime(unixSec: number): string {
-  const fmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-  return fmt.format(new Date(unixSec * 1000));
-}
-
-function formatDelay(delaySec: number): string | undefined {
+function formatDelay(
+  delaySec: number,
+  t: TFunction,
+): string | undefined {
   if (Math.abs(delaySec) < SECONDARY_DELAY_THRESHOLD_SEC) return undefined;
   const minutes = Math.round(Math.abs(delaySec) / 60);
-  return delaySec > 0 ? `${minutes} min late` : `${minutes} min early`;
+  return delaySec > 0
+    ? t('eta.delayLate', { count: minutes })
+    : t('eta.delayEarly', { count: minutes });
 }
 
 /**
@@ -54,20 +65,23 @@ function formatDelay(delaySec: number): string | undefined {
  * docs/ux-guidelines.md. Returns undefined for values we don't surface
  * (NO_DATA_AVAILABLE, NOT_BOARDABLE) so callers can omit the segment.
  */
-function occupancyLabel(status: OccupancyStatus | undefined): string | undefined {
+function occupancyLabel(
+  status: OccupancyStatus | undefined,
+  t: TFunction,
+): string | undefined {
   switch (status) {
     case 'EMPTY':
     case 'MANY_SEATS_AVAILABLE':
-      return 'Seats available';
+      return t('occupancy.seatsAvailable');
     case 'FEW_SEATS_AVAILABLE':
-      return 'Filling up';
+      return t('occupancy.fillingUp');
     case 'STANDING_ROOM_ONLY':
-      return 'Standing room only';
+      return t('occupancy.standingRoomOnly');
     case 'CRUSHED_STANDING_ROOM_ONLY':
     case 'FULL':
-      return 'Very crowded';
+      return t('occupancy.veryCrowded');
     case 'NOT_ACCEPTING_PASSENGERS':
-      return 'Not accepting riders';
+      return t('occupancy.notAccepting');
     case 'NO_DATA_AVAILABLE':
     case 'NOT_BOARDABLE':
     case undefined:
@@ -75,14 +89,19 @@ function occupancyLabel(status: OccupancyStatus | undefined): string | undefined
   }
 }
 
-export function toBusRowProps(row: ClassifiedBusRow, nowSec: number): BusRowProps {
-  const scheduledStr = formatScheduledTime(row.scheduledTime);
+export function toBusRowProps(
+  row: ClassifiedBusRow,
+  nowSec: number,
+  formatters: BusRowMapperFormatters,
+): BusRowProps {
+  const { t, formatTime } = formatters;
+  const scheduledStr = formatTime(row.scheduledTime);
 
   if (row.status === 'cancelled') {
     return {
-      primaryText: 'Cancelled',
+      primaryText: t('eta.cancelled'),
       primaryStyle: 'strikethrough',
-      secondaryText: `Scheduled ${scheduledStr}`,
+      secondaryText: t('eta.scheduled', { time: scheduledStr }),
       severity: 'danger',
       icon: 'warning',
     };
@@ -91,7 +110,7 @@ export function toBusRowProps(row: ClassifiedBusRow, nowSec: number): BusRowProp
   if (row.status === 'no_live_data') {
     return {
       primaryText: scheduledStr,
-      secondaryText: 'Scheduled · No live data',
+      secondaryText: t('eta.noLiveData'),
       severity: 'neutral',
       icon: 'clock',
     };
@@ -102,14 +121,18 @@ export function toBusRowProps(row: ClassifiedBusRow, nowSec: number): BusRowProp
   const delaySec = row.delaySec ?? 0;
   const isDelayed = delaySec > DELAYED_THRESHOLD_SEC;
 
-  const delayLabel = formatDelay(delaySec);
-  const occupancyText = occupancyLabel(row.occupancy);
-  const secondaryText = [`Scheduled ${scheduledStr}`, delayLabel, occupancyText]
+  const delayLabel = formatDelay(delaySec, t);
+  const occupancyText = occupancyLabel(row.occupancy, t);
+  const secondaryText = [
+    t('eta.scheduled', { time: scheduledStr }),
+    delayLabel,
+    occupancyText,
+  ]
     .filter((part): part is string => part !== undefined)
     .join(' · ');
 
   return {
-    primaryText: formatEta(predictedSec, nowSec),
+    primaryText: formatEta(predictedSec, nowSec, formatters),
     secondaryText,
     severity: isDelayed ? 'warning' : 'success',
     icon: 'clock',

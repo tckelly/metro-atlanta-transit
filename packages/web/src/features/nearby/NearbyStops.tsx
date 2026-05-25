@@ -134,7 +134,7 @@ function StopList({ stops }: { stops: NearbyStop[] }) {
           >
             <span className="min-w-0 truncate font-medium">{stop.name}</span>
             <span className="whitespace-nowrap text-sm text-fg-muted">
-              {formatWalkingMinutes(stop.distanceMeters)}
+              {formatWalkingMinutes(stop.distanceMeters, t)}
             </span>
           </Link>
         </li>

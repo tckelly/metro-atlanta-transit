@@ -9,19 +9,26 @@
  *              as the page tick advances — `useNowSec(15_000)` in
  *              StopDetail)
  * - 60s+    → "X min ago"
+ *
+ * Strings come through `t` so the same function works for any locale.
  */
+import type { TFunction } from 'i18next';
 
 const NOW_THRESHOLD_SEC = 15;
 const MINUTE_SEC = 60;
 const SECOND_BUCKET_SEC = 15;
 
-export function formatLastUpdated(lastUpdatedSec: number, nowSec: number): string {
+export function formatLastUpdated(
+  lastUpdatedSec: number,
+  nowSec: number,
+  t: TFunction,
+): string {
   const ageSec = Math.max(0, nowSec - lastUpdatedSec);
-  if (ageSec < NOW_THRESHOLD_SEC) return 'now';
+  if (ageSec < NOW_THRESHOLD_SEC) return t('time.now');
   if (ageSec < MINUTE_SEC) {
     const rounded = Math.floor(ageSec / SECOND_BUCKET_SEC) * SECOND_BUCKET_SEC;
-    return `${rounded} seconds ago`;
+    return t('time.secondsAgo', { count: rounded });
   }
   const minutes = Math.round(ageSec / MINUTE_SEC);
-  return `${minutes} min ago`;
+  return t('time.minutesAgo', { count: minutes });
 }

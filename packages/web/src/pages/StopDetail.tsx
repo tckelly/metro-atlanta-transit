@@ -2,46 +2,30 @@ import { Link, useParams } from 'react-router-dom';
 import { BusRow, Button, Icon, MessageCard } from '@atl-transit/components';
 
 import { useArrivals } from '../features/stops/useArrivals';
-import { useGtfsBundle } from '../services/useGtfsBundle';
+import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
 import { toBusRowProps } from '../features/stops/busRowMapper';
 import { groupRowsByRoute, type RouteGroup } from '../features/stops/groupRowsByRoute';
-import { getRouteMetadata, getStopMetadata } from '../services/gtfsStatic';
 import { FavoriteStarButton } from '../features/favorites/FavoriteStarButton';
 import { assessDisruption } from '../features/disruption/assessDisruption';
 import { DisruptionBadge } from '../features/disruption/DisruptionBadge';
 import { formatLastUpdated } from '../utils/formatLastUpdated';
 import { freshnessTier, type FreshnessTier } from '../utils/freshnessTier';
 import { useNowSec } from '../utils/useNowSec';
-import type { GtfsBundle } from '../buildtime/preprocessGtfs';
 
 export function StopDetail() {
   const { stopId } = useParams<{ stopId: string }>();
-  const { bundle, loading: bundleLoading, error: bundleError } = useGtfsBundle();
 
   if (!stopId) {
     return <MessageCard title="No stop ID" body="The URL is missing a stop ID." />;
   }
-
-  if (bundleLoading) {
-    return <MessageCard title="Loading schedule data..." body="One moment." />;
-  }
-
-  if (bundleError || !bundle) {
-    return (
-      <MessageCard
-        title="Couldn't load schedule data"
-        body={bundleError?.message ?? 'Unknown error.'}
-      />
-    );
-  }
-
-  return <StopDetailReady stopId={stopId} bundle={bundle} />;
+  return <StopDetailReady stopId={stopId} />;
 }
 
-function StopDetailReady({ stopId, bundle }: { stopId: string; bundle: GtfsBundle }) {
-  const { status, rows, lastUpdated, isStale, error, refresh } = useArrivals(stopId, bundle);
+function StopDetailReady({ stopId }: { stopId: string }) {
+  const repo = useGtfsRepository();
+  const { status, rows, lastUpdated, isStale, error, refresh } = useArrivals(stopId);
 
-  const stop = getStopMetadata(bundle, stopId);
+  const stop = repo.getStop(stopId);
   // Tick every 15s so the "Last updated …" text and any ETA countdowns
   // refresh visibly between data polls. Matches formatLastUpdated's
   // 15-second bucket size — anything faster would re-render without
@@ -81,7 +65,11 @@ function StopDetailReady({ stopId, bundle }: { stopId: string; bundle: GtfsBundl
       {status === 'success' && rows.length > 0 && (
         <div className="space-y-6">
           {groupRowsByRoute(rows).map((group) => (
-            <RouteSection key={`${group.routeId} ${group.headsign}`} group={group} bundle={bundle} nowSec={nowSec} />
+            <RouteSection
+              key={`${group.routeId} ${group.headsign}`}
+              group={group}
+              nowSec={nowSec}
+            />
           ))}
         </div>
       )}
@@ -113,16 +101,9 @@ function RefreshButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function RouteSection({
-  group,
-  bundle,
-  nowSec,
-}: {
-  group: RouteGroup;
-  bundle: GtfsBundle;
-  nowSec: number;
-}) {
-  const route = getRouteMetadata(bundle, group.routeId);
+function RouteSection({ group, nowSec }: { group: RouteGroup; nowSec: number }) {
+  const repo = useGtfsRepository();
+  const route = repo.getRoute(group.routeId);
   const shortName = route?.shortName ?? group.routeId;
   const level = assessDisruption(group.rows);
   const cancellations = group.rows.filter((r) => r.status === 'cancelled').length;
@@ -172,4 +153,3 @@ function LastUpdatedIndicator({
     </p>
   );
 }
-

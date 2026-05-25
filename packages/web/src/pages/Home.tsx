@@ -4,11 +4,9 @@ import { MessageCard } from '@atl-transit/components';
 import { useFavorites } from '../features/favorites/FavoritesContext';
 import { FavoriteStopCard } from '../features/favorites/FavoriteStopCard';
 import { NearbyStops } from '../features/nearby/NearbyStops';
-import { useGtfsBundle } from '../services/useGtfsBundle';
 
 export function Home() {
   const { favorites } = useFavorites();
-  const { bundle, loading: bundleLoading, error: bundleError } = useGtfsBundle();
 
   return (
     <div className="space-y-6">
@@ -24,31 +22,20 @@ export function Home() {
           My stops
         </h2>
 
-        {bundleLoading && (
-          <p className="text-sm text-fg-muted">Loading schedule data…</p>
-        )}
-        {bundleError && (
-          <p className="text-sm text-status-cancelled">
-            Couldn’t load schedule data: {bundleError.message}
-          </p>
-        )}
-
-        {!bundleLoading && !bundleError && bundle !== null && (
-          favorites.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <ul className="space-y-2">
-              {favorites.map((fav) => (
-                <li key={fav.stopId}>
-                  <FavoriteStopCard stopId={fav.stopId} bundle={bundle} />
-                </li>
-              ))}
-            </ul>
-          )
+        {favorites.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <ul className="space-y-2">
+            {favorites.map((fav) => (
+              <li key={fav.stopId}>
+                <FavoriteStopCard stopId={fav.stopId} />
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 
-      {!bundleLoading && !bundleError && bundle !== null && <NearbyStops bundle={bundle} />}
+      <NearbyStops />
 
       <p className="text-sm">
         <Link

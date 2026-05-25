@@ -1,23 +1,27 @@
 /**
  * Home-screen section that finds the 5 stops nearest to the user.
  *
- * The browser geolocation prompt fires only after an explicit tap — never
- * on mount. The button copy plus inline rationale are the "permission
- * explainer" the M4 spec asks for; no separate screen needed when the
- * trigger and its explanation sit side by side.
+ * The browser geolocation prompt fires only after an explicit tap —
+ * never on mount. The button copy plus inline rationale are the
+ * "permission explainer" the M4 spec asks for; no separate screen
+ * needed when the trigger and its explanation sit side by side.
+ *
+ * Stop ranking goes through the GtfsRepository — InMemory today,
+ * potentially backend in the future without touching this component.
  */
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, MessageCard } from '@atl-transit/components';
 
-import { getNearbyStops, type NearbyStop } from './getNearbyStops';
+import type { NearbyStop } from './getNearbyStops';
 import {
   createGeolocationApi,
   type GeolocationApi,
   type GeolocationResult,
 } from '../../services/geolocation';
+import { useGtfsRepository } from '../../services/gtfs/GtfsRepositoryContext';
+import type { GtfsRepository } from '../../services/gtfs/GtfsRepository';
 import { formatWalkingMinutes } from '../../utils/walkingMinutes';
-import type { GtfsBundle } from '../../buildtime/preprocessGtfs';
 
 const NEARBY_COUNT = 5;
 
@@ -31,7 +35,6 @@ type State =
   | { kind: 'error'; message: string };
 
 export interface NearbyStopsProps {
-  bundle: GtfsBundle;
   /** Override the geolocation source. Defaults to `navigator.geolocation`. */
   geolocation?: GeolocationApi;
 }
@@ -42,13 +45,15 @@ function defaultGeolocation(): GeolocationApi {
   );
 }
 
-function applyResult(result: GeolocationResult, bundle: GtfsBundle): State {
+async function applyResult(
+  result: GeolocationResult,
+  repo: GtfsRepository,
+): Promise<State> {
   switch (result.status) {
-    case 'success':
-      return {
-        kind: 'success',
-        stops: getNearbyStops(bundle, result.coords, NEARBY_COUNT),
-      };
+    case 'success': {
+      const stops = await repo.findNearbyStops(result.coords, NEARBY_COUNT);
+      return { kind: 'success', stops };
+    }
     case 'denied':
       return { kind: 'denied' };
     case 'unavailable':
@@ -60,7 +65,8 @@ function applyResult(result: GeolocationResult, bundle: GtfsBundle): State {
   }
 }
 
-export function NearbyStops({ bundle, geolocation }: NearbyStopsProps) {
+export function NearbyStops({ geolocation }: NearbyStopsProps = {}) {
+  const repo = useGtfsRepository();
   const [state, setState] = useState<State>({ kind: 'idle' });
 
   const api = geolocation ?? defaultGeolocation();
@@ -68,8 +74,9 @@ export function NearbyStops({ bundle, geolocation }: NearbyStopsProps) {
   const find = useCallback(async () => {
     setState({ kind: 'loading' });
     const result = await api.getCurrentPosition();
-    setState(applyResult(result, bundle));
-  }, [api, bundle]);
+    const next = await applyResult(result, repo);
+    setState(next);
+  }, [api, repo]);
 
   return (
     <section aria-labelledby="nearby-heading" className="space-y-3">

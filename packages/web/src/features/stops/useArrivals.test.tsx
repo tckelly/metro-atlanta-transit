@@ -8,6 +8,8 @@ import {
   RealtimeFeedContext,
   type RealtimeFeedSnapshot,
 } from '../realtime/RealtimeFeedContext';
+import { GtfsRepositoryContext } from '../../services/gtfs/GtfsRepositoryContext';
+import { InMemoryGtfsRepository } from '../../services/gtfs/InMemoryGtfsRepository';
 import type { GtfsBundle } from '../../buildtime/preprocessGtfs';
 
 // Single scheduled visit at 06:01:56 EDT on 2026-05-22 for stop 134013.
@@ -62,10 +64,13 @@ const SUCCESS_SNAPSHOT = (overrides: Partial<RealtimeFeedSnapshot> = {}): Realti
   ...overrides,
 });
 
-function wrap(snapshot: RealtimeFeedSnapshot) {
+function wrap(snapshot: RealtimeFeedSnapshot, bundle: GtfsBundle = BUNDLE) {
+  const repository = new InMemoryGtfsRepository(bundle);
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <RealtimeFeedContext.Provider value={snapshot}>{children}</RealtimeFeedContext.Provider>
+      <GtfsRepositoryContext.Provider value={repository}>
+        <RealtimeFeedContext.Provider value={snapshot}>{children}</RealtimeFeedContext.Provider>
+      </GtfsRepositoryContext.Provider>
     );
   };
 }
@@ -81,65 +86,82 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/**
+ * Drain the microtask queue so the scheduled-visits fetch (a Promise
+ * chain inside useEffect) settles before we assert. We don't drain
+ * timers — useNowSec's setInterval would loop forever — just the
+ * Promise microtasks. Two rounds of `Promise.resolve()` are enough
+ * for React to commit the effect, the fetch to resolve, and the
+ * follow-up setState to flush.
+ */
+async function flushPromises(): Promise<void> {
+  await act(async () => {
+    for (let i = 0; i < 50; i++) await Promise.resolve();
+  });
+}
+
 describe('useArrivals', () => {
-  it('returns empty rows while the feed is still loading', () => {
+  it('returns empty rows while the feed is still loading', async () => {
     const snapshot = SUCCESS_SNAPSHOT({
       status: 'loading',
       tripUpdates: [],
       lastUpdated: null,
     });
-    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+    const { result } = renderHook(() => useArrivals('134013', { date: '20260522' }), {
       wrapper: wrap(snapshot),
     });
+    await flushPromises();
 
     expect(result.current.status).toBe('loading');
     expect(result.current.rows).toEqual([]);
   });
 
-  it('classifies scheduled visits with live trip updates for the requested stop', () => {
-    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+  it('classifies scheduled visits with live trip updates for the requested stop', async () => {
+    const { result } = renderHook(() => useArrivals('134013', { date: '20260522' }), {
       wrapper: wrap(SUCCESS_SNAPSHOT()),
     });
+    await flushPromises();
 
-    expect(result.current.status).toBe('success');
     expect(result.current.rows).toHaveLength(1);
+    expect(result.current.status).toBe('success');
     expect(result.current.rows[0]?.status).toBe('live');
     expect(result.current.rows[0]?.predictedTime).toBe(1779467993);
   });
 
-  it('passes through lastUpdated, isStale, and error from the feed', () => {
+  it('passes through lastUpdated, isStale, and error from the feed', async () => {
     const error = new Error('boom');
     const snapshot = SUCCESS_SNAPSHOT({
       isStale: true,
       error,
       lastUpdated: 1779443999,
     });
-    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+    const { result } = renderHook(() => useArrivals('134013', { date: '20260522' }), {
       wrapper: wrap(snapshot),
     });
+    await flushPromises();
 
     expect(result.current.lastUpdated).toBe(1779443999);
     expect(result.current.isStale).toBe(true);
     expect(result.current.error).toBe(error);
   });
 
-  it('returns empty rows when the feed is in error and there is no prior data', () => {
+  it('returns empty rows when the feed is in error and there is no prior data', async () => {
     const snapshot = SUCCESS_SNAPSHOT({
       status: 'error',
       tripUpdates: [],
       lastUpdated: null,
       error: new Error('upstream'),
     });
-    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+    const { result } = renderHook(() => useArrivals('134013', { date: '20260522' }), {
       wrapper: wrap(snapshot),
     });
+    await flushPromises();
 
     expect(result.current.status).toBe('error');
     expect(result.current.rows).toEqual([]);
   });
 
-  it('filters by stopId — only rows for the requested stop are returned', () => {
-    // Two scheduled visits across two stops; ask for one stop, get one row.
+  it('filters by stopId — only rows for the requested stop are returned', async () => {
     const bundle: GtfsBundle = {
       ...BUNDLE,
       stops: [
@@ -161,37 +183,42 @@ describe('useArrivals', () => {
         },
       ],
     };
-    const { result } = renderHook(() => useArrivals('134013', bundle, { date: '20260522' }), {
-      wrapper: wrap(SUCCESS_SNAPSHOT()),
+    const { result } = renderHook(() => useArrivals('134013', { date: '20260522' }), {
+      wrapper: wrap(SUCCESS_SNAPSHOT(), bundle),
     });
+    await flushPromises();
 
+    expect(result.current.rows.length).toBeGreaterThan(0);
     expect(result.current.rows.every((r) => r.tripId === '10802068')).toBe(true);
   });
 
-  it('attaches occupancy from a matching vehicle position', () => {
+  it('attaches occupancy from a matching vehicle position', async () => {
     const vehicle: VehiclePosition = {
       tripId: '10802068',
       routeId: '116',
       vehicleId: 'V1',
       timestamp: 1779444000,
-      latitude: 33.7540,
+      latitude: 33.754,
       longitude: -84.3915,
       occupancyStatus: 'FEW_SEATS_AVAILABLE',
     };
     const snapshot = SUCCESS_SNAPSHOT({ vehiclePositions: [vehicle] });
-    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+    const { result } = renderHook(() => useArrivals('134013', { date: '20260522' }), {
       wrapper: wrap(snapshot),
     });
+    await flushPromises();
 
+    expect(result.current.rows).toHaveLength(1);
     expect(result.current.rows[0]?.occupancy).toBe('FEW_SEATS_AVAILABLE');
   });
 
-  it('refresh() proxies to feed.refresh()', () => {
+  it('refresh() proxies to feed.refresh()', async () => {
     const refresh = vi.fn(async () => {});
     const snapshot = SUCCESS_SNAPSHOT({ refresh });
-    const { result } = renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' }), {
+    const { result } = renderHook(() => useArrivals('134013', { date: '20260522' }), {
       wrapper: wrap(snapshot),
     });
+    await flushPromises();
 
     act(() => {
       result.current.refresh();
@@ -201,9 +228,9 @@ describe('useArrivals', () => {
 
   it('throws when called outside a RealtimeFeedProvider', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() =>
-      renderHook(() => useArrivals('134013', BUNDLE, { date: '20260522' })),
-    ).toThrow(/RealtimeFeedProvider/);
+    expect(() => renderHook(() => useArrivals('134013', { date: '20260522' }))).toThrow(
+      /GtfsRepositoryProvider|RealtimeFeedProvider/,
+    );
     spy.mockRestore();
   });
 });

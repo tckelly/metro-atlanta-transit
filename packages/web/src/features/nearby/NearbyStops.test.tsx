@@ -6,6 +6,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { NearbyStops } from './NearbyStops';
 import type { GtfsBundle, StopOut } from '../../buildtime/preprocessGtfs';
 import type { GeolocationApi, GeolocationResult } from '../../services/geolocation';
+import { GtfsRepositoryProvider } from '../../services/gtfs/GtfsRepositoryContext';
+import { InMemoryGtfsRepository } from '../../services/gtfs/InMemoryGtfsRepository';
 
 const FIVE_POINTS = { lat: 33.754, lng: -84.391 };
 
@@ -30,15 +32,20 @@ function fakeGeolocation(result: GeolocationResult): GeolocationApi {
   return { getCurrentPosition: async () => result };
 }
 
-function renderWithRouter(ui: React.ReactNode) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+function renderWithRouter(ui: React.ReactNode, bundle: GtfsBundle = BUNDLE) {
+  const repository = new InMemoryGtfsRepository(bundle);
+  return render(
+    <MemoryRouter>
+      <GtfsRepositoryProvider repository={repository}>{ui}</GtfsRepositoryProvider>
+    </MemoryRouter>,
+  );
 }
 
 describe('NearbyStops — idle state', () => {
   it('renders an explainer and a "Find stops" button before permission is granted', () => {
     renderWithRouter(
       <NearbyStops
-        bundle={BUNDLE}
+
         geolocation={fakeGeolocation({ status: 'success', coords: { ...FIVE_POINTS, accuracyMeters: 10 } })}
       />,
     );
@@ -53,7 +60,7 @@ describe('NearbyStops — success', () => {
     const user = userEvent.setup();
     renderWithRouter(
       <NearbyStops
-        bundle={BUNDLE}
+
         geolocation={fakeGeolocation({ status: 'success', coords: { ...FIVE_POINTS, accuracyMeters: 10 } })}
       />,
     );
@@ -74,7 +81,7 @@ describe('NearbyStops — success', () => {
     const user = userEvent.setup();
     renderWithRouter(
       <NearbyStops
-        bundle={BUNDLE}
+
         geolocation={fakeGeolocation({ status: 'success', coords: { ...FIVE_POINTS, accuracyMeters: 10 } })}
       />,
     );
@@ -91,7 +98,7 @@ describe('NearbyStops — success', () => {
     const user = userEvent.setup();
     renderWithRouter(
       <NearbyStops
-        bundle={BUNDLE}
+
         geolocation={fakeGeolocation({ status: 'success', coords: { ...FIVE_POINTS, accuracyMeters: 10 } })}
       />,
     );
@@ -105,7 +112,7 @@ describe('NearbyStops — success', () => {
 describe('NearbyStops — failure modes', () => {
   it('shows a denial message when the user blocks location', async () => {
     const user = userEvent.setup();
-    renderWithRouter(<NearbyStops bundle={BUNDLE} geolocation={fakeGeolocation({ status: 'denied' })} />);
+    renderWithRouter(<NearbyStops geolocation={fakeGeolocation({ status: 'denied' })} />);
 
     await user.click(screen.getByRole('button', { name: /find stops near me/i }));
     expect(await screen.findByText(/location access (denied|blocked)/i)).toBeInTheDocument();
@@ -114,7 +121,7 @@ describe('NearbyStops — failure modes', () => {
   it('shows an "unavailable" message when the browser has no geolocation', async () => {
     const user = userEvent.setup();
     renderWithRouter(
-      <NearbyStops bundle={BUNDLE} geolocation={fakeGeolocation({ status: 'unavailable' })} />,
+      <NearbyStops geolocation={fakeGeolocation({ status: 'unavailable' })} />,
     );
 
     await user.click(screen.getByRole('button', { name: /find stops near me/i }));
@@ -123,7 +130,7 @@ describe('NearbyStops — failure modes', () => {
 
   it('shows a timeout message and a retry button on timeout', async () => {
     const user = userEvent.setup();
-    renderWithRouter(<NearbyStops bundle={BUNDLE} geolocation={fakeGeolocation({ status: 'timeout' })} />);
+    renderWithRouter(<NearbyStops geolocation={fakeGeolocation({ status: 'timeout' })} />);
 
     await user.click(screen.getByRole('button', { name: /find stops near me/i }));
     expect(await screen.findByText(/took too long|timed out/i)).toBeInTheDocument();
@@ -134,7 +141,7 @@ describe('NearbyStops — failure modes', () => {
     const user = userEvent.setup();
     renderWithRouter(
       <NearbyStops
-        bundle={BUNDLE}
+
         geolocation={fakeGeolocation({ status: 'error', error: new Error('boom') })}
       />,
     );

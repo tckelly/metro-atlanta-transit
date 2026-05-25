@@ -1,31 +1,27 @@
 /**
- * Compact home-screen tile for a single favorited stop.
- *
- * Each card runs its own arrivals hook so the next 1–2 buses stay live
- * while the user is on the home screen. The polling cost grows linearly
- * with favorites; that is acceptable at the MAX_FAVORITES cap. A shared
- * realtime cache (M1 done-criteria carry-over) is the right fix when the
- * cost shows up.
+ * Compact home-screen tile for a single favorited stop. With the
+ * shared realtime feed (RealtimeFeedProvider) in place, all favorite
+ * cards on Home consume one polling cycle — the previous "N favorites
+ * → N fetches" cost is gone.
  */
 import { Link } from 'react-router-dom';
 
 import { useArrivals } from '../stops/useArrivals';
 import { toBusRowProps } from '../stops/busRowMapper';
-import { getRouteMetadata, getStopMetadata } from '../../services/gtfsStatic';
+import { useGtfsRepository } from '../../services/gtfs/GtfsRepositoryContext';
 import { useNowSec } from '../../utils/useNowSec';
-import type { GtfsBundle } from '../../buildtime/preprocessGtfs';
 
 const PREVIEW_COUNT = 2;
 
 export interface FavoriteStopCardProps {
   stopId: string;
-  bundle: GtfsBundle;
 }
 
-export function FavoriteStopCard({ stopId, bundle }: FavoriteStopCardProps) {
-  const { status, rows } = useArrivals(stopId, bundle);
+export function FavoriteStopCard({ stopId }: FavoriteStopCardProps) {
+  const repo = useGtfsRepository();
+  const { status, rows } = useArrivals(stopId);
   const nowSec = useNowSec(15_000);
-  const stop = getStopMetadata(bundle, stopId);
+  const stop = repo.getStop(stopId);
   const stopName = stop?.name ?? `Stop ${stopId}`;
 
   const preview = rows.slice(0, PREVIEW_COUNT);
@@ -53,7 +49,7 @@ export function FavoriteStopCard({ stopId, bundle }: FavoriteStopCardProps) {
         {status === 'success' && preview.length > 0 && (
           <ul className="space-y-1">
             {preview.map((row) => {
-              const route = getRouteMetadata(bundle, row.routeId);
+              const route = repo.getRoute(row.routeId);
               const shortName = route?.shortName ?? row.routeId;
               const props = toBusRowProps(row, nowSec);
               return (

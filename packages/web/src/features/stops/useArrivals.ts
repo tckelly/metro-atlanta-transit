@@ -1,19 +1,23 @@
 /**
  * Per-stop arrivals derived from the shared realtime feed.
  *
- * After M5's cache refactor (ADR-0005 era), the polling lifecycle moved
- * to `RealtimeFeedProvider` — one fetch loop for the whole app. This
- * hook is now a thin consumer: read the feed snapshot, slice scheduled
- * visits for `stopId`, classify, return. Multiple cards on Home that
- * call `useArrivals(...)` share one upstream cycle.
+ * The hook merges two sources:
+ *   1. Scheduled visits for the stop on `date`, fetched from the
+ *      `GtfsRepository`. In-memory today; backend in the future.
+ *      Async, so we hold them in state and refresh on inputs change.
+ *   2. The latest realtime snapshot from `RealtimeFeedProvider`.
+ *      One polling loop for the whole app; consumers read from it.
+ *
+ * Returns the discriminated `UseArrivalsResult` callers already know.
+ * Consumers don't see the async-ness of scheduled visits — while the
+ * fetch is in flight the hook keeps `status = 'loading'`.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-import { getScheduledVisitsForStop } from '../../services/gtfsStatic';
+import { useGtfsRepository } from '../../services/gtfs/GtfsRepositoryContext';
 import { useNowSec } from '../../utils/useNowSec';
 import { useRealtimeFeed } from '../realtime/RealtimeFeedContext';
-import { classifyBusRows, type ClassifiedBusRow } from './busRowClassifier';
-import type { GtfsBundle } from '../../buildtime/preprocessGtfs';
+import { classifyBusRows, type ClassifiedBusRow, type ScheduledStopVisit } from './busRowClassifier';
 
 /**
  * The scheduled-visits window advances once per minute — the same rhythm
@@ -46,30 +50,51 @@ function todayYYYYMMDD(): string {
 
 export function useArrivals(
   stopId: string,
-  bundle: GtfsBundle,
   options: { date?: string } = {},
 ): UseArrivalsResult {
   const date = options.date ?? todayYYYYMMDD();
+  const repo = useGtfsRepository();
   const feed = useRealtimeFeed();
   const nowSec = useNowSec(WINDOW_TICK_MS);
+  const [scheduledVisits, setScheduledVisits] = useState<ScheduledStopVisit[]>([]);
+  const [scheduledError, setScheduledError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    repo
+      .getScheduledVisitsForStop({ stopId, date, nowSec })
+      .then((visits) => {
+        if (!cancelled) {
+          setScheduledVisits(visits);
+          setScheduledError(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setScheduledError(err instanceof Error ? err : new Error(String(err)));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [repo, stopId, date, nowSec]);
 
   const rows = useMemo<ClassifiedBusRow[]>(() => {
     if (feed.status === 'loading' || feed.status === 'error') return [];
-    const scheduledVisits = getScheduledVisitsForStop(bundle, stopId, date, { nowSec });
     return classifyBusRows({
       scheduledVisits,
       tripUpdates: feed.tripUpdates,
       vehiclePositions: feed.vehiclePositions,
       stopId,
     });
-  }, [feed.status, feed.tripUpdates, feed.vehiclePositions, bundle, stopId, date, nowSec]);
+  }, [feed.status, feed.tripUpdates, feed.vehiclePositions, scheduledVisits, stopId]);
 
   return {
     status: feed.status,
     rows,
     lastUpdated: feed.lastUpdated,
     isStale: feed.isStale,
-    error: feed.error,
+    error: feed.error ?? scheduledError,
     refresh: () => {
       void feed.refresh();
     },

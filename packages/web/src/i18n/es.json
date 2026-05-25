@@ -18,7 +18,12 @@
   },
   "routes": {
     "title": "Todas las rutas",
-    "backToHome": "Volver al inicio"
+    "backToHome": "Volver al inicio",
+    "searchLabel": "Filtrar rutas",
+    "searchPlaceholder": "Filtrar por número o nombre",
+    "searchClearLabel": "Borrar filtro",
+    "noMatchesTitle": "No hay rutas que coincidan",
+    "noMatchesBody": "Ninguna ruta coincide con «{{query}}»."
   },
   "routeDetail": {
     "noRouteIdTitle": "Sin ID de ruta",

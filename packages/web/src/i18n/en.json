@@ -18,7 +18,12 @@
   },
   "routes": {
     "title": "All routes",
-    "backToHome": "Back to home"
+    "backToHome": "Back to home",
+    "searchLabel": "Filter routes",
+    "searchPlaceholder": "Filter by number or name",
+    "searchClearLabel": "Clear filter",
+    "noMatchesTitle": "No matching routes",
+    "noMatchesBody": "No routes match “{{query}}”."
   },
   "routeDetail": {
     "noRouteIdTitle": "No route ID",

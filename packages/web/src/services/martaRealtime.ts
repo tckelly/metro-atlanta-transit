@@ -8,23 +8,16 @@ import {
 } from '@atl-transit/gtfs';
 
 /**
- * MARTA GTFS-Realtime endpoint URLs. Public, no auth required.
- *
- * In dev, we use a relative path that Vite proxies to MARTA's server
- * (see vite.config.ts) — necessary because MARTA doesn't send
- * Access-Control-Allow-Origin headers and browser-direct fetches fail
- * CORS. Production will need a backend proxy; see docs/architecture.md.
- *
- * See docs/data-and-apis.md.
+ * Realtime endpoints. The client always hits `/api/marta/*` — in dev
+ * the Vite proxy (`vite.config.ts`) rewrites that to MARTA's server,
+ * and in prod Vercel Edge Functions (`api/marta/*.ts`) do the same.
+ * MARTA doesn't send `Access-Control-Allow-Origin`, so browser-direct
+ * fetches are not viable. See ADR-0005 and docs/data-and-apis.md.
  */
-const MARTA_BASE = import.meta.env.DEV
-  ? '/api/marta'
-  : 'https://gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService';
-
 const MARTA_URLS = {
-  tripUpdates: `${MARTA_BASE}/tripupdate/tripupdates.pb`,
-  vehiclePositions: `${MARTA_BASE}/vehicle/vehiclepositions.pb`,
-  alerts: `${MARTA_BASE}/alert/alerts.pb`,
+  tripUpdates: '/api/marta/tripupdates',
+  vehiclePositions: '/api/marta/vehiclepositions',
+  alerts: '/api/marta/alerts',
 } as const;
 
 /**

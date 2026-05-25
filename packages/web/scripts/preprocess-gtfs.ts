@@ -11,17 +11,24 @@
  * this is build-time rather than runtime.
  */
 
-import { writeFile, mkdir, stat } from 'node:fs/promises';
+import { writeFile, mkdir, stat, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import Database from 'better-sqlite3';
+
 import { parseGtfsZip, transformGtfs } from '../src/buildtime/preprocessGtfs';
+import { buildGtfsSqlite } from '../src/buildtime/buildGtfsSqlite';
 
 const MARTA_GTFS_URL = 'https://itsmarta.com/google_transit_feed/google_transit.zip';
 const STALE_AFTER_HOURS = 24;
 
 const here = dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = join(here, '..', 'public', 'gtfs');
+/** Small reference data (stops, routes) — precached and held in memory by the client. */
+const JSON_OUT_DIR = join(here, '..', 'public', 'gtfs');
+/** Large schedule tables (trips, stop_times, calendar) — read server-side by the backend function. */
+const SQLITE_DIR = join(here, '..', 'api', '_data');
+const SQLITE_PATH = join(SQLITE_DIR, 'gtfs.sqlite');
 
 /**
  * Returns true when the bundled GTFS data exists and is less than
@@ -33,7 +40,7 @@ const OUT_DIR = join(here, '..', 'public', 'gtfs');
  */
 async function isBundleFresh(): Promise<boolean> {
   try {
-    const s = await stat(join(OUT_DIR, 'stops.json'));
+    const s = await stat(join(JSON_OUT_DIR, 'stops.json'));
     const ageHours = (Date.now() - s.mtimeMs) / (1000 * 60 * 60);
     return ageHours < STALE_AFTER_HOURS;
   } catch {
@@ -52,7 +59,7 @@ async function downloadZip(url: string): Promise<Uint8Array> {
 }
 
 async function writeJson(filename: string, data: unknown): Promise<void> {
-  const path = join(OUT_DIR, filename);
+  const path = join(JSON_OUT_DIR, filename);
   await writeFile(path, JSON.stringify(data), 'utf8');
   console.log(`  wrote ${path}`);
 }
@@ -81,7 +88,13 @@ async function main(): Promise<void> {
       `${bundle.calendar.rules.length} calendar rules`,
   );
 
-  await mkdir(OUT_DIR, { recursive: true });
+  await mkdir(JSON_OUT_DIR, { recursive: true });
+  await mkdir(SQLITE_DIR, { recursive: true });
+
+  // Client-side JSON. Today we still emit the full set; once
+  // HybridGtfsRepository is wired in (ADR-0006 Phase 3c), the big
+  // three (trips, stop-times, calendar) get dropped from this list
+  // and only stops + routes ship.
   await Promise.all([
     writeJson('stops.json', bundle.stops),
     writeJson('routes.json', bundle.routes),
@@ -89,6 +102,18 @@ async function main(): Promise<void> {
     writeJson('stop-times.json', bundle.stopTimes),
     writeJson('calendar.json', bundle.calendar),
   ]);
+
+  // Schedule tables → backend SQLite (ADR-0006). The Vercel Node
+  // function reads this via better-sqlite3 at cold start. Removing any
+  // prior copy first guarantees we don't append on top of stale schema.
+  await rm(SQLITE_PATH, { force: true });
+  const db = new Database(SQLITE_PATH);
+  try {
+    buildGtfsSqlite(bundle, db);
+  } finally {
+    db.close();
+  }
+  console.log(`  wrote ${SQLITE_PATH}`);
 
   console.log('Done.');
 }

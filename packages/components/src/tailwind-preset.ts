@@ -16,8 +16,8 @@ const themeColors: Record<string, string> = Object.fromEntries(
   colorEntries.map(([name]) => [name, `rgb(var(--${name}) / <alpha-value>)`]),
 );
 
-const cssVariablesPlugin = plugin(({ addBase }) => {
-  addBase({
+const cssVariablesPlugin = plugin((api) => {
+  api.addBase({
     ':root': lightVars,
     '.dark': darkVars,
   });

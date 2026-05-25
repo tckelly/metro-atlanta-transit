@@ -66,7 +66,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const handle = setTimeout(() => {
       setToast((current) => (current?.id === toast.id ? null : current));
     }, TOAST_AUTO_DISMISS_MS);
-    return () => clearTimeout(handle);
+    return () => { clearTimeout(handle); };
   }, [toast]);
 
   const value = useMemo<ToastContextValue>(() => ({ show, dismiss }), [show, dismiss]);

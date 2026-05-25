@@ -259,10 +259,12 @@ export function transformGtfs(raw: GtfsRaw): GtfsBundle {
   for (const st of raw.stopTimes) {
     const routeId = tripToRoute.get(st.trip_id);
     if (!routeId) continue;
-    if (!stopToRoutes.has(st.stop_id)) {
-      stopToRoutes.set(st.stop_id, new Set());
+    let routes = stopToRoutes.get(st.stop_id);
+    if (routes === undefined) {
+      routes = new Set();
+      stopToRoutes.set(st.stop_id, routes);
     }
-    stopToRoutes.get(st.stop_id)!.add(routeId);
+    routes.add(routeId);
   }
 
   const stops: StopOut[] = raw.stops.map((s) => ({
@@ -327,13 +329,14 @@ const REQUIRED_FILES = ['stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt'
 export async function parseGtfsZip(zipBytes: Uint8Array): Promise<GtfsRaw> {
   const zip = await JSZip.loadAsync(zipBytes);
 
-  async function read(filename: string, required: boolean): Promise<string | undefined> {
+  async function readRequired(filename: string): Promise<string> {
     const file = zip.file(filename);
-    if (!file) {
-      if (required) throw new Error(`GTFS ZIP missing required file: ${filename}`);
-      return undefined;
-    }
+    if (!file) throw new Error(`GTFS ZIP missing required file: ${filename}`);
     return file.async('string');
+  }
+  async function readOptional(filename: string): Promise<string | undefined> {
+    const file = zip.file(filename);
+    return file ? file.async('string') : undefined;
   }
 
   for (const f of REQUIRED_FILES) {
@@ -341,13 +344,13 @@ export async function parseGtfsZip(zipBytes: Uint8Array): Promise<GtfsRaw> {
   }
 
   const csvs: RawCsvs = {
-    stops: (await read('stops.txt', true))!,
-    routes: (await read('routes.txt', true))!,
-    trips: (await read('trips.txt', true))!,
-    stop_times: (await read('stop_times.txt', true))!,
-    calendar: (await read('calendar.txt', true))!,
+    stops: await readRequired('stops.txt'),
+    routes: await readRequired('routes.txt'),
+    trips: await readRequired('trips.txt'),
+    stop_times: await readRequired('stop_times.txt'),
+    calendar: await readRequired('calendar.txt'),
   };
-  const cd = await read('calendar_dates.txt', false);
+  const cd = await readOptional('calendar_dates.txt');
   if (cd !== undefined) {
     csvs.calendar_dates = cd;
   }

@@ -20,7 +20,8 @@
     "loadErrorTitle": "No se pudieron cargar los datos de la ruta",
     "noStopsTitle": "No se encontraron paradas",
     "noStopsBody": "Esta ruta no tiene información de paradas en los datos del horario actual.",
-    "toward": "Hacia {{headsign}}"
+    "toward": "Hacia {{headsign}}",
+    "headerPrefix": "Ruta {{shortName}}"
   },
   "stopDetail": {
     "noStopIdTitle": "Sin ID de parada",

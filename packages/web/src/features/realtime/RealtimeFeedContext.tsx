@@ -138,14 +138,23 @@ export function RealtimeFeedProvider({ children }: { children: ReactNode }) {
 
     function schedule(): void {
       clearTimer();
-      timeoutRef.current = setTimeout(async () => {
-        if (unmounted) return;
-        if (document.visibilityState === 'visible') {
+      timeoutRef.current = setTimeout(() => {
+        void (async () => {
+          if (unmounted) return;
+          if (document.visibilityState !== 'visible') return;
           await doFetch();
-        }
-        if (!unmounted && document.visibilityState === 'visible') {
+          // Re-check after the await — cleanup may have run while the
+          // fetch was in flight, or the tab may have gone hidden. The
+          // lint flags these as "always falsy" because narrowing
+          // assumes nothing changes after the early returns above,
+          // but unmounted is `let`-mutated by cleanup and document
+          // state is async, so the checks are real.
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (unmounted) return;
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (document.visibilityState !== 'visible') return;
           schedule();
-        }
+        })();
       }, POLL_INTERVAL_MS);
     }
 
@@ -158,6 +167,10 @@ export function RealtimeFeedProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // Initial fetch on mount. doFetch is async + sets state inside its
+    // promise chain — the lint flags it as a setState-in-effect, but
+    // the actual setState lands after the microtask boundary.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void doFetch();
     schedule();
     document.addEventListener('visibilitychange', handleVisibility);

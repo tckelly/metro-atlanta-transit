@@ -37,7 +37,7 @@ export function FavoriteStarButton({ stopId, stopName }: FavoriteStarButtonProps
     }
     add(stopId);
     show(t('favorites.toastAdded', { stopName }), {
-      action: { label: t('favorites.toastUndo'), onClick: () => remove(stopId) },
+      action: { label: t('favorites.toastUndo'), onClick: () => { remove(stopId); } },
     });
   };
 

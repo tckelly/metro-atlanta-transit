@@ -5,7 +5,7 @@
  * every mutation. State lives in React; storage is just persistence.
  * Storage is injectable so tests can pass an in-memory implementation.
  */
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import {
@@ -40,13 +40,10 @@ export interface FavoritesProviderProps {
 }
 
 export function FavoritesProvider({ children, storage }: FavoritesProviderProps) {
-  // Capture the storage ref once so re-renders never swap persistence
-  // out from under us mid-mutation. The default falls through to
-  // localStorage on first read inside loadFavorites/saveFavorites.
-  const storageRef = useRef(storage);
-  const [favorites, setFavorites] = useState<Favorite[]>(() =>
-    loadFavorites(storageRef.current),
-  );
+  // `storage` is the prop — closed over directly rather than held in a
+  // ref. Tests pass an in-memory implementation; production omits the
+  // prop and the loaders fall back to `localStorage` internally.
+  const [favorites, setFavorites] = useState<Favorite[]>(() => loadFavorites(storage));
 
   const add = useCallback(
     (stopId: string): boolean => {
@@ -58,22 +55,25 @@ export function FavoritesProvider({ children, storage }: FavoritesProviderProps)
           return current;
         }
         const next = [...current, { stopId, addedAt: Math.floor(Date.now() / 1000) }];
-        saveFavorites(next, storageRef.current);
+        saveFavorites(next, storage);
         return next;
       });
       return result;
     },
-    [],
+    [storage],
   );
 
-  const remove = useCallback((stopId: string) => {
-    setFavorites((current) => {
-      const next = current.filter((f) => f.stopId !== stopId);
-      if (next.length === current.length) return current;
-      saveFavorites(next, storageRef.current);
-      return next;
-    });
-  }, []);
+  const remove = useCallback(
+    (stopId: string) => {
+      setFavorites((current) => {
+        const next = current.filter((f) => f.stopId !== stopId);
+        if (next.length === current.length) return current;
+        saveFavorites(next, storage);
+        return next;
+      });
+    },
+    [storage],
+  );
 
   const has = useCallback(
     (stopId: string) => favorites.some((f) => f.stopId === stopId),

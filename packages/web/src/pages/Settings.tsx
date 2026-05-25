@@ -141,7 +141,7 @@ function RadioGroup<TValue extends string>({
                 name={name}
                 value={opt.value}
                 checked={value === opt.value}
-                onChange={() => onChange(opt.value)}
+                onChange={() => { onChange(opt.value); }}
                 className="h-4 w-4 accent-primary"
               />
               <span className="text-sm text-fg">{opt.label}</span>

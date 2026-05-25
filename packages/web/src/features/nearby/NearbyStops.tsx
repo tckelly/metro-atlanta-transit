@@ -86,7 +86,7 @@ export function NearbyStops({ geolocation }: NearbyStopsProps = {}) {
         {t('nearby.title')}
       </h2>
 
-      {state.kind === 'idle' && <IdleView onFind={find} />}
+      {state.kind === 'idle' && <IdleView onFind={() => { void find(); }} />}
       {state.kind === 'loading' && (
         <p role="status" className="text-sm text-fg-muted">
           {t('nearby.finding')}
@@ -96,10 +96,10 @@ export function NearbyStops({ geolocation }: NearbyStopsProps = {}) {
       {state.kind === 'denied' && <FailureView message={t('nearby.denied')} />}
       {state.kind === 'unavailable' && <FailureView message={t('nearby.unavailable')} />}
       {state.kind === 'timeout' && (
-        <FailureView message={t('nearby.timeout')} onRetry={find} />
+        <FailureView message={t('nearby.timeout')} onRetry={() => { void find(); }} />
       )}
       {state.kind === 'error' && (
-        <FailureView message={t('nearby.error')} onRetry={find} />
+        <FailureView message={t('nearby.error')} onRetry={() => { void find(); }} />
       )}
     </section>
   );

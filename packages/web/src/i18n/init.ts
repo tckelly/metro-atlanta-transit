@@ -51,7 +51,7 @@ void i18next.use(initReactI18next).init({
   },
   lng: initialLocale,
   fallbackLng: 'en',
-  supportedLngs: SUPPORTED as unknown as string[],
+  supportedLngs: SUPPORTED,
   interpolation: {
     // React escapes everything before render, so i18next's default
     // string escaping would double-escape.

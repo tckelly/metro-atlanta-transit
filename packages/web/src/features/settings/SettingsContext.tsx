@@ -15,7 +15,6 @@ import {
   useCallback,
   useContext,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import type { ReactNode } from 'react';
@@ -81,19 +80,22 @@ export interface SettingsProviderProps {
   storage?: SettingsStorage;
 }
 
-export function SettingsProvider({ children, storage }: SettingsProviderProps) {
-  // Lock storage at mount so re-renders don't swap persistence
-  // mid-mutation. The default falls through to localStorage.
-  const storageRef = useRef<SettingsStorage>(storage ?? defaultStorage());
-  const [settings, setSettings] = useState<Settings>(() => loadSettings(storageRef.current));
+export function SettingsProvider({
+  children,
+  storage = defaultStorage(),
+}: SettingsProviderProps) {
+  const [settings, setSettings] = useState<Settings>(() => loadSettings(storage));
 
-  const setClockFormat = useCallback((value: ClockFormat) => {
-    setSettings((current) => {
-      const next: Settings = { ...current, clockFormat: value };
-      saveSettings(next, storageRef.current);
-      return next;
-    });
-  }, []);
+  const setClockFormat = useCallback(
+    (value: ClockFormat) => {
+      setSettings((current) => {
+        const next: Settings = { ...current, clockFormat: value };
+        saveSettings(next, storage);
+        return next;
+      });
+    },
+    [storage],
+  );
 
   const value = useMemo<SettingsContextValue>(
     () => ({ ...settings, setClockFormat }),

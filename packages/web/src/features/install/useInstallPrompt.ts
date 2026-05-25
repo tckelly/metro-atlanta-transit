@@ -46,7 +46,7 @@ function defaultEnvironment(): InstallEnvironment {
     };
   }
   return {
-    navigator: window.navigator as PlatformProbe & { standalone?: boolean },
+    navigator: window.navigator,
     matchMedia: (q) => window.matchMedia(q),
     eventTarget: window,
   };

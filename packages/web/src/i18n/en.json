@@ -20,7 +20,8 @@
     "loadErrorTitle": "Couldn’t load route data",
     "noStopsTitle": "No stops found",
     "noStopsBody": "This route doesn’t have any stop information in the current schedule data.",
-    "toward": "Toward {{headsign}}"
+    "toward": "Toward {{headsign}}",
+    "headerPrefix": "Route {{shortName}}"
   },
   "stopDetail": {
     "noStopIdTitle": "No stop ID",

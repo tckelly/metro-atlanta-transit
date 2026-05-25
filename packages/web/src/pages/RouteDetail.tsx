@@ -31,6 +31,9 @@ export function RouteDetail() {
   useEffect(() => {
     if (routeId === undefined) return;
     let cancelled = false;
+    // Reset state when routeId changes — an intentional setState in an
+    // effect to drop stale data while the new fetch is in flight.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState({ kind: 'loading' });
     repo
       .getRouteDirections(routeId)
@@ -65,7 +68,7 @@ export function RouteDetail() {
           ←
         </Link>
         <div className="min-w-0">
-          <h1 className="text-xl font-bold">Route {shortName}</h1>
+          <h1 className="text-xl font-bold">{t('routeDetail.headerPrefix', { shortName })}</h1>
           {longName !== '' && <p className="truncate text-sm text-fg-muted">{longName}</p>}
         </div>
       </header>

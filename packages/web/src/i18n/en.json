@@ -122,6 +122,22 @@
     "noLiveData": "Scheduled · No live data",
     "cancelled": "Cancelled"
   },
+  "settings": {
+    "title": "Settings",
+    "backToHome": "Back to home",
+    "languageHeading": "Language",
+    "languageEnglish": "English",
+    "languageSpanish": "Español",
+    "clockFormatHeading": "Clock format",
+    "clockFormat12": "12-hour (1:30 PM)",
+    "clockFormat24": "24-hour (13:30)",
+    "clockFormatAuto": "Follow my language",
+    "aboutHeading": "About",
+    "aboutBody": "Atlanta Transit is an unofficial Progressive Web App for real-time MARTA bus arrivals. Not affiliated with or endorsed by MARTA.",
+    "aboutAttribution": "Real-time and schedule data provided by MARTA (Metropolitan Atlanta Rapid Transit Authority).",
+    "aboutVersion": "Version {{version}}",
+    "homeLink": "Settings"
+  },
   "occupancy": {
     "seatsAvailable": "Seats available",
     "fillingUp": "Filling up",

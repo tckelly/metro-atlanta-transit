@@ -87,10 +87,10 @@
     "iosStep1Bold": "Compartir",
     "iosStep1Trail": "en la parte inferior de Safari.",
     "iosStep2Lead": "Desplázate hacia abajo y elige",
-    "iosStep2Bold": "Add to Home Screen",
+    "iosStep2Bold": "Añadir a pantalla de inicio",
     "iosStep2Trail": ".",
     "iosStep3Lead": "Toca",
-    "iosStep3Bold": "Add",
+    "iosStep3Bold": "Añadir",
     "iosStep3Trail": "."
   },
   "routeShield": {
@@ -114,12 +114,12 @@
     "arriving": "Llegando",
     "minutes_one": "{{count}} min",
     "minutes_other": "{{count}} min",
-    "scheduled": "Programado {{time}}",
+    "scheduled": "Programado a las {{time}}",
     "delayLate_one": "{{count}} min de retraso",
     "delayLate_other": "{{count}} min de retraso",
     "delayEarly_one": "{{count}} min de adelanto",
     "delayEarly_other": "{{count}} min de adelanto",
-    "noLiveData": "Programado · Sin datos en vivo",
+    "noLiveData": "Programado · Sin datos en tiempo real",
     "cancelled": "Cancelado"
   },
   "settings": {
@@ -141,7 +141,7 @@
   "occupancy": {
     "seatsAvailable": "Asientos disponibles",
     "fillingUp": "Llenándose",
-    "standingRoomOnly": "Solo lugar de pie",
+    "standingRoomOnly": "Solo de pie",
     "veryCrowded": "Muy lleno",
     "notAccepting": "No acepta pasajeros"
   }

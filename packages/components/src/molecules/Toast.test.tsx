@@ -40,4 +40,12 @@ describe('Toast', () => {
     render(<Toast message="Saved" />);
     expect(screen.getByRole('status')).toHaveClass('fixed', 'bottom-4');
   });
+
+  it('action button meets the WCAG 2.5.5 minimum 44px tap target', () => {
+    // Tested via class assertion — without a layout engine in jsdom we
+    // can't measure pixels, but `min-h-[44px]` IS the contract we expect
+    // every interactive button to honor.
+    render(<Toast message="Removed" action={{ label: 'Undo', onClick: () => {} }} />);
+    expect(screen.getByRole('button', { name: 'Undo' })).toHaveClass('min-h-[44px]');
+  });
 });

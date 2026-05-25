@@ -17,15 +17,20 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { forwardRef } from 'react';
 import type { ButtonHTMLAttributes } from 'react';
 
+// Hover styling is deliberately surface-independent. Earlier versions
+// used `hover:bg-surface` / `hover:bg-surface-elevated` and went
+// invisible when the Button was nested inside a same-color MessageCard.
+// Primary uses a primary-tinted translucent overlay; neutral promotes
+// its border to primary on hover. Both work on any surrounding surface.
 const button = cva(
   'inline-flex items-center justify-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
         primary:
-          'min-h-[44px] border border-primary px-4 text-sm font-semibold text-primary hover:bg-surface',
+          'min-h-[44px] border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary/10',
         neutral:
-          'min-h-[44px] border border-divider px-4 text-sm font-medium text-fg hover:bg-surface-elevated',
+          'min-h-[44px] border border-divider px-4 text-sm font-medium text-fg hover:border-primary hover:text-primary',
         icon: 'h-11 w-11 hover:bg-surface-elevated',
       },
     },

@@ -79,7 +79,7 @@ export function NearbyStops({ bundle, geolocation }: NearbyStopsProps) {
 
       {state.kind === 'idle' && <IdleView onFind={find} />}
       {state.kind === 'loading' && (
-        <p className="text-sm text-fg-muted" aria-live="polite">
+        <p role="status" className="text-sm text-fg-muted">
           Finding your location…
         </p>
       )}

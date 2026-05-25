@@ -88,4 +88,18 @@ describe('Button', () => {
     render(<Button>Focusable</Button>);
     expect(screen.getByRole('button')).toHaveClass('focus-visible:ring-2', 'focus-visible:ring-primary');
   });
+
+  it('neutral hover state is surface-independent — promotes border to primary', () => {
+    // Surface-dependent hovers (bg-surface, bg-surface-elevated) lose
+    // contrast when the button is nested inside a MessageCard of the
+    // same color. A primary-colored border is visible regardless of
+    // the surrounding surface.
+    render(<Button variant="neutral">Try again</Button>);
+    expect(screen.getByRole('button')).toHaveClass('hover:border-primary');
+  });
+
+  it('primary hover state is surface-independent — primary-tinted overlay', () => {
+    render(<Button variant="primary">Find stops</Button>);
+    expect(screen.getByRole('button')).toHaveClass('hover:bg-primary/10');
+  });
 });

@@ -8,12 +8,9 @@
  * design system stay framework-state-free.
  *
  * Rendered into a polite live region so screen readers announce the
- * change without interrupting whatever the user is doing.
- *
- * NOTE: the inline action button uses a smaller-than-44px hit target
- * by design — it sits inside a tight toast pill. M5's accessibility
- * pass should revisit whether a "link-style" Button variant covers
- * this case or whether the toast layout needs more room.
+ * change without interrupting whatever the user is doing. The action
+ * button honors WCAG 2.5.5 with a 44px min tap target — the toast pill
+ * grows to fit.
  */
 import type { ReactNode } from 'react';
 
@@ -39,7 +36,7 @@ export function Toast({ message, action }: ToastProps) {
         <button
           type="button"
           onClick={action.onClick}
-          className="rounded px-2 py-1 text-sm font-semibold text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="inline-flex min-h-[44px] items-center rounded px-3 text-sm font-semibold text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {action.label}
         </button>

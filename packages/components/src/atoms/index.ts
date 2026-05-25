@@ -2,6 +2,8 @@ export { Badge } from './Badge';
 export type { BadgeProps } from './Badge';
 export { Button } from './Button';
 export type { ButtonProps } from './Button';
+export { ErrorBoundary } from './ErrorBoundary';
+export type { ErrorBoundaryFallback, ErrorBoundaryProps } from './ErrorBoundary';
 export { Icon } from './Icon';
 export type { IconName, IconProps } from './Icon';
 export { MessageCard } from './MessageCard';

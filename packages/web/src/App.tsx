@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { MessageCard } from '@atl-transit/components';
+import { Link, Routes, Route, useLocation } from 'react-router-dom';
+import { ErrorBoundary, MessageCard } from '@atl-transit/components';
 
 import { FavoritesProvider } from './features/favorites/FavoritesContext';
 import { RealtimeFeedProvider } from './features/realtime/RealtimeFeedContext';
@@ -26,12 +26,14 @@ export function App() {
             {(bundle) => (
               <RepositoryGate bundle={bundle}>
                 <RealtimeFeedProvider>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/routes" element={<RoutesPage />} />
-                    <Route path="/route/:routeId" element={<RouteDetail />} />
-                    <Route path="/stop/:stopId" element={<StopDetail />} />
-                  </Routes>
+                  <RouteShield>
+                    <Routes>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/routes" element={<RoutesPage />} />
+                      <Route path="/route/:routeId" element={<RouteDetail />} />
+                      <Route path="/stop/:stopId" element={<StopDetail />} />
+                    </Routes>
+                  </RouteShield>
                 </RealtimeFeedProvider>
               </RepositoryGate>
             )}
@@ -73,4 +75,36 @@ function RepositoryGate({
 }) {
   const repository = useMemo(() => new HybridGtfsRepository({ bundle }), [bundle]);
   return <GtfsRepositoryProvider repository={repository}>{children}</GtfsRepositoryProvider>;
+}
+
+/**
+ * Route-level error boundary. A render-time crash inside one route
+ * stays scoped to that route — the user can still navigate elsewhere
+ * via the home link in the fallback or the browser back button. The
+ * resetKey clears the error on navigation so a successful next route
+ * mounts cleanly.
+ */
+function RouteShield({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  return (
+    <ErrorBoundary
+      resetKey={location.pathname}
+      fallback={(error) => (
+        <MessageCard
+          title="Something went wrong on this page"
+          body={`${error.message}. Try refreshing — or head back to the home screen below.`}
+          action={
+            <Link
+              to="/"
+              className="inline-flex min-h-[44px] items-center rounded-md border border-divider px-4 text-sm font-medium text-fg hover:border-primary hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              ← Back to home
+            </Link>
+          }
+        />
+      )}
+    >
+      {children}
+    </ErrorBoundary>
+  );
 }

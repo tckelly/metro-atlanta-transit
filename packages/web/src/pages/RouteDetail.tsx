@@ -9,18 +9,19 @@
  * immediately, the future backend impl issues a query. Either way the
  * loading state below covers the gap.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MessageCard, Skeleton } from '@atl-transit/components';
+import { MessageCard, SearchInput, Skeleton } from '@atl-transit/components';
 
 import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
+import { matchesQuery } from '../features/search/searchStops';
 import type { RouteDirection } from '../features/routes/getRouteDirections';
 
 type State =
   | { kind: 'loading' }
   | { kind: 'success'; directions: RouteDirection[] }
-  | { kind: 'error'; message: string };
+  | { kind: 'error' };
 
 export function RouteDetail() {
   const { t } = useTranslation();
@@ -41,17 +42,26 @@ export function RouteDetail() {
         if (!cancelled) setState({ kind: 'success', directions });
       })
       .catch((err: unknown) => {
-        if (!cancelled) {
-          setState({
-            kind: 'error',
-            message: err instanceof Error ? err.message : String(err),
-          });
-        }
+        // Surface the technical detail to developers via the console;
+        // the UI shows a generic, user-meaningful message regardless
+        // so we don't leak architecture (paths, HTTP statuses, etc.)
+        // to public users.
+        console.error('RouteDetail: failed to load route directions', err);
+        if (!cancelled) setState({ kind: 'error' });
       });
     return () => {
       cancelled = true;
     };
   }, [repo, routeId]);
+
+  const [query, setQuery] = useState('');
+  const filteredDirections = useMemo<RouteDirection[]>(() => {
+    if (state.kind !== 'success') return [];
+    if (query.trim() === '') return state.directions;
+    return state.directions
+      .map((d) => ({ ...d, stops: d.stops.filter((s) => matchesQuery(s.name, query)) }))
+      .filter((d) => d.stops.length > 0);
+  }, [state, query]);
 
   if (routeId === undefined) {
     return <MessageCard title={t('routeDetail.noRouteIdTitle')} body={t('routeDetail.noRouteIdBody')} />;
@@ -73,10 +83,23 @@ export function RouteDetail() {
         </div>
       </header>
 
+      {state.kind === 'success' && state.directions.length > 0 && (
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          aria-label={t('routeDetail.searchLabel')}
+          clearLabel={t('routeDetail.searchClearLabel')}
+          placeholder={t('routeDetail.searchPlaceholder')}
+        />
+      )}
+
       {state.kind === 'loading' && <RouteLoadingSkeleton />}
 
       {state.kind === 'error' && (
-        <MessageCard title={t('routeDetail.loadErrorTitle')} body={state.message} />
+        <MessageCard
+          title={t('routeDetail.loadErrorTitle')}
+          body={t('routeDetail.loadErrorBody')}
+        />
       )}
 
       {state.kind === 'success' && state.directions.length === 0 && (
@@ -86,7 +109,14 @@ export function RouteDetail() {
         />
       )}
 
-      {state.kind === 'success' && state.directions.map((direction) => (
+      {state.kind === 'success' && state.directions.length > 0 && filteredDirections.length === 0 && (
+        <MessageCard
+          title={t('routeDetail.noMatchesTitle')}
+          body={t('routeDetail.noMatchesBody', { query })}
+        />
+      )}
+
+      {state.kind === 'success' && filteredDirections.map((direction) => (
           <section key={direction.headsign} aria-labelledby={`dir-${direction.headsign}`}>
             <h2 id={`dir-${direction.headsign}`} className="text-base font-semibold">
               {t('routeDetail.toward', { headsign: direction.headsign })}

@@ -7,7 +7,14 @@
     "myStops": "Mis paradas",
     "browseRoutes": "Ver todas las rutas →",
     "favoritesEmptyTitle": "Aún no tienes favoritos",
-    "favoritesEmptyBody": "Busca una parada abajo y toca la estrella en su página para guardarla aquí para tu viaje."
+    "favoritesEmptyBody": "Busca una parada abajo y toca la estrella en su página para guardarla aquí para tu viaje.",
+    "searchLabel": "Buscar paradas",
+    "searchPlaceholder": "Busca por nombre de parada o calle",
+    "searchClearLabel": "Borrar búsqueda",
+    "searchResultsHeading": "Resultados de búsqueda",
+    "searchRoutesLine": "Rutas {{routes}}",
+    "searchNoMatchesTitle": "No hay paradas que coincidan",
+    "searchNoMatchesBody": "Nada coincide con «{{query}}». Prueba con otro nombre de calle o parada."
   },
   "routes": {
     "title": "Todas las rutas",
@@ -18,16 +25,23 @@
     "noRouteIdBody": "Falta el ID de ruta en la URL.",
     "backToRoutes": "Volver a todas las rutas",
     "loadErrorTitle": "No se pudieron cargar los datos de la ruta",
+    "loadErrorBody": "La información de paradas para esta ruta no está disponible ahora mismo. Inténtalo de nuevo en un momento.",
     "noStopsTitle": "No se encontraron paradas",
     "noStopsBody": "Esta ruta no tiene información de paradas en los datos del horario actual.",
     "toward": "Hacia {{headsign}}",
-    "headerPrefix": "Ruta {{shortName}}"
+    "headerPrefix": "Ruta {{shortName}}",
+    "searchLabel": "Filtrar paradas de esta ruta",
+    "searchPlaceholder": "Filtrar por nombre de parada",
+    "searchClearLabel": "Borrar filtro",
+    "noMatchesTitle": "No hay paradas que coincidan",
+    "noMatchesBody": "Ninguna parada de esta ruta coincide con «{{query}}»."
   },
   "stopDetail": {
     "noStopIdTitle": "Sin ID de parada",
     "noStopIdBody": "Falta el ID de parada en la URL.",
     "backToHome": "Volver al inicio",
     "loadErrorTitle": "No se pudieron cargar las llegadas",
+    "loadErrorBody": "Las llegadas en vivo de esta parada no están disponibles ahora mismo. Inténtalo de nuevo en un momento.",
     "noUpcomingTitle": "No hay próximos autobuses",
     "noUpcomingBody": "No hay más autobuses programados en esta parada hoy. Vuelve mañana por la mañana o prueba con otra parada.",
     "refresh": "Actualizar",

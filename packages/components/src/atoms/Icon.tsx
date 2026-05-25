@@ -8,7 +8,7 @@
  * to *be* the accessible label, wrap it in an element with `aria-label`.
  */
 
-export type IconName = 'clock' | 'warning' | 'refresh' | 'star' | 'star-filled';
+export type IconName = 'clock' | 'warning' | 'refresh' | 'star' | 'star-filled' | 'search' | 'close';
 
 export interface IconProps {
   name: IconName;
@@ -51,6 +51,18 @@ export function Icon({ name }: IconProps) {
       )}
       {(name === 'star' || name === 'star-filled') && (
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      )}
+      {name === 'search' && (
+        <>
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </>
+      )}
+      {name === 'close' && (
+        <>
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </>
       )}
     </svg>
   );

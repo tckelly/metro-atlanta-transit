@@ -1,0 +1,153 @@
+/**
+ * Behavior tests for `Home` — focused on the global stop-search box.
+ *
+ * Empty query leaves the existing favorites/nearby/browse-routes content
+ * intact. A non-empty query replaces the body with a ranked results list,
+ * each row showing stop name + the routes serving that stop. Clearing
+ * the query restores the original content.
+ */
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+
+import { Home } from './Home';
+import { GtfsRepositoryProvider } from '../services/gtfs/GtfsRepositoryContext';
+import {
+  RealtimeFeedContext,
+  type RealtimeFeedSnapshot,
+} from '../features/realtime/RealtimeFeedContext';
+import { FavoritesProvider } from '../features/favorites/FavoritesContext';
+import { ToastProvider } from '../features/toast/ToastContext';
+import { SettingsProvider } from '../features/settings/SettingsContext';
+import type { GtfsRepository } from '../services/gtfs/GtfsRepository';
+import type { RouteOut, StopOut } from '../buildtime/preprocessGtfs';
+
+function memoryStorage(): {
+  getItem: (k: string) => string | null;
+  setItem: (k: string, v: string) => void;
+  removeItem: (k: string) => void;
+} {
+  const map = new Map<string, string>();
+  return {
+    getItem: (k) => map.get(k) ?? null,
+    setItem: (k, v) => {
+      map.set(k, v);
+    },
+    removeItem: (k) => {
+      map.delete(k);
+    },
+  };
+}
+
+const STOPS: StopOut[] = [
+  { stopId: '1', name: 'Ponce de Leon Ave @ Barnett St', lat: 0, lng: 0, routeIds: ['2', '102'] },
+  { stopId: '2', name: 'Memorial Dr SE @ Hill St', lat: 0, lng: 0, routeIds: ['21'] },
+  { stopId: '3', name: 'Peachtree St NW @ 14th St', lat: 0, lng: 0, routeIds: ['110'] },
+  { stopId: '4', name: 'Cherokee Ave @ Ponce Pl', lat: 0, lng: 0, routeIds: ['97'] },
+  { stopId: '5', name: 'Sponcetown Rd @ Old Mill Ln', lat: 0, lng: 0, routeIds: ['180'] },
+];
+
+const ROUTES: RouteOut[] = [
+  { routeId: '2', shortName: '2', longName: 'Ponce' },
+  { routeId: '21', shortName: '21', longName: 'Memorial' },
+  { routeId: '97', shortName: '97', longName: 'Cherokee' },
+  { routeId: '102', shortName: '102', longName: 'Ponce Express' },
+  { routeId: '110', shortName: '110', longName: 'Peachtree' },
+  { routeId: '180', shortName: '180', longName: 'Spence' },
+];
+
+function searchRepo(): GtfsRepository {
+  return {
+    getStop: (id) => STOPS.find((s) => s.stopId === id),
+    getRoute: (id) => ROUTES.find((r) => r.routeId === id),
+    listStops: () => STOPS,
+    listRoutes: () => ROUTES,
+    getScheduledVisitsForStop: () => Promise.resolve([]),
+    getRouteDirections: () => Promise.resolve([]),
+    findNearbyStops: () => Promise.resolve([]),
+  };
+}
+
+function feed(): RealtimeFeedSnapshot {
+  return {
+    status: 'loading',
+    tripUpdates: [],
+    vehiclePositions: [],
+    lastUpdated: null,
+    isStale: false,
+    error: null,
+    refresh: vi.fn(async () => {}),
+  };
+}
+
+function renderHome(): void {
+  render(
+    <MemoryRouter initialEntries={['/']}>
+      <SettingsProvider storage={memoryStorage()}>
+        <ToastProvider>
+          <FavoritesProvider storage={memoryStorage()}>
+            <GtfsRepositoryProvider repository={searchRepo()}>
+              <RealtimeFeedContext.Provider value={feed()}>
+                <Home />
+              </RealtimeFeedContext.Provider>
+            </GtfsRepositoryProvider>
+          </FavoritesProvider>
+        </ToastProvider>
+      </SettingsProvider>
+    </MemoryRouter>,
+  );
+}
+
+describe('Home — global stop search', () => {
+  it('renders the normal home content when the query is empty', () => {
+    renderHome();
+    // Favorites heading is the canonical signal that the default home renders.
+    expect(screen.getByRole('heading', { name: /my stops/i })).toBeInTheDocument();
+    // No stop rows from the search corpus appear when the query is empty.
+    expect(screen.queryByText('Ponce de Leon Ave @ Barnett St')).not.toBeInTheDocument();
+  });
+
+  it('typing in the search box shows ranked stop results', async () => {
+    renderHome();
+    const input = screen.getByRole('searchbox');
+    await userEvent.type(input, 'ponce');
+
+    // Two prefix matches outrank the word-boundary match and the substring match.
+    const items = screen.getAllByRole('link', { name: /ponce|cherokee|sponcetown/i });
+    const names = items.map((el) => el.textContent);
+    expect(names[0]).toContain('Ponce de Leon Ave @ Barnett St');
+    // The substring-only match (Sponcetown) ranks last among matches.
+    expect(names[names.length - 1]).toContain('Sponcetown');
+  });
+
+  it('shows the routes serving each result stop', async () => {
+    renderHome();
+    await userEvent.type(screen.getByRole('searchbox'), 'ponce');
+    // "Ponce de Leon …" is served by routes 2 and 102.
+    expect(screen.getByText(/2, 102|2,\s*102/)).toBeInTheDocument();
+  });
+
+  it('shows an empty-state when no stops match', async () => {
+    renderHome();
+    await userEvent.type(screen.getByRole('searchbox'), 'xyz-nothing-matches');
+    expect(screen.getByText(/no matching stops/i)).toBeInTheDocument();
+  });
+
+  it('clearing the search restores the normal home content', async () => {
+    renderHome();
+    await userEvent.type(screen.getByRole('searchbox'), 'ponce');
+    expect(screen.getByText('Ponce de Leon Ave @ Barnett St')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /clear/i }));
+    expect(screen.queryByText('Ponce de Leon Ave @ Barnett St')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /my stops/i })).toBeInTheDocument();
+  });
+
+  it('result rows link to /stop/:stopId', async () => {
+    renderHome();
+    await userEvent.type(screen.getByRole('searchbox'), 'memorial');
+    const link = screen.getByRole('link', { name: /Memorial Dr SE @ Hill St/ });
+    expect(link).toHaveAttribute('href', '/stop/2');
+  });
+});

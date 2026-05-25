@@ -7,7 +7,14 @@
     "myStops": "My stops",
     "browseRoutes": "Browse all routes →",
     "favoritesEmptyTitle": "No favorites yet",
-    "favoritesEmptyBody": "Find a stop below and tap the star on its page to keep it here for your commute."
+    "favoritesEmptyBody": "Find a stop below and tap the star on its page to keep it here for your commute.",
+    "searchLabel": "Search stops",
+    "searchPlaceholder": "Search by stop or street name",
+    "searchClearLabel": "Clear search",
+    "searchResultsHeading": "Search results",
+    "searchRoutesLine": "Routes {{routes}}",
+    "searchNoMatchesTitle": "No matching stops",
+    "searchNoMatchesBody": "Nothing matched “{{query}}”. Try a different street or stop name."
   },
   "routes": {
     "title": "All routes",
@@ -18,16 +25,23 @@
     "noRouteIdBody": "The URL is missing a route ID.",
     "backToRoutes": "Back to all routes",
     "loadErrorTitle": "Couldn’t load route data",
+    "loadErrorBody": "Stop information for this route isn’t available right now. Try again in a moment.",
     "noStopsTitle": "No stops found",
     "noStopsBody": "This route doesn’t have any stop information in the current schedule data.",
     "toward": "Toward {{headsign}}",
-    "headerPrefix": "Route {{shortName}}"
+    "headerPrefix": "Route {{shortName}}",
+    "searchLabel": "Filter stops on this route",
+    "searchPlaceholder": "Filter by stop name",
+    "searchClearLabel": "Clear filter",
+    "noMatchesTitle": "No matching stops",
+    "noMatchesBody": "No stops on this route match “{{query}}”."
   },
   "stopDetail": {
     "noStopIdTitle": "No stop ID",
     "noStopIdBody": "The URL is missing a stop ID.",
     "backToHome": "Back to home",
-    "loadErrorTitle": "Couldn't load arrivals",
+    "loadErrorTitle": "Couldn’t load arrivals",
+    "loadErrorBody": "Live arrivals for this stop aren’t available right now. Try again in a moment.",
     "noUpcomingTitle": "No upcoming buses",
     "noUpcomingBody": "No more buses scheduled at this stop today. Check back tomorrow morning, or try a different stop.",
     "refresh": "Refresh",

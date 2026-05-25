@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BusRow, Button, Icon, MessageCard, Skeleton } from '@atl-transit/components';
@@ -51,10 +52,7 @@ function StopDetailReady({ stopId }: { stopId: string }) {
       {status === 'loading' && <ArrivalsLoadingSkeleton />}
 
       {status === 'error' && (
-        <MessageCard
-          title={t('stopDetail.loadErrorTitle')}
-          body={error?.message ?? 'Unknown error.'}
-        />
+        <ErrorCard error={error} />
       )}
 
       {status === 'success' && rows.length === 0 && (
@@ -116,6 +114,27 @@ function ArrivalsLoadingSkeleton() {
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * Generic error card for the stop view. The user sees a stable,
+ * domain-meaningful message; technical detail (HTTP status, upstream
+ * URL, etc.) goes to the console for developers — never to the DOM,
+ * since this is a public site.
+ */
+function ErrorCard({ error }: { error: Error | null }) {
+  const { t } = useTranslation();
+  useEffect(() => {
+    if (error !== null) {
+      console.error('StopDetail: arrivals failed to load', error);
+    }
+  }, [error]);
+  return (
+    <MessageCard
+      title={t('stopDetail.loadErrorTitle')}
+      body={t('stopDetail.loadErrorBody')}
+    />
   );
 }
 

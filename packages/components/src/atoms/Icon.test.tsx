@@ -46,4 +46,18 @@ describe('Icon', () => {
     expect(svg).toHaveAttribute('fill', 'currentColor');
     expect(svg?.children.length).toBeGreaterThan(0);
   });
+
+  it('renders the search icon with actual path content', () => {
+    const { container } = render(<Icon name="search" />);
+    const svg = container.querySelector('svg');
+    expect(svg).toHaveAttribute('data-icon', 'search');
+    expect(svg?.children.length).toBeGreaterThan(0);
+  });
+
+  it('renders the close icon with actual path content', () => {
+    const { container } = render(<Icon name="close" />);
+    const svg = container.querySelector('svg');
+    expect(svg).toHaveAttribute('data-icon', 'close');
+    expect(svg?.children.length).toBeGreaterThan(0);
+  });
 });

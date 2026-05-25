@@ -8,7 +8,7 @@ import { FavoriteStopCard } from '../features/favorites/FavoriteStopCard';
 import { InstallPrompt } from '../features/install/InstallPrompt';
 import { NearbyStops } from '../features/nearby/NearbyStops';
 import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
-import { rankStops } from '../features/search/searchStops';
+import { rankStops } from '../features/search/searchMatch';
 import type { StopOut } from '../buildtime/preprocessGtfs';
 
 /** Maximum rows in the search-result list. Keeps scroll cheap on phones. */

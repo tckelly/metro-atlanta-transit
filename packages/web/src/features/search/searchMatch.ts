@@ -1,16 +1,22 @@
 /**
- * Pure stop-search functions used by both the per-route filter and
- * the global home-page search box.
+ * Pure search-matching primitives shared by every filter/search box
+ * in the app — the all-routes filter, the per-route stop filter, and
+ * the global home-page stop search.
  *
- * Ranking is a simple three-tier system — prefix > word-boundary >
- * anywhere — which covers the typed-prefix mobile pattern without a
- * fuzzy-match dependency. If real-world typo complaints arrive, the
- * pure shape here means swapping in fuse.js or a hand-rolled
- * Levenshtein later is a localized change with no consumer impact.
+ * Two exports, layered:
+ *   - `matchesQuery` — boolean predicate. Used by the in-place
+ *     filters (Routes, RouteDetail) where preserving the page's
+ *     sort order matters more than ranking.
+ *   - `rankStops` — adds prefix > word-boundary > anywhere tiering
+ *     and a result limit on top of `matchesQuery`. Used by the
+ *     global stop search where there is no inherent order to keep
+ *     and "best match first" is what the user expects.
  *
  * The query is normalized (lowercased + trimmed) and any regex
  * metacharacters in it are escaped before use, so user input can't
- * inject patterns or cause catastrophic backtracking.
+ * inject patterns or cause catastrophic backtracking. If real-world
+ * typo complaints arrive, swap the implementation here for fuse.js
+ * or a hand-rolled Levenshtein — consumers won't notice.
  *
  * @threat-model
  * @mitigates SearchModule against RegexInjection with escapeRegex on user-supplied query

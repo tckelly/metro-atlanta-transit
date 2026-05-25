@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { MessageCard, SearchInput, Skeleton } from '@atl-transit/components';
 
 import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
-import { matchesQuery } from '../features/search/searchStops';
+import { matchesQuery } from '../features/search/searchMatch';
 import type { RouteDirection } from '../features/routes/getRouteDirections';
 
 type State =

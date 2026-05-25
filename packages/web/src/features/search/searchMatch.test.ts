@@ -12,7 +12,7 @@
  */
 import { describe, it, expect } from 'vitest';
 
-import { matchesQuery, rankStops } from './searchStops';
+import { matchesQuery, rankStops } from './searchMatch';
 import type { StopOut } from '../../buildtime/preprocessGtfs';
 
 function stop(id: string, name: string): StopOut {

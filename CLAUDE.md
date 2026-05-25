@@ -31,6 +31,34 @@
 - **Hosting:** Vercel (free tier)
 - **Data:** MARTA GTFS-Realtime feeds (Protocol Buffers, no auth for bus data)
 - **Storage:** localStorage for persistence, Service Worker cache for offline/PWA
+- **Toolchain:** Node 22+, pnpm 10+
+
+## Project Layout
+
+pnpm monorepo with four packages. Cross-package imports are constrained by ESLint (`eslint-plugin-boundaries`) — respect those boundaries when adding new code.
+
+```
+metro-atlanta-transit/
+├── docs/                ← vision, architecture, ADRs, roadmap, UX guidelines
+├── sample-data/         ← committed MARTA feed snapshots used as test fixtures
+├── packages/
+│   ├── web/             ← the PWA itself (@atl-transit/web)
+│   ├── components/      ← atomic-design UI library (@atl-transit/components)
+│   ├── gtfs/            ← protobuf decoders + types (@atl-transit/gtfs)
+│   └── utils/           ← pure helpers (@atl-transit/utils)
+└── pnpm-workspace.yaml
+```
+
+## Local Commands
+
+```bash
+pnpm typecheck                                  # workspace-wide TypeScript check
+pnpm lint                                       # ESLint with package-boundary enforcement
+pnpm test                                       # Vitest across all packages
+pnpm --filter @atl-transit/web dev              # Vite dev server (port 5173)
+pnpm --filter @atl-transit/web build            # production bundle
+pnpm --filter @atl-transit/web preprocess-gtfs  # refresh static GTFS from MARTA (~30MB; skipped if <24h old, --force overrides)
+```
 
 ## How to Work With Me
 
@@ -66,10 +94,12 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 ### Architecture
 
 - **Modular components.** Separate presentational (dumb) and container (smart) components.
+- **Atomic design in `@atl-transit/components`.** Atoms, molecules, organisms. Props are visual-semantic only (`severity`, `primaryStyle`, `icon`) — never domain (`isCancelled`, MARTA-specific status). The web package maps domain status to visual props at the boundary (see `packages/web/src/features/stops/busRowMapper.ts` and ADR-0003).
 - **Reusable UI components.** Build a component library mindset — extract and reuse.
 - **Pure business logic.** Keep business logic in framework-agnostic utility functions (`utils/`), not embedded in React components.
 - **Feature-based organization.** Group by feature/domain where it makes sense.
 - **Files under 500 lines.** If a file grows beyond this, break it up.
+- **Consult ADRs before reversing load-bearing decisions.** `docs/adr/` records the trade-offs that motivated each choice. If a constraint changes (e.g., CORS forcing a backend proxy), supersede with a new ADR rather than silently editing code in conflict with an existing one.
 
 ### Error Handling
 

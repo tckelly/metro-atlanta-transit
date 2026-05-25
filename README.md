@@ -2,7 +2,7 @@
 
 An open-source Progressive Web App for real-time MARTA bus tracking in metro Atlanta — designed to answer one question fast: **"Is my bus actually coming?"**
 
-> ⚠️ **Early development.** Not live yet. The bootstrap docs and data layer are in place; the user-facing app is being built next. See the [roadmap](./docs/roadmap.md) for what's next.
+> ⚠️ **Early development.** Not publicly launched yet. The three v1 jobs — live arrivals, route-disruption signal, and nearby stops — work end-to-end and are in dogfood. Polish, PWA install, i18n, and a minimal backend proxy are next. See the [roadmap](./docs/roadmap.md).
 
 ## Why this exists
 
@@ -32,7 +32,7 @@ The [vision doc](./docs/vision.md) goes into more depth.
 - **pnpm monorepo** with four packages: `web`, `components`, `gtfs`, `utils`
 - **Atomic-design** components library — atoms, molecules, organisms — visual-semantics props only
 - **Vitest** + **React Testing Library** for tests; **MSW** for hook tests when needed
-- **Vercel** hosting, no backend in v1 (static GTFS preprocessed at build time)
+- **Vercel** hosting; v1 ships a minimal serverless proxy for MARTA's GTFS-RT feeds (added after CORS testing showed browser-direct fetches aren't allowed). Static GTFS is still preprocessed at build time today.
 - **GitHub Actions** for CI + nightly rebuilds against MARTA's feeds
 
 Decisions with substantive trade-offs are captured in [architecture decision records](./docs/adr/).

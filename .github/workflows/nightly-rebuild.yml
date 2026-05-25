@@ -1,0 +1,41 @@
+# Nightly trigger for a fresh Vercel deploy.
+#
+# Why: the static GTFS bundle is preprocessed at build time (ADR-0004
+# / ADR-0006). MARTA updates that feed roughly weekly — without a
+# regular rebuild, the deployed app would drift stale until the next
+# code change. This job pushes an empty commit each night, which
+# Vercel picks up as a deploy trigger and runs the build (with
+# preprocess-gtfs as `prebuild`), producing a fresh stops.json /
+# routes.json / gtfs.sqlite from MARTA.
+#
+# Timing: 08:00 UTC fires before MARTA's earliest morning service
+# (04:00 EDT in summer, 03:00 EST in winter). The deploy completes
+# in a few minutes so the morning commute sees fresh data.
+
+name: Nightly rebuild
+
+on:
+  schedule:
+    # 08:00 UTC daily
+    - cron: '0 8 * * *'
+  # Manual trigger from the Actions tab for debugging / forced refresh
+  workflow_dispatch:
+
+jobs:
+  trigger-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+      - name: Configure git author for the empty commit
+        run: |
+          git config user.name 'atl-transit-bot'
+          git config user.email 'atl-transit-bot@users.noreply.github.com'
+      - name: Push empty commit to trigger Vercel deploy
+        run: |
+          git commit --allow-empty -m "chore: nightly rebuild $(date -u +%Y-%m-%d)"
+          git push

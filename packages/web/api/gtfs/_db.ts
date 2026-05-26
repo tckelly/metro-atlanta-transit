@@ -8,16 +8,16 @@
  * locking overhead.
  *
  * The SQLite file is included in the function bundle via
- * `vercel.json` includeFiles (see ADR-0006). At runtime its path is
- * resolved relative to this module file, which Vercel deploys
- * alongside the data directory.
+ * `vercel.json` includeFiles (see ADR-0006). At runtime the file
+ * lives at `<cwd>/api/_data/gtfs.sqlite` — Vercel mounts includeFiles
+ * relative to the function root, which is process.cwd(). The Vite dev
+ * middleware runs from `packages/web/`, which puts the same path at
+ * `packages/web/api/_data/gtfs.sqlite`. Same resolution in both.
  */
 import Database from 'better-sqlite3';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const SQLITE_PATH = join(here, '..', '_data', 'gtfs.sqlite');
+const SQLITE_PATH = join(process.cwd(), 'api', '_data', 'gtfs.sqlite');
 
 let cached: Database.Database | null = null;
 

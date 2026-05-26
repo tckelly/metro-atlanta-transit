@@ -9,12 +9,10 @@ export const runtime = 'edge';
 const UPSTREAM =
   'https://gtfs-rt.itsmarta.com/TMGTFSRealTimeWebService/tripupdate/tripupdates.pb';
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    return new Response('Method Not Allowed', {
-      status: 405,
-      headers: { Allow: 'GET, HEAD' },
-    });
-  }
+export async function GET(req: Request): Promise<Response> {
+  return proxyToMarta({ upstreamUrl: UPSTREAM, signal: req.signal });
+}
+
+export async function HEAD(req: Request): Promise<Response> {
   return proxyToMarta({ upstreamUrl: UPSTREAM, signal: req.signal });
 }

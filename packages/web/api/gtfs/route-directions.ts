@@ -55,6 +55,10 @@ export async function handleRouteDirections(
   });
 }
 
-export default async function handler(req: Request): Promise<Response> {
+export async function GET(req: Request): Promise<Response> {
+  return handleRouteDirections(req, getGtfsDb());
+}
+
+export async function HEAD(req: Request): Promise<Response> {
   return handleRouteDirections(req, getGtfsDb());
 }

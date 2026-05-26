@@ -119,4 +119,13 @@ export function buildGtfsSqlite(bundle: GtfsBundle, db: Database.Database): void
   });
 
   insertAll();
+
+  // Collapse WAL into the main file and switch back to the standard
+  // rollback journal. The shipped artifact is then a single
+  // self-contained .sqlite file — no -wal / -shm companions needed,
+  // which matters on Vercel where the function filesystem is
+  // read-only and SQLite would otherwise refuse to open a WAL-mode
+  // file without a writable WAL companion.
+  db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+  db.exec('PRAGMA journal_mode = DELETE');
 }

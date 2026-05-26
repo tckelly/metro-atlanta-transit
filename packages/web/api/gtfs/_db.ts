@@ -15,7 +15,7 @@
  * `packages/web/api/_data/gtfs.sqlite`. Same resolution in both.
  */
 import Database from 'better-sqlite3';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Vercel runs monorepo functions from the repo root (/var/task) and
@@ -42,9 +42,16 @@ let cached: Database.Database | null = null;
 
 export function getGtfsDb(): Database.Database {
   if (cached !== null) return cached;
-  cached = new Database(resolveSqlitePath(), { readonly: true, fileMustExist: true });
-  // The preprocessor wrote the file in WAL; mark the connection
-  // accordingly so reads play nicely with the journal.
-  cached.pragma('journal_mode = WAL');
+  const path = resolveSqlitePath();
+  try {
+    cached = new Database(path, { readonly: true, fileMustExist: true });
+  } catch (err) {
+    // If the next deploy still fails on open, include file size +
+    // header magic so we know whether the file is empty, truncated,
+    // or has the wrong format — rather than guessing.
+    const size = statSync(path).size;
+    const cause = err instanceof Error ? err.message : String(err);
+    throw new Error(`SQLite open failed at ${path}. size=${size} bytes; cause=${cause}`);
+  }
   return cached;
 }

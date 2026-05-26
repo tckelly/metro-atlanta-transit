@@ -95,6 +95,23 @@ The dominant feature. Everything else is supporting infrastructure.
 
 ---
 
+## Core feature: Stop search by name *(Should-have)*
+
+**Description:** Without geolocation and without an existing favorite, the user can type a stop or street name to find the stop directly. Complements browse-by-route, which requires knowing the route number.
+
+**Acceptance criteria:**
+
+- A search box on the home screen filters all stops by name as the user types.
+- Global results are ranked: prefix matches first, then word-boundary matches, then anywhere-substring matches. Source-order tie-break for determinism.
+- Each result row shows the stop name and the routes serving it.
+- The result list is bounded (currently 20) so the rendered output stays scannable on mobile.
+- The same search affordance appears on `/routes` (filter the route list by short name *or* long name) and inside `/route/:routeId` (filter that direction's stops). In-place filtering preserves the page's existing sort order on those views.
+- Empty input restores the page's default content; the clear button is keyboard-accessible.
+
+> **Promoted from v2 Tier 2 during M5.** The original deferral assumed browse-by-route would be sufficient for the Occasional Rider. Dogfood revealed browse-by-route is clunky when you know a street name but not the route number — the exact trigger condition the v2 path had called out ("Add if usage shows browse-by-route is too clunky").
+
+---
+
 ## Cross-cutting requirements
 
 These apply to every screen and feature.
@@ -161,7 +178,6 @@ These are *not* in v1. Listed so we don't accidentally drift into them, and so w
 | Map view | Adds bundle weight; v1 jobs are answered with a list | Consider in v2 if usage data shows demand |
 | Service alerts (first-class) | MARTA's alerts feed is empty (see `data-and-apis.md`) | Light up if MARTA starts populating; otherwise inference-only |
 | Historical reliability | Requires backend storage of feed snapshots over time | v2 backend feature |
-| Stop search by name | Browse-by-route covers the same need with simpler UI | Add if usage shows browse-by-route is too clunky |
 | Vehicle live tracking on a map | Bundle cost + complexity for low marginal value over text ETAs | v2+ |
 | Custom decoder for `TranslatedString` fields | MARTA publishes empty content today (see `data-and-apis.md` finding #5 and open question #5) | Build when MARTA starts populating real text |
 | `occupancyPercentage` numeric display | `occupancyStatus` categorical is more glanceable | Add if a use case demands precision |

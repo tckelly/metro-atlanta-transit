@@ -222,9 +222,10 @@ These together justify standing up the v2 backend:
 
 ### Tier 2 — high value, no backend required
 
-- **Stop search by name.** Defer until we see whether browse-by-route is enough.
 - **Map view.** Bundle weight cost is real; only build if usage data shows demand.
 - **`TranslatedString` decoder** if MARTA starts populating those fields (see open question #5 in `data-and-apis.md`).
+
+> *Stop search by name* was originally listed here. It graduated to v1 during M5 after dogfood showed browse-by-route alone was too clunky — see `product-requirements.md`.
 
 ### Tier 3 — speculative
 

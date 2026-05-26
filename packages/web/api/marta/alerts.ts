@@ -2,7 +2,7 @@
  * Vercel Edge Function — proxies MARTA's GTFS-RT service alerts feed.
  * See ADR-0005.
  */
-import { proxyToMarta } from './_proxy';
+import { proxyToMarta } from './_proxy.js';
 
 export const runtime = 'edge';
 

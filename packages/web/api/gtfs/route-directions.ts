@@ -11,8 +11,8 @@
 import { z } from 'zod';
 import type Database from 'better-sqlite3';
 
-import { getGtfsDb } from './_db';
-import { queryRouteDirections } from './queries';
+import { getGtfsDb } from './_db.js';
+import { queryRouteDirections } from './queries.js';
 
 const ParamsSchema = z.object({
   routeId: z.string().min(1),

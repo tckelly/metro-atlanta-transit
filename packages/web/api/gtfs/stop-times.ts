@@ -15,8 +15,8 @@
 import { z } from 'zod';
 import type Database from 'better-sqlite3';
 
-import { getGtfsDb } from './_db';
-import { queryScheduledVisits } from './queries';
+import { getGtfsDb } from './_db.js';
+import { queryScheduledVisits } from './queries.js';
 
 const ParamsSchema = z.object({
   stopId: z.string().min(1),

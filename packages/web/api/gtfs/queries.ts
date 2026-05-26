@@ -11,8 +11,8 @@
  */
 import type Database from 'better-sqlite3';
 
-import { gtfsTimeToUnixSec } from '../../src/services/gtfsStatic';
-import type { ScheduledStopVisit } from '../../src/features/stops/busRowClassifier';
+import { gtfsTimeToUnixSec } from '../../src/services/gtfsStatic.js';
+import type { ScheduledStopVisit } from '../../src/features/stops/busRowClassifier.js';
 
 const PAST_GRACE_SEC = 60;
 const DEFAULT_COUNT = 5;

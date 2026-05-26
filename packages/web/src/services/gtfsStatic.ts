@@ -12,8 +12,9 @@ import type {
   GtfsBundle,
   StopOut,
   RouteOut,
-} from '../buildtime/preprocessGtfs';
-import type { ScheduledStopVisit } from '../features/stops/busRowClassifier';
+  TripOut,
+} from '../buildtime/preprocessGtfs.js';
+import type { ScheduledStopVisit } from '../features/stops/busRowClassifier.js';
 
 const ATLANTA_TIMEZONE = 'America/New_York';
 
@@ -151,7 +152,7 @@ export function getScheduledVisitsForStop(
 ): ScheduledStopVisit[] {
   const activeServices = getActiveServiceIds(bundle, date);
 
-  const tripsById = new Map(bundle.trips.map((t) => [t.tripId, t]));
+  const tripsById = new Map<string, TripOut>(bundle.trips.map((t) => [t.tripId, t]));
 
   const visits: ScheduledStopVisit[] = [];
   for (const st of bundle.stopTimes) {

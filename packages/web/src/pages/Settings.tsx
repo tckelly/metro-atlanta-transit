@@ -22,7 +22,7 @@ import {
   type ClockFormat,
 } from '../features/settings/SettingsContext';
 
-const APP_VERSION = '0.0.0'; // packages/web/package.json — bump on release
+const APP_VERSION = '0.0.1'; // packages/web/package.json — bump on release
 
 export function Settings() {
   const { t } = useTranslation();

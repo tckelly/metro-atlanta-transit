@@ -6,6 +6,16 @@ What gets built in what order, and what "done" looks like at each step. Organize
 
 A PWA that answers *"is my bus actually coming?"* in under two seconds from cold open. v1 ships the three jobs (live arrivals, route disruption signal, nearby stops) for metro Atlanta bus commuters with no backend, no accounts, no notifications. See `vision.md`.
 
+## Versioning
+
+We're pre-stable. Semver's `0.x.y` space says "developing, breaking changes allowed" — that's exactly where we are.
+
+- **v0.0.1** — first launch ("v1" in this doc and prior conversation). What M0–M7 produce.
+- **v0.0.2 → v0.0.N** — successive post-launch iterations. Each milestone-significant release bumps the patch level while we're still iterating on real-world feedback.
+- **v1.0.0** — first *stable* release. Declared only when (a) the v1 jobs are battle-tested across a meaningful user base, (b) the API / UX surfaces are something we'd commit to keeping stable, and (c) we'd be comfortable users link to and depend on the app.
+
+Continuing to patch-bump (instead of jumping to `0.1.0` or `1.0.0`) keeps the signal honest: this is still software being shaped by its first users, not a mature product. The conversation's earlier shorthand of "v1 / v2" maps to "v0.0.1 / v0.0.2" without ambiguity.
+
 ## v1 — the milestones
 
 Each milestone has a definition-of-done. Milestones are *roughly* sequential, but the dependencies are what bind them — re-order freely where deps allow.
@@ -204,6 +214,49 @@ The roadmap doesn't end at launch — it continues with whatever the world tells
 - Identify the top 2-3 user-requested features and decide for each: ship in v1.x, defer to v2, or never.
 
 If after two weeks the app is stable and the feedback loop is healthy, declare v1 done and start the v2 conversation.
+
+---
+
+## Post-launch optimization candidates
+
+Items identified during v0.0.1 development that don't ship in the launch build but are worth revisiting once real usage data exists. Each lists what, why, the trigger condition that justifies the work, and rough cost. Promote to a real implementation pass — with its own ADR at the time of commitment — only when the trigger fires. Until then, these stay aspirational so we don't optimize ahead of evidence.
+
+### Server-side trip-update filtering (v0.0.2 candidate)
+
+**What.** Replace the byte-pass-through `/api/marta/tripupdates` proxy with a function that decodes the protobuf server-side, filters to the client's requested stop IDs, and returns ~5–20 KB JSON instead of MARTA's ~1 MB full-system protobuf.
+
+**Why.** MARTA's GTFS-RT feed is system-wide — every active trip in every route in a single payload, ~1 MB per poll. With 60-second polling on `StopDetail`, that's ~1 MB/minute per connected user; ~10 MB across a typical 10-minute commute on cellular. The vast majority is data about stops the user isn't looking at. The edge cache (ADR-0005) collapses upstream MARTA fetches across users but doesn't reduce per-user download size.
+
+**Approach.** Stays within the current stateless-functions + edge-cache architecture. The function decodes the protobuf, caches the decoded result in *module-scope memory* for ~30 s, and filters per request. **No new infrastructure** — no Vercel KV, no database, no WebSocket / SSE streaming, no user accounts.
+
+**Bonus side effects:**
+- The client no longer needs the protobuf decoder. `@atl-transit/gtfs` runs server-side only, shrinking the client bundle.
+- `tripupdates` and `vehiclepositions` could merge into a single endpoint that returns both in one response — one fewer round-trip per poll.
+- Per-request cost stays low: one MARTA fetch per cache window regardless of how many clients ask.
+
+**Trigger condition.** Post-launch usage shows cellular-data complaints, *or* analytics confirms >10 MB/session is common, *or* function GB-hours / outbound bandwidth approach Hobby-tier limits.
+
+**Rough cost.** 1–2 days with TDD. The decode-and-filter logic is a pure function (testable in isolation); the cache-window timing is testable with fake timers; the HTTP handler is a thin wrapper.
+
+### Polling cadence tuning (v0.0.2 candidate, ~5-minute change)
+
+**What.** Drop `POLL_INTERVAL_MS` from 60 s → 90 s.
+
+**Why.** ~33% reduction in per-user bandwidth and function invocations. MARTA's own pipeline is already 5–15 s behind ground truth, so an extra 30 s on our side is within noise.
+
+**Trigger.** Same as above, or simply "no real user feedback says 60 s feels essential."
+
+**Cost.** One constant, one test update. Trivially revertable.
+
+### Background-bfcache friendliness
+
+**What.** Investigate whether `vite-plugin-pwa`'s service-worker registration is preventing the browser's back/forward cache (Lighthouse flagged this in earlier audits — partly the HMR WebSocket in dev, but the SW registration may also disqualify the page in some browser/version combinations).
+
+**Why.** bfcache makes back-button navigation feel instant. If the SW is disqualifying us, fixing it is a clean UX win at zero recurring cost.
+
+**Trigger.** Real-device M6 audit confirms the issue persists in the production bundle.
+
+**Cost.** Investigation 1–2 hours; fix could be anything from a vite-plugin-pwa config flag to a deferred-registration tweak.
 
 ---
 

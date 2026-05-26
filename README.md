@@ -85,6 +85,19 @@ The repo is intentionally heavy on docs. They're structured as a chain so each b
 | [adr/](./docs/adr/) | Immutable decision records for load-bearing choices |
 | [roadmap.md](./docs/roadmap.md) | v1 milestones, launch criteria, v2 horizons |
 
+## Privacy
+
+Atlanta Transit does not track you.
+
+- **No accounts.** Nothing to sign up for, nothing to log into.
+- **No analytics, no telemetry, no session replay.** No Google Analytics, no Plausible, no Sentry, no third-party scripts. See [ADR-0007](./docs/adr/ADR-0007-no-analytics-in-v1.md) for the decision and the trade-off we're accepting (we launch without quantitative usage data).
+- **No ads, no trackers, no fingerprinting.**
+- **Favorites and preferences stay on your device.** Stored in `localStorage`. We never upload them.
+- **Geolocation stays on your device.** When you grant location access, the coordinates are used in the browser only to rank nearby stops. Nothing leaves the device.
+- **The only external requests** the app makes are to (a) our serverless proxy in front of MARTA's public realtime feeds and (b) Vercel's static asset CDN. MARTA's upstream sees one request per ~30 s per region, not per user.
+
+The Settings page repeats this disclosure in-app for users who don't visit GitHub.
+
 ## License
 
 MIT. See [LICENSE](./LICENSE).

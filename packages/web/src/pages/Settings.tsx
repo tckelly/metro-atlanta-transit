@@ -21,8 +21,7 @@ import {
   useSettings,
   type ClockFormat,
 } from '../features/settings/SettingsContext';
-
-const APP_VERSION = '0.0.1'; // packages/web/package.json — bump on release
+import { version as APP_VERSION } from '../../package.json';
 
 export function Settings() {
   const { t } = useTranslation();

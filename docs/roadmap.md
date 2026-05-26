@@ -238,6 +238,8 @@ Items identified during v0.0.1 development that don't ship in the launch build b
 
 **Rough cost.** 1–2 days with TDD. The decode-and-filter logic is a pure function (testable in isolation); the cache-window timing is testable with fake timers; the HTTP handler is a thin wrapper.
 
+**Note on client-side perf work.** A Lighthouse audit during v0.0.1 surfaced ~85 KiB of unused JavaScript in the entry bundle, partly attributable to the protobuf decoder and MARTA fetch helpers being eagerly imported by `RealtimeFeedProvider`. We considered lazy-loading those modules client-side, but decided to wait — server-side filtering would move the decoder off the client entirely, so the lazy-loading work would be redundant. Implementing this filtering pass first lets us measure the post-filtering bundle and revisit any remaining client-side optimization with better information.
+
 ### Polling cadence tuning (v0.0.2 candidate, ~5-minute change)
 
 **What.** Drop `POLL_INTERVAL_MS` from 60 s → 90 s.

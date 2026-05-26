@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // MARTA's GTFS-RT endpoints don't send Access-Control-Allow-Origin,
 // so the browser blocks direct fetches. In production this is solved
-// by Vercel Edge Functions in `api/marta/*.ts` (see ADR-0005). In dev
+// by Vercel Edge Functions in `api/marta/*.ts` (see ADR-0005). Locally
 // we replicate the same URL shape by proxying server-to-server here,
 // so the client never has to branch on environment.
 function martaProxy(upstreamPath: string) {
@@ -15,49 +15,83 @@ function martaProxy(upstreamPath: string) {
   };
 }
 
+const MARTA_PROXY = {
+  '/api/marta/tripupdates': martaProxy('/tripupdate/tripupdates.pb'),
+  '/api/marta/vehiclepositions': martaProxy('/vehicle/vehiclepositions.pb'),
+  '/api/marta/alerts': martaProxy('/alert/alerts.pb'),
+};
+
+// Shared GTFS backend middleware. Runs the same `/api/gtfs/*`
+// handlers Vercel runs in production (see ADR-0006), letting
+// `HybridGtfsRepository` work locally without `vercel dev`.
+//
+// Imports are deferred so Vite's startup doesn't try to bundle
+// better-sqlite3 into the client. Each request lazily loads the
+// handler module on first use; subsequent requests reuse the module
+// cache.
+async function gtfsBackendMiddleware(
+  req: { url?: string | undefined; method?: string | undefined; headers: { host?: string | undefined } },
+  res: {
+    statusCode: number;
+    setHeader: (name: string, value: string) => void;
+    end: (chunk?: string) => void;
+  },
+  next: () => void,
+): Promise<void> {
+  const url = req.url ?? '';
+  if (!url.startsWith('/api/gtfs/')) {
+    next();
+    return;
+  }
+  try {
+    const { getGtfsDb } = await import('./api/gtfs/_db.ts');
+    let handler: ((req: Request, db: ReturnType<typeof getGtfsDb>) => Promise<Response>) | null = null;
+    if (url.startsWith('/api/gtfs/stop-times')) {
+      handler = (await import('./api/gtfs/stop-times.ts')).handleStopTimes;
+    } else if (url.startsWith('/api/gtfs/route-directions')) {
+      handler = (await import('./api/gtfs/route-directions.ts')).handleRouteDirections;
+    }
+    if (handler === null) {
+      next();
+      return;
+    }
+    const request = new Request(`http://${req.headers.host ?? 'localhost'}${url}`, {
+      method: req.method ?? 'GET',
+    });
+    const response = await handler(request, getGtfsDb());
+    res.statusCode = response.status;
+    response.headers.forEach((v, k) => res.setHeader(k, v));
+    res.end(await response.text());
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end(
+      `GTFS backend middleware failed: ${message}\n` +
+        `If the SQLite file is missing, run \`pnpm preprocess-gtfs --force\` first.`,
+    );
+  }
+}
+
 /**
- * Dev-only middleware that runs the same `/api/gtfs/*` handlers Vercel
- * runs in production (see ADR-0006). Lets `HybridGtfsRepository` work
- * in `pnpm dev` without `vercel dev` — same code path, same SQLite,
- * different shell.
- *
- * Imports are deferred so Vite's startup doesn't try to bundle
- * better-sqlite3 into the client. Each request lazily loads the
- * handler module on first use; subsequent requests reuse the module
- * cache.
+ * Installs the GTFS backend middleware in BOTH the dev server
+ * (`vite dev`) and the preview server (`vite preview`). Preview is
+ * meant to test the production bundle locally — without this hook,
+ * `/api/gtfs/*` falls through to the SPA fallback and returns
+ * `index.html`, producing the classic "Unexpected token '<', '<!doctype'
+ * is not valid JSON" error in the client.
  */
-function gtfsBackendDevPlugin(): Plugin {
+function gtfsBackendPlugin(): Plugin {
   return {
-    name: 'gtfs-backend-dev',
+    name: 'gtfs-backend-local',
     configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
-        const url = req.url ?? '';
-        if (!url.startsWith('/api/gtfs/')) return next();
-        try {
-          const { getGtfsDb } = await import('./api/gtfs/_db.ts');
-          let handler: ((req: Request, db: ReturnType<typeof getGtfsDb>) => Promise<Response>) | null = null;
-          if (url.startsWith('/api/gtfs/stop-times')) {
-            handler = (await import('./api/gtfs/stop-times.ts')).handleStopTimes;
-          } else if (url.startsWith('/api/gtfs/route-directions')) {
-            handler = (await import('./api/gtfs/route-directions.ts')).handleRouteDirections;
-          }
-          if (handler === null) return next();
-          const request = new Request(`http://${req.headers.host ?? 'localhost'}${url}`, {
-            method: req.method ?? 'GET',
-          });
-          const response = await handler(request, getGtfsDb());
-          res.statusCode = response.status;
-          response.headers.forEach((v, k) => res.setHeader(k, v));
-          res.end(await response.text());
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          res.statusCode = 500;
-          res.setHeader('Content-Type', 'text/plain');
-          res.end(
-            `GTFS backend dev middleware failed: ${message}\n` +
-              `If the SQLite file is missing, run \`pnpm preprocess-gtfs --force\` first.`,
-          );
-        }
+      server.middlewares.use((req, res, next) => {
+        void gtfsBackendMiddleware(req, res, next);
+      });
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use((req, res, next) => {
+        void gtfsBackendMiddleware(req, res, next);
       });
     },
   };
@@ -66,7 +100,7 @@ function gtfsBackendDevPlugin(): Plugin {
 export default defineConfig({
   plugins: [
     react(),
-    gtfsBackendDevPlugin(),
+    gtfsBackendPlugin(),
     VitePWA({
       // generateSW mode: declarative config, plugin emits the SW.
       // Switch to injectManifest only when we need custom SW code
@@ -188,10 +222,15 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '127.0.0.1',
-    proxy: {
-      '/api/marta/tripupdates': martaProxy('/tripupdate/tripupdates.pb'),
-      '/api/marta/vehiclepositions': martaProxy('/vehicle/vehiclepositions.pb'),
-      '/api/marta/alerts': martaProxy('/alert/alerts.pb'),
-    },
+    proxy: MARTA_PROXY,
+  },
+  // Preview (used by `pnpm preview` / `pnpm preview:prod`) needs the
+  // same MARTA proxy as dev — otherwise the production bundle running
+  // locally would try to fetch MARTA's protobuf directly and the
+  // browser would block it on CORS.
+  preview: {
+    port: 4173,
+    host: '127.0.0.1',
+    proxy: MARTA_PROXY,
   },
 });

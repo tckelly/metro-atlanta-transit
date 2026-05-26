@@ -13,7 +13,7 @@
  */
 import type Database from 'better-sqlite3';
 
-import type { GtfsBundle } from './preprocessGtfs';
+import type { GtfsBundle } from './preprocessGtfs.js';
 
 export function buildGtfsSqlite(bundle: GtfsBundle, db: Database.Database): void {
   // Wrap the whole build in a single transaction for speed — SQLite

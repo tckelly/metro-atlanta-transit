@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
 
-import { handleStopTimes } from './stop-times';
-import { buildGtfsSqlite } from '../../src/buildtime/buildGtfsSqlite';
-import type { GtfsBundle } from '../../src/buildtime/preprocessGtfs';
+import { handleStopTimes } from './stop-times.js';
+import { buildGtfsSqlite } from '../../src/buildtime/buildGtfsSqlite.js';
+import type { GtfsBundle } from '../../src/buildtime/preprocessGtfs.js';
 
 const BUNDLE: GtfsBundle = {
   stops: [{ stopId: 'S1', name: 'Test', lat: 0, lng: 0, routeIds: ['R1'] }],

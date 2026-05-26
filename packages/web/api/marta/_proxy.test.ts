@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-import { proxyToMarta } from './_proxy';
+import { proxyToMarta } from './_proxy.js';
 
 function upstreamOk(bytes: Uint8Array, headers: Record<string, string> = {}): typeof globalThis.fetch {
   return vi.fn(async () => {

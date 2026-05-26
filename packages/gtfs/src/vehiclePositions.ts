@@ -1,6 +1,6 @@
 import gtfs from 'gtfs-realtime-bindings';
 
-import { VehiclePositionsFeedSchema, type VehiclePositionsFeed } from './types';
+import { VehiclePositionsFeedSchema, type VehiclePositionsFeed } from './types.js';
 
 const { FeedMessage } = gtfs.transit_realtime;
 

@@ -8,7 +8,7 @@
     "prebuild": "tsx scripts/preprocess-gtfs.ts",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p api/tsconfig.json",
     "test": "vitest run --passWithNoTests",
     "preprocess-gtfs": "tsx scripts/preprocess-gtfs.ts"
   },

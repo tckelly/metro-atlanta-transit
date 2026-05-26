@@ -1,6 +1,6 @@
 import gtfs from 'gtfs-realtime-bindings';
 
-import { TripUpdatesFeedSchema, type TripUpdatesFeed } from './types';
+import { TripUpdatesFeedSchema, type TripUpdatesFeed } from './types.js';
 
 const { FeedMessage } = gtfs.transit_realtime;
 

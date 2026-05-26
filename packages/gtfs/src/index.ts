@@ -1,6 +1,6 @@
-export { decodeTripUpdates } from './tripUpdates';
-export { decodeVehiclePositions } from './vehiclePositions';
-export { decodeAlerts } from './alerts';
+export { decodeTripUpdates } from './tripUpdates.js';
+export { decodeVehiclePositions } from './vehiclePositions.js';
+export { decodeAlerts } from './alerts.js';
 
 export {
   // Trip updates
@@ -19,7 +19,7 @@ export {
   AlertCauseSchema,
   AlertEffectSchema,
   TimeRangeSchema,
-} from './types';
+} from './types.js';
 
 export type {
   // Trip updates
@@ -38,4 +38,4 @@ export type {
   AlertCause,
   AlertEffect,
   TimeRange,
-} from './types';
+} from './types.js';

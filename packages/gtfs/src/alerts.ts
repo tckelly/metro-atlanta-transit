@@ -1,6 +1,6 @@
 import gtfs from 'gtfs-realtime-bindings';
 
-import { AlertsFeedSchema, type AlertsFeed } from './types';
+import { AlertsFeedSchema, type AlertsFeed } from './types.js';
 
 const { FeedMessage } = gtfs.transit_realtime;
 

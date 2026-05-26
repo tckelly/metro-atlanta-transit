@@ -70,6 +70,7 @@
   "loading": {
     "arrivals": "Loading arrivals",
     "route": "Loading route",
+    "page": "Loading page",
     "arrivalsDots": "Loading arrivals…",
     "routeDots": "Loading route…"
   },

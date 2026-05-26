@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Suspense, lazy, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import { Link, Routes, Route, useLocation } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { ErrorBoundary, MessageCard } from '@atl-transit/components';
 import { i18next } from './i18n/init';
 import { FavoritesProvider } from './features/favorites/FavoritesContext';
 import { RealtimeFeedProvider } from './features/realtime/RealtimeFeedContext';
+import { RouteChunkFallback } from './features/route-chunk/RouteChunkFallback';
 import { SettingsProvider } from './features/settings/SettingsContext';
 import { ToastProvider } from './features/toast/ToastContext';
 import { GtfsRepositoryProvider } from './services/gtfs/GtfsRepositoryContext';
@@ -15,11 +16,24 @@ import {
   type SmallGtfsBundle,
 } from './services/gtfs/HybridGtfsRepository';
 import { useSmallGtfsBundle } from './services/useSmallGtfsBundle';
-import { Home } from './pages/Home';
-import { Routes as RoutesPage } from './pages/Routes';
-import { RouteDetail } from './pages/RouteDetail';
-import { Settings } from './pages/Settings';
-import { StopDetail } from './pages/StopDetail';
+
+// Route-level code-splitting. Each page becomes its own chunk so the
+// initial Home load doesn't pull StopDetail, Routes, RouteDetail, and
+// Settings into the entry bundle. Vite's manual-chunks heuristics
+// recognize dynamic imports and emit separate files automatically.
+const Home = lazy(() => import('./pages/Home').then((m) => ({ default: m.Home })));
+const RoutesPage = lazy(() =>
+  import('./pages/Routes').then((m) => ({ default: m.Routes })),
+);
+const RouteDetail = lazy(() =>
+  import('./pages/RouteDetail').then((m) => ({ default: m.RouteDetail })),
+);
+const Settings = lazy(() =>
+  import('./pages/Settings').then((m) => ({ default: m.Settings })),
+);
+const StopDetail = lazy(() =>
+  import('./pages/StopDetail').then((m) => ({ default: m.StopDetail })),
+);
 
 export function App() {
   return (
@@ -33,13 +47,15 @@ export function App() {
                   <RepositoryGate bundle={bundle}>
                     <RealtimeFeedProvider>
                       <RouteShield>
-                        <Routes>
-                          <Route path="/" element={<Home />} />
-                          <Route path="/routes" element={<RoutesPage />} />
-                          <Route path="/route/:routeId" element={<RouteDetail />} />
-                          <Route path="/stop/:stopId" element={<StopDetail />} />
-                          <Route path="/settings" element={<Settings />} />
-                        </Routes>
+                        <Suspense fallback={<RouteChunkFallback />}>
+                          <Routes>
+                            <Route path="/" element={<Home />} />
+                            <Route path="/routes" element={<RoutesPage />} />
+                            <Route path="/route/:routeId" element={<RouteDetail />} />
+                            <Route path="/stop/:stopId" element={<StopDetail />} />
+                            <Route path="/settings" element={<Settings />} />
+                          </Routes>
+                        </Suspense>
                       </RouteShield>
                     </RealtimeFeedProvider>
                   </RepositoryGate>

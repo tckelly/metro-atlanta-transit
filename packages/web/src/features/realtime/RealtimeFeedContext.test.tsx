@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { useState } from 'react';
+import { render, renderHook, act } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -202,6 +203,110 @@ describe('RealtimeFeedProvider', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => renderHook(() => useRealtimeFeed())).toThrow(/RealtimeFeedProvider/);
     spy.mockRestore();
+  });
+
+  it('does not fetch when no consumer subscribes', async () => {
+    // The whole point of lazy polling: a Home page with no favorites
+    // and no nearby panel mounted should not download a ~1 MB protobuf
+    // it isn't going to use. The provider mounts, but with zero
+    // consumers it sits idle.
+    const fetchMock = mockFetchWith(tuBytes);
+    render(<RealtimeFeedProvider>{null}</RealtimeFeedProvider>);
+    await flushPromises();
+    expect(tripUpdateCalls(fetchMock)).toBe(0);
+  });
+
+  it('starts polling when the first consumer subscribes', async () => {
+    const fetchMock = mockFetchWith(tuBytes);
+
+    function Consumer() {
+      useRealtimeFeed();
+      return null;
+    }
+
+    function Toggleable() {
+      const [show, setShow] = useState(false);
+      return (
+        <>
+          <button onClick={() => setShow(true)}>show</button>
+          <RealtimeFeedProvider>{show && <Consumer />}</RealtimeFeedProvider>
+        </>
+      );
+    }
+
+    const { getByText } = render(<Toggleable />);
+    await flushPromises();
+    expect(tripUpdateCalls(fetchMock)).toBe(0);
+
+    await act(async () => {
+      getByText('show').click();
+    });
+    await flushPromises();
+    expect(tripUpdateCalls(fetchMock)).toBe(1);
+  });
+
+  it('stops polling when the last consumer unmounts', async () => {
+    const fetchMock = mockFetchWith(tuBytes);
+
+    function Consumer() {
+      useRealtimeFeed();
+      return null;
+    }
+
+    function Toggleable() {
+      const [show, setShow] = useState(true);
+      return (
+        <>
+          <button onClick={() => setShow(false)}>hide</button>
+          <RealtimeFeedProvider>{show && <Consumer />}</RealtimeFeedProvider>
+        </>
+      );
+    }
+
+    const { getByText } = render(<Toggleable />);
+    await flushPromises();
+    expect(tripUpdateCalls(fetchMock)).toBe(1);
+
+    // Unmount the consumer; the next polling tick should not fire.
+    await act(async () => {
+      getByText('hide').click();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(120_000);
+    });
+    expect(tripUpdateCalls(fetchMock)).toBe(1);
+  });
+
+  it('restarts polling when a consumer remounts after being absent', async () => {
+    const fetchMock = mockFetchWith(tuBytes);
+
+    function Consumer() {
+      useRealtimeFeed();
+      return null;
+    }
+
+    function Toggleable() {
+      const [show, setShow] = useState(true);
+      return (
+        <>
+          <button onClick={() => setShow((s) => !s)}>toggle</button>
+          <RealtimeFeedProvider>{show && <Consumer />}</RealtimeFeedProvider>
+        </>
+      );
+    }
+
+    const { getByText } = render(<Toggleable />);
+    await flushPromises();
+    expect(tripUpdateCalls(fetchMock)).toBe(1);
+
+    await act(async () => {
+      getByText('toggle').click();
+    });
+    await act(async () => {
+      getByText('toggle').click();
+    });
+    await flushPromises();
+    expect(tripUpdateCalls(fetchMock)).toBe(2);
   });
 
   it('fans out one upstream fetch cycle across multiple consumers', async () => {

@@ -8,10 +8,16 @@
  * upstream traffic. The backend's edge cache already collapses repeats
  * across browsers; this collapses repeats within a single tab.
  *
- * Polling lifecycle is identical to the previous per-stop useArrivals:
- * 60s cadence while visible, paused while hidden, aborted on unmount,
- * primary tripUpdates failure → error, vehiclePositions failure →
- * graceful drop (occupancy is secondary signal per data-and-apis.md).
+ * Polling lifecycle: **lazy** — the provider sits idle until the first
+ * `useRealtimeFeed()` consumer subscribes, then runs a single 60s
+ * cadence while visible, pauses while hidden, restarts on the next
+ * subscription if all consumers later unmount. A Home page with no
+ * favorites mounts no consumer, so the ~1 MB trip-updates protobuf
+ * never lands — Lighthouse's LCP-gating download disappears.
+ *
+ * Error semantics: primary tripUpdates failure → error,
+ * vehiclePositions failure → graceful drop (occupancy is secondary
+ * signal per data-and-apis.md).
  */
 import type { TripUpdate, VehiclePosition } from '@atl-transit/gtfs';
 import {
@@ -68,11 +74,27 @@ const INITIAL_STATE: InternalState = {
  */
 export const RealtimeFeedContext = createContext<RealtimeFeedSnapshot | null>(null);
 
+/**
+ * Separate registration channel for the subscriber count. Tests that
+ * inject a fake snapshot via `RealtimeFeedContext.Provider` don't need
+ * to also wire this up — `useRealtimeFeed` no-ops when the registration
+ * context is absent, which matches the test intent (no real polling).
+ */
+const SubscribeContext = createContext<(() => () => void) | null>(null);
+
 export function RealtimeFeedProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<InternalState>(INITIAL_STATE);
+  const [subscriberCount, setSubscriberCount] = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const registerSubscriber = useCallback((): (() => void) => {
+    setSubscriberCount((n) => n + 1);
+    return () => {
+      setSubscriberCount((n) => n - 1);
+    };
+  }, []);
 
   const doFetch = useCallback(async () => {
     abortRef.current?.abort();
@@ -127,6 +149,11 @@ export function RealtimeFeedProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Lazy gate: with no subscribers we sit idle. The 1 MB trip-updates
+    // protobuf is the LCP-gating download on cold load — only fetch it
+    // when somebody is actually going to render data from it.
+    if (subscriberCount === 0) return;
+
     let unmounted = false;
 
     function clearTimer(): void {
@@ -167,9 +194,10 @@ export function RealtimeFeedProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Initial fetch on mount. doFetch is async + sets state inside its
-    // promise chain — the lint flags it as a setState-in-effect, but
-    // the actual setState lands after the microtask boundary.
+    // Initial fetch when polling activates. doFetch is async + sets
+    // state inside its promise chain — the lint flags it as
+    // setState-in-effect, but the actual setState lands after the
+    // microtask boundary.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void doFetch();
     schedule();
@@ -181,7 +209,7 @@ export function RealtimeFeedProvider({ children }: { children: ReactNode }) {
       abortRef.current?.abort();
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [doFetch]);
+  }, [doFetch, subscriberCount]);
 
   const value = useMemo<RealtimeFeedSnapshot>(
     () => ({
@@ -196,7 +224,11 @@ export function RealtimeFeedProvider({ children }: { children: ReactNode }) {
     [state, doFetch],
   );
 
-  return <RealtimeFeedContext.Provider value={value}>{children}</RealtimeFeedContext.Provider>;
+  return (
+    <SubscribeContext.Provider value={registerSubscriber}>
+      <RealtimeFeedContext.Provider value={value}>{children}</RealtimeFeedContext.Provider>
+    </SubscribeContext.Provider>
+  );
 }
 
 export function useRealtimeFeed(): RealtimeFeedSnapshot {
@@ -204,5 +236,13 @@ export function useRealtimeFeed(): RealtimeFeedSnapshot {
   if (ctx === null) {
     throw new Error('useRealtimeFeed must be called inside a RealtimeFeedProvider.');
   }
+  const subscribe = useContext(SubscribeContext);
+  useEffect(() => {
+    // No subscribe channel ⇒ a test injected a frozen snapshot
+    // directly via `RealtimeFeedContext.Provider`. The fake doesn't
+    // poll, so there's nothing to register against — no-op is correct.
+    if (subscribe === null) return;
+    return subscribe();
+  }, [subscribe]);
   return ctx;
 }

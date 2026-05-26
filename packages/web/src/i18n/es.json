@@ -70,6 +70,7 @@
   "loading": {
     "arrivals": "Cargando llegadas",
     "route": "Cargando ruta",
+    "page": "Cargando página",
     "arrivalsDots": "Cargando llegadas…",
     "routeDots": "Cargando ruta…"
   },

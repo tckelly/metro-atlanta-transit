@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BusRow, Button, Icon, MessageCard, Skeleton } from '@atl-transit/components';
@@ -14,6 +14,10 @@ import { DisruptionBadge } from '../features/disruption/DisruptionBadge';
 import { formatLastUpdated } from '../utils/formatLastUpdated';
 import { freshnessTier, type FreshnessTier } from '../utils/freshnessTier';
 import { useNowSec } from '../utils/useNowSec';
+import { usePullToRefresh } from '../features/pull-to-refresh/usePullToRefresh';
+import { ARMED_THRESHOLD_PX, type PtrState } from '../features/pull-to-refresh/ptrReducer';
+import { LastUpdatedAnnouncement } from '../features/stops/LastUpdatedAnnouncement';
+import { RefreshAnnouncement } from '../features/stops/RefreshAnnouncement';
 
 export function StopDetail() {
   const { t } = useTranslation();
@@ -29,6 +33,22 @@ function StopDetailReady({ stopId }: { stopId: string }) {
   const { t } = useTranslation();
   const repo = useGtfsRepository();
   const { status, rows, lastUpdated, isStale, error, refresh } = useArrivals(stopId);
+  const ptr = usePullToRefresh({ onRefresh: refresh });
+
+  // Tracks button-initiated refreshes so the announcement can fire
+  // for both PTR and button-click triggers. Auto-poll refreshes are
+  // deliberately not tracked here — they don't deserve an SR
+  // announcement (would fire twice a minute).
+  const [buttonRefreshing, setButtonRefreshing] = useState(false);
+  const handleManualRefresh = useCallback(async () => {
+    setButtonRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setButtonRefreshing(false);
+    }
+  }, [refresh]);
+  const userInitiatedRefreshing = ptr.state.kind === 'refreshing' || buttonRefreshing;
 
   const stop = repo.getStop(stopId);
   // Tick every 15s so the "Last updated …" text and any ETA countdowns
@@ -38,9 +58,27 @@ function StopDetailReady({ stopId }: { stopId: string }) {
   const nowSec = useNowSec(15_000);
 
   const stopName = stop?.name ?? `Stop ${stopId}`;
+  const tier =
+    lastUpdated !== null
+      ? freshnessTier({ lastUpdatedSec: lastUpdated, isStale, nowSec })
+      : null;
 
   return (
-    <div className="space-y-4">
+    <div
+      className="relative space-y-4"
+      onTouchStart={(e) => {
+        const y = e.touches[0]?.clientY;
+        if (y !== undefined) ptr.start(y);
+      }}
+      onTouchMove={(e) => {
+        const y = e.touches[0]?.clientY;
+        if (y !== undefined) ptr.move(y);
+      }}
+      onTouchEnd={ptr.end}
+    >
+      <PullIndicator state={ptr.state} />
+      <RefreshAnnouncement active={userInitiatedRefreshing} />
+      {tier !== null && <LastUpdatedAnnouncement tier={tier} />}
       <header className="flex items-center gap-3">
         <Link to="/" aria-label={t('stopDetail.backToHome')} className="text-2xl text-primary">
           ←
@@ -77,15 +115,19 @@ function StopDetailReady({ stopId }: { stopId: string }) {
       {(status === 'success' || status === 'error') && (
         <div className="flex items-center justify-between gap-3">
           <span>
-            {lastUpdated !== null && (
+            {lastUpdated !== null && tier !== null && (
               <LastUpdatedIndicator
-                tier={freshnessTier({ lastUpdatedSec: lastUpdated, isStale, nowSec })}
+                tier={tier}
                 lastUpdated={lastUpdated}
                 nowSec={nowSec}
               />
             )}
           </span>
-          <RefreshButton onClick={refresh} />
+          <RefreshButton
+            onClick={() => {
+              void handleManualRefresh();
+            }}
+          />
         </div>
       )}
     </div>
@@ -113,6 +155,40 @@ function ArrivalsLoadingSkeleton() {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * Visual pull-to-refresh indicator. Hidden when idle; otherwise floats
+ * at the top of the scroll container and shows the gesture's state.
+ * Resistance factor on translateY (0.4) makes the pull feel weighty —
+ * 80px of finger travel renders as ~32px of indicator drop.
+ */
+function PullIndicator({ state }: { state: PtrState }) {
+  const { t } = useTranslation();
+  if (state.kind === 'idle') return null;
+  const renderedDistance =
+    state.kind === 'refreshing' ? ARMED_THRESHOLD_PX : state.distance;
+  const label =
+    state.kind === 'refreshing'
+      ? t('stopDetail.ptrRefreshing')
+      : state.kind === 'armed'
+      ? t('stopDetail.ptrRelease')
+      : t('stopDetail.ptrPull');
+  // Purely visual — the SR-facing announcement comes from
+  // `RefreshAnnouncement`, which fires for both PTR and button-
+  // triggered refreshes and is silent during the pulling / armed
+  // phases that don't need to interrupt a screen reader.
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-x-0 -top-8 flex justify-center"
+      style={{ transform: `translateY(${String(renderedDistance * 0.4)}px)` }}
+    >
+      <span className="rounded-full bg-surface-elevated px-3 py-1 text-xs text-fg-muted shadow">
+        {label}
+      </span>
     </div>
   );
 }
@@ -196,8 +272,11 @@ function LastUpdatedIndicator({
       : tier === 'very_stale'
       ? t('stopDetail.lastUpdatedVeryStaleSuffix')
       : '';
+  // Visual-only. The SR layer is owned by `LastUpdatedAnnouncement`,
+  // which fires only on tier transitions (fresh ↔ stale ↔ very_stale)
+  // instead of on every 15-second text-bucket flip.
   return (
-    <p className={`text-xs ${TIER_CLASS[tier]}`} aria-live="polite">
+    <p className={`text-xs ${TIER_CLASS[tier]}`}>
       {t('stopDetail.lastUpdatedPrefix')} {formatLastUpdated(lastUpdated, nowSec, t)}
       {suffix}
     </p>

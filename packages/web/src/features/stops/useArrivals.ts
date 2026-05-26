@@ -34,8 +34,12 @@ export interface UseArrivalsResult {
   /** True when the most recent refresh failed but prior data is still shown. */
   isStale: boolean;
   error: Error | null;
-  /** Force an immediate refresh of the shared feed. */
-  refresh: () => void;
+  /**
+   * Force an immediate refresh of the shared feed. Returns the
+   * underlying fetch promise so callers (e.g., pull-to-refresh) can
+   * await completion; callers that don't care can just call it.
+   */
+  refresh: () => Promise<void>;
 }
 
 function todayYYYYMMDD(): string {
@@ -95,8 +99,6 @@ export function useArrivals(
     lastUpdated: feed.lastUpdated,
     isStale: feed.isStale,
     error: feed.error ?? scheduledError,
-    refresh: () => {
-      void feed.refresh();
-    },
+    refresh: () => feed.refresh(),
   };
 }

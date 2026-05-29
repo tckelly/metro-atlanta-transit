@@ -16,7 +16,7 @@
 - `docs/product-requirements.md` — v1 features with acceptance criteria
 - `docs/ux-guidelines.md` — visual system, components, screens
 - `docs/architecture.md` — workspace layout, data flow, polling lifecycle
-- `docs/adr/` — immutable decision records for load-bearing choices
+- `docs/adr/` — Nygard-style ADRs for load-bearing decisions; see `docs/adr/README.md` for format and process
 - `docs/roadmap.md` — v1 milestones, launch criteria, v2 horizons
 - `docs/launch-checklist.md` — operational punch-list guiding v0.0.1 development (short-lived; clear at launch)
 

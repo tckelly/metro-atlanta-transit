@@ -51,24 +51,68 @@ metro-atlanta-transit/
 └── pnpm-workspace.yaml
 ```
 
-## Running locally
+## Getting started
 
-Requires **Node 22+** and **pnpm 10+**.
+From a fresh checkout to a running dev server, assuming only `git` is installed.
+
+### 1. Node 22 and pnpm 10
+
+`.nvmrc` pins Node to v22. If you use [nvm](https://github.com/nvm-sh/nvm) (or fnm, asdf):
+
+```bash
+git clone https://github.com/<your-fork>/metro-atlanta-transit.git
+cd metro-atlanta-transit
+
+nvm install        # reads .nvmrc → installs Node 22 if missing, then activates it
+corepack enable    # makes the pnpm CLI available at the version package.json requires
+```
+
+No version manager? Install Node 22+ directly from [nodejs.org](https://nodejs.org/), then run `corepack enable` from anywhere. Corepack ships with Node 22, so no separate `npm install -g pnpm` is needed.
+
+### 2. Install dependencies
 
 ```bash
 pnpm install
-pnpm typecheck     # workspace-wide TypeScript check
-pnpm lint          # ESLint with package-boundary enforcement
-pnpm test          # Vitest across all packages
+pnpm approve-builds       # interactive — approve native build scripts
 ```
 
-To refresh the static MARTA schedule data (downloads ~30MB from MARTA):
+`pnpm install` pulls every workspace package's deps. `pnpm approve-builds` then launches an interactive prompt for the three packages that run native build scripts — currently `better-sqlite3`, `esbuild`, and `protobufjs` — and persists your choices to `pnpm-workspace.yaml`. pnpm 10 default-denies these for supply-chain safety; skipping the approval leaves `better-sqlite3` without its native binding, which breaks the GTFS preprocessor in the next step.
+
+### 3. Fetch MARTA's static schedule data
 
 ```bash
-pnpm --filter @atl-transit/web preprocess-gtfs
+pnpm preprocess-gtfs
 ```
 
-The script skips the download when the bundle is less than 24 hours old; pass `--force` to refresh anyway.
+Downloads ~30 MB from MARTA, generates `packages/web/public/gtfs/{stops,routes}.json` for the client, and builds a local SQLite database that the dev server's `/api/gtfs/*` middleware queries. **The dev server can't start without this** — `App.tsx` fetches `/gtfs/stops.json` on cold open. The script skips the download if the bundle is less than 24 hours old; pass `--force` to refresh anyway.
+
+### 4. Run the dev server
+
+```bash
+pnpm dev    # http://127.0.0.1:5173
+```
+
+Vite serves the PWA, proxies MARTA's realtime feeds, and runs the same `/api/gtfs/*` handlers Vercel runs in production — no `.env`, no API keys, no extra services to start.
+
+### Day-to-day commands
+
+```bash
+pnpm typecheck                    # workspace-wide TypeScript
+pnpm lint                         # ESLint with package-boundary enforcement
+pnpm test                         # Vitest across all packages
+pnpm build                        # production bundle (re-runs preprocess-gtfs as a prebuild step)
+pnpm preprocess-gtfs --force      # refresh MARTA data ignoring the <24h cache
+```
+
+### Troubleshooting
+
+- **`Could not locate the bindings file` for `better_sqlite3.node`** — your Node version changed since `pnpm install`, so the prebuilt native binding no longer matches the ABI. Fix:
+  ```bash
+  pnpm rebuild better-sqlite3
+  ```
+- **`GTFS backend middleware failed: … SQLite file is missing`** — step 3 was skipped or the local DB is stale relative to the schema. Run `pnpm preprocess-gtfs --force`.
+- **`pnpm: command not found`** after `corepack enable` — open a new terminal, or run `hash -r` to clear the shell's command cache.
+- **Stale dev output** — Vite caches aggressively. Hard-refresh (Cmd+Shift+R) or quit and restart `pnpm dev`.
 
 ## Where to learn more
 

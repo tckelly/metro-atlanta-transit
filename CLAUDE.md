@@ -18,6 +18,7 @@
 - `docs/architecture.md` — workspace layout, data flow, polling lifecycle
 - `docs/adr/` — immutable decision records for load-bearing choices
 - `docs/roadmap.md` — v1 milestones, launch criteria, v2 horizons
+- `docs/launch-checklist.md` — operational punch-list guiding v0.0.1 development (short-lived; clear at launch)
 
 `docs/marta-project-spec.md` is the original brain dump, kept as historical context.
 

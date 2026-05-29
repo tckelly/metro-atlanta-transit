@@ -26,10 +26,14 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
   `packages/web/public/icons/`.
 
 ### 2. Cold-open loading state — decided: branded loading shell (loading-only)
-- [ ] Replace `BundleGate`'s text `MessageCard` with a branded loading view:
+- [x] Replace `BundleGate`'s text `MessageCard` with a branded loading view:
   an "Atlanta Transit" header strip + a content-area skeleton. Visible only
   during the cold-open fetch of `stops.json`/`routes.json`; vanishes once the
-  bundle resolves and normal page rendering takes over.
+  bundle resolves and normal page rendering takes over. Shipped as
+  `LoadingShell` (commit 03d10b4); the follow-on dogfood revealed a second
+  visible wait while the lazy Home chunk downloaded, fixed by preloading the
+  route chunk in parallel with the bundle (`preloadInitialRoute.ts`, wired
+  from `main.tsx`).
 - **Why loading-only, not a persistent app shell.** The original sketch read as
   "lift the shell out of `BundleGate`" — implying a persistent app-level header
   with brand + Settings link on every screen. Dropped after design review:

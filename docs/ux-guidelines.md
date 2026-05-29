@@ -12,6 +12,7 @@ These are the *philosophy* — every concrete decision below should be traceable
 4. **Mobile-first, one-handed.** Primary actions reachable by the thumb on a 6" phone. Desktop is a fallback, not the target.
 5. **Universal cues + words.** Icons accelerate recognition for people who know the system; labels make the app usable for people who don't, and accessible to screen readers.
 6. **Calm by default.** No animations for animation's sake. No notifications-yet-to-come. No fake activity. The app does its job and gets out of the way.
+7. **Inclusive by default.** Accessibility and translation shape *which* patterns we pick, not just how we polish them. When a flashier pattern has known gaps for assistive tech or doesn't translate cleanly, the simpler equivalent that works for everyone wins.
 
 ## Visual system
 
@@ -415,6 +416,14 @@ Plain list. Items: theme (Auto / Light / Dark), language, "Add to home screen" i
 - **Focus styles:** visible focus ring on every focusable element. Never `outline: none` without a visible substitute.
 - **Reduced motion:** all skeleton pulses, tooltips, and toasts respect `prefers-reduced-motion: reduce` (set animation duration to 0).
 - **Color contrast:** verified for every text/background combination in the visual system above.
+
+## Internationalization
+
+- Every user-facing string flows through i18n. No hard-coded copy in components.
+- en/es key parity is enforced by test; a string added in one language without the other is a build failure.
+- Prefer whole sentences with interpolation over assembling fragments — word order and pluralization vary by language, and stitched-together strings break in translation.
+- Allow text containers to expand. Translations are often 30%+ longer than the English source; tight widths clip real strings.
+- Format dates, times, and numbers through `Intl`, never by hand. Locale-aware formatting is free; custom formatting silently breaks for users not in en-US.
 
 ## Motion and animation
 

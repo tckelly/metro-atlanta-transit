@@ -4,7 +4,7 @@
 
 **Atlanta Transit** is a Progressive Web App (PWA) for real-time MARTA bus tracking in metro Atlanta. The goal is best-in-class real-time bus support — better UX than MARTA's website, faster than Google Maps, and more focused than generic transit apps.
 
-- **Status:** Greenfield — early development
+- **Status:** Pre-launch (v0.0.1) — the three core jobs are built; currently in M5/M6 polish + launch-prep (see `docs/roadmap.md`)
 - **Audience:** Atlanta bus commuters; solo dev project, open source
 - **Docs:** Authoritative info lives in `docs/` — see the Docs Map below.
 
@@ -133,6 +133,7 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 - **Branches:** `main` (production), `feature/*` (individual work)
 - **Small, focused commits.** One logical change per commit.
 - **Squash merge** feature branches to main.
+- **Commit locally, but don't push during a work session.** Vercel rebuilds on every push to GitHub, and this is a free hobby-tier app, so pushes are batched. Make focused local commits as work progresses; the maintainer pushes to remote at the end.
 
 ## Documentation
 

@@ -4,7 +4,7 @@ How the app is built. Translates the *what* and *how good* from `product-require
 
 ## Overview
 
-A client-side Progressive Web App, structured as a **pnpm monorepo** with flat `packages/*` layout. The browser fetches MARTA's realtime data through a thin Vercel Edge Function proxy (one per feed — the smallest backend that makes browsers happy with MARTA's missing CORS headers; see ADR-0005). Static GTFS data is preprocessed at build time and bundled with the app. User state lives in `localStorage` only; no accounts, no server-side state.
+A client-side Progressive Web App, structured as a **pnpm monorepo** with flat `packages/*` layout. The browser fetches MARTA's realtime data through a thin Vercel Edge Function proxy (one per feed — the smallest backend that makes browsers happy with MARTA's missing CORS headers; see ADR-0005). Static GTFS is preprocessed at build time and **split along the reference-data / schedule-data seam** (ADR-0006): small reference tables (`stops`, `routes`) ship as JSON bundled with the app and precached; the large schedule tables (`trips`, `stop_times`, `calendar`) are emitted as a `gtfs.sqlite` artifact and queried server-side through Vercel Node Functions (`/api/gtfs/*`). User state lives in `localStorage` only; no accounts, no server-side per-user state, and no analytics or telemetry (ADR-0007).
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -36,18 +36,29 @@ A client-side Progressive Web App, structured as a **pnpm monorepo** with flat `
 │  │  localStorage  (favorites, theme, locale)        │    │
 │  └──────────────────────────────────────────────────┘    │
 └──────────────────────────────────────────────────────────┘
-                           │
+                           │  /api/marta/*  ·  /api/gtfs/*
                            ▼
-                ┌──────────────────────┐
-                │  MARTA GTFS-RT       │
-                │  (vehicles, trips,   │
-                │   alerts)            │
-                └──────────────────────┘
+        ┌──────────────────────────────────────────────┐
+        │  Vercel Functions                            │
+        │  • /api/marta/*  → proxy MARTA GTFS-RT        │
+        │    (edge; CORS shim; ~10s cache; ADR-0005)    │
+        │  • /api/gtfs/*   → query gtfs.sqlite          │
+        │    (node; better-sqlite3; ADR-0006)           │
+        └─────────────────────┬────────────────────────┘
+                              │ (realtime only)
+                              ▼
+                   ┌──────────────────────┐
+                   │  MARTA GTFS-RT       │
+                   │  (vehicles, trips,   │
+                   │   alerts)            │
+                   └──────────────────────┘
 
 Build time (separate, runs in CI / Vercel):
   Pre-build: download itsmarta.com/google_transit.zip
-           → preprocess CSV → trimmed JSON
-           → emit to packages/web/public/gtfs/
+           → preprocess CSV → small JSON  (stops, routes)
+                            → gtfs.sqlite  (trips, stop_times, calendar)
+           → emit small JSON to packages/web/public/gtfs/
+           → emit gtfs.sqlite  to packages/web/api/_data/
   Build:   pnpm --filter @atl-transit/web build
 ```
 
@@ -62,24 +73,32 @@ metro-atlanta-transit/
 ├── docs/
 ├── sample-data/
 └── packages/
-    ├── web/                      # @atl-transit/web — the PWA
+    ├── web/                      # @atl-transit/web — the PWA + its serverless backend
     │   ├── package.json
-    │   ├── vite.config.ts
+    │   ├── vite.config.ts        # dev MARTA proxy + dev /api/gtfs middleware + vite-plugin-pwa
+    │   ├── vercel.json           # function includeFiles (api/_data) + build-skip ignoreCommand
     │   ├── tailwind.config.ts    # extends preset from components
     │   ├── tsconfig.json
     │   ├── scripts/
-    │   │   └── preprocess-gtfs.ts  # static GTFS build pipeline (web-local)
+    │   │   └── preprocess-gtfs.ts  # static GTFS build pipeline orchestrator (web-local)
+    │   ├── api/                  # Vercel serverless functions — the "minimal backend"
+    │   │   ├── marta/           # realtime proxies: tripupdates, vehiclepositions, alerts (edge; ADR-0005)
+    │   │   ├── gtfs/            # schedule queries: stop-times, route-directions (node + better-sqlite3; ADR-0006)
+    │   │   └── _data/           # build-emitted gtfs.sqlite, gitignored
     │   ├── index.html
     │   ├── public/
-    │   │   └── gtfs/             # build-time output, gitignored
+    │   │   └── gtfs/             # build-emitted stops.json + routes.json, gitignored
     │   └── src/
-    │       ├── pages/            # route-level views (Home, StopDetail, Settings, ...)
-    │       ├── features/         # composition + data wiring (stops, favorites, nearby, routes)
-    │       ├── services/         # martaRealtime, gtfsStatic, geolocation, storage
-    │       ├── hooks/
-    │       ├── context/          # ThemeContext, FavoritesContext, LocaleContext
+    │       ├── pages/            # route-level views (Home, StopDetail, Settings, Routes, RouteDetail)
+    │       ├── features/         # composition + data wiring; co-located contexts live with their feature
+    │       │                     #   (stops, favorites, nearby, routes, search, disruption,
+    │       │                     #    realtime, settings, install, pull-to-refresh, toast)
+    │       ├── services/         # martaRealtime, geolocation, storage, gtfs/ (GtfsRepository + impls)
+    │       ├── buildtime/        # pure preprocess + sqlite-build logic (no I/O; unit-tested)
     │       ├── utils/            # app-specific (domain → visual mappings, etc.)
     │       ├── i18n/
+    │       ├── styles/
+    │       ├── types/
     │       ├── App.tsx
     │       └── main.tsx
     ├── components/               # @atl-transit/components — look and feel
@@ -263,31 +282,29 @@ A violation is a build-blocking error in CI. This is what makes the architecture
 
 ## Data flow
 
-### Static GTFS — preprocessed at build time
+### Static GTFS — preprocessed at build time, split client/backend (ADR-0006)
 
-The static GTFS feed is large (`stop_times.txt` alone can exceed 30 MB). Loading raw GTFS in the browser is unacceptable for the 2-second cold-open target.
+The static GTFS feed is large (`stop_times.txt` alone can exceed 30 MB; the fully trimmed `stop-times.json` came out to ~253 MB). Loading raw GTFS in the browser is unacceptable for the 2-second cold-open target — and even the trimmed JSON is far too large to bundle and precache. So the preprocessed data is **split along the reference-data / schedule-data seam** (ADR-0006):
 
-**Build-time pipeline (`packages/web/scripts/preprocess-gtfs.ts`):**
+- **Reference data → client JSON, precached.** `stops.json` (~800 KB) and `routes.json` (~8 KB) are small and looked up *synchronously* from many UI sites (stop names in headers, route metadata in browse pages). They ship in the bundle and are precached by the service worker, so metadata access stays sync and lazy-loading skeletons don't ripple through every render.
+- **Schedule data → `gtfs.sqlite`, served by the backend.** `trips`, `stop_times`, and `calendar` are the big tables. They're emitted as a single `gtfs.sqlite` artifact and queried *server-side* by Vercel Node Functions using `better-sqlite3`, behind two endpoints: `/api/gtfs/stop-times` and `/api/gtfs/route-directions`.
 
-The pure parse + transform logic lives in `packages/web/src/buildtime/preprocessGtfs.ts` (testable, no I/O). The script above is the orchestrator: it downloads the ZIP, calls into the library, and writes JSON to disk.
+**Build-time pipeline.** The pure parse + transform logic lives in `packages/web/src/buildtime/` (`preprocessGtfs.ts` and `buildGtfsSqlite.ts` — testable, no I/O). `packages/web/scripts/preprocess-gtfs.ts` is the orchestrator: it downloads the ZIP, calls into those libraries, and writes the artifacts to disk.
 
 1. Download `https://itsmarta.com/google_transit_feed/google_transit.zip`.
 2. Unzip and parse: `stops.txt`, `routes.txt`, `trips.txt`, `stop_times.txt`, `calendar.txt`, optional `calendar_dates.txt`.
-3. Trim and reshape into lean JSON, normalized so the runtime can join by ID:
+3. Emit **small reference JSON** to `packages/web/public/gtfs/` (gitignored — regenerated each build):
    - `stops.json` — `{ stopId, name, lat, lng, routeIds: string[] }[]`
    - `routes.json` — `{ routeId, shortName, longName, color? }[]`
-   - `trips.json` — `{ tripId, routeId, serviceId, headsign, directionId? }[]`
-   - `stop-times.json` — `{ tripId, stopId, stopSequence, arrivalTime, departureTime }[]`
-   - `calendar.json` — `{ rules: CalendarRuleOut[], exceptions: CalendarExceptionOut[] }`
-4. Emit to `packages/web/public/gtfs/` (gitignored — regenerated each build).
+4. Emit **`gtfs.sqlite`** (the `trips` / `stop_times` / `calendar` tables, indexed for the app's access patterns) to `packages/web/api/_data/` (gitignored). Vercel bundles it into the `/api/gtfs/*` functions via `includeFiles` in `vercel.json`. It's written in **rollback-journal mode** — a self-contained file with no `-wal` / `-shm` companions — so the read-only function bundle stays a single artifact.
 
-The runtime loader (`services/gtfsStatic.ts`) loads these 5 files in parallel on app startup and exposes query functions like `getScheduledVisitsForStop(bundle, stopId, date)`.
+**Runtime access — the `GtfsRepository` seam.** Consumers never touch the storage split directly. `services/gtfs/GtfsRepository.ts` defines the interface; the app wires a `HybridGtfsRepository` that serves the **sync** reference-data methods from the in-memory small bundle and delegates the **async** schedule queries to HTTP calls against `/api/gtfs/*`. `InMemoryGtfsRepository` implements the same interface against a full in-memory bundle and is used by tests. Swapping implementations is one provider in `App.tsx`, so a future migration (Postgres, Turso, or back to fully client-side) touches only the wiring.
 
-**Trigger:** `pnpm --filter @atl-transit/web preprocess-gtfs` runs the script directly today; will be wired into `prebuild` once Vite is added.
+**Dev/prod parity.** The same `/api/gtfs/*` handlers run in local dev: a Vite middleware plugin (`vite.config.ts`) imports the function handlers and serves them against the same `gtfs.sqlite`, so `pnpm dev` exercises the real backend path rather than a stub. (This closes the parity gap ADR-0006 originally accepted, where dev was to run `InMemoryGtfsRepository` against a full bundle.)
 
-**Freshness skip:** the script checks whether `packages/web/public/gtfs/stops.json` exists and was modified less than 24 hours ago. If yes, it skips the download and exits — so local dev builds are instant after the first run. Vercel containers are ephemeral (no cache between builds), so production always downloads fresh anyway. Pass `--force` to bypass the check and refresh on demand. A scheduled GitHub Action pushes an empty commit **nightly at 08:00 UTC** (4am EDT in summer, 3am EST in winter — before MARTA's earliest morning service) to trigger a fresh Vercel build, keeping the bundled static data current without manual intervention. See ADR-0004.
+**Freshness.** A GitHub Actions cron (`.github/workflows/nightly-rebuild.yml`) pushes an empty `chore: nightly rebuild` commit at **08:00 UTC** (4am EDT in summer, 3am EST in winter — before MARTA's earliest morning service), which Vercel picks up as a deploy trigger and re-runs the build, regenerating `stops.json`, `routes.json`, and `gtfs.sqlite` from MARTA. The commit subject is load-bearing: `vercel.json`'s `ignoreCommand` matches it to force a build for an otherwise-empty diff. `pnpm --filter @atl-transit/web preprocess-gtfs` runs the pipeline directly (skipped if the output is <24h old; `--force` overrides). See ADR-0004 and ADR-0006.
 
-**Failure mode:** if the static-GTFS download fails during build, the build fails loudly. We don't ship an app with stale or missing schedule data.
+**Failure mode:** if the static-GTFS download fails during build, the build fails loudly. We don't ship an app with stale or missing schedule data; the previous deploy stays live.
 
 ### Real-time — fetched on demand, polled while viewing
 
@@ -457,8 +474,10 @@ The load-bearing architectural decisions have dedicated ADRs in `docs/adr/`. The
 - **ADR-0001:** No backend in v1 — *Superseded (partial) by ADR-0005*
 - **ADR-0002:** pnpm monorepo with flat `packages/*` layout
 - **ADR-0003:** Atomic-design `components` package with Option B (visual-semantics) boundary
-- **ADR-0004:** Build-time static GTFS preprocessing with nightly rebuilds
+- **ADR-0004:** Build-time static GTFS preprocessing with nightly rebuilds — *Superseded (partial) by ADR-0006*
 - **ADR-0005:** Minimal backend proxy for MARTA realtime (Vercel Edge Functions)
+- **ADR-0006:** Split static GTFS — small reference tables client-side, large schedule tables in SQLite behind the backend
+- **ADR-0007:** No analytics, telemetry, or error-tracking in v1
 
 Other decisions (PWA-over-native, React-not-Svelte, Context-not-Redux, Tailwind, en+es-only, no-Turborepo, dark-mode-day-one, no-gesture-favorites) are defended in `vision.md`, `architecture.md`, `ux-guidelines.md`, or `product-requirements.md` and don't currently warrant standalone ADRs. If any of them gets seriously challenged, that's the signal to write one.
 

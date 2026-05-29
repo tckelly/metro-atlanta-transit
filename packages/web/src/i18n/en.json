@@ -64,7 +64,6 @@
   },
   "bundle": {
     "loadingTitle": "Loading schedule data…",
-    "loadingBody": "One moment.",
     "errorTitle": "Couldn’t load schedule data"
   },
   "loading": {

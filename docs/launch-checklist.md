@@ -13,23 +13,42 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
 
 ## Open work (v0.0.1) — suggested order
 
-### 1. Raster PWA icons — BLOCKER
-- [ ] Manifest + `apple-touch-icon` currently ship SVG only (`sizes: 'any'`); iOS
-  Safari ignores SVG home-screen icons, so installing on iPhone yields a generic
-  "AT" letter tile (**confirmed on device**). PRD requires 192×192 and 512×512.
-- **Do:** generate PNGs (192, 512, 512-maskable, 180 apple-touch), wire into the
-  manifest + `<link rel="apple-touch-icon">`. Source: derive from existing
-  `icon.svg` unless brand art is provided.
+### 1. Raster PWA icons — nice-to-have (older iOS / Android)
+- [x] Icon redesigned as a side-view ATL bus. SVG renders correctly on iOS 26
+  home-screen install (verified on device), so the manifest's `sizes: 'any'`
+  declaration is acceptable on current iOS — the original blocker premise
+  (iOS Safari ignoring SVG home-screen icons) no longer applies.
+- [ ] PNG fallbacks (192, 512, 512-maskable, 180 apple-touch) for older iOS /
+  Android compatibility. Not blocking launch; safe to defer post-v1.
+- **Do (if pursued):** generate PNGs from `icon.svg`, wire into the manifest +
+  `<link rel="apple-touch-icon">`.
 - **Files:** `packages/web/vite.config.ts`, `packages/web/index.html`,
   `packages/web/public/icons/`.
 
-### 2. Cold-open loading state — decided: Option C
-- [ ] Render the static app shell (header / "Atlanta Transit" + Settings link)
-  immediately, and skeleton **only the content region** while the small GTFS
-  bundle loads — instead of gating the whole app behind a text `MessageCard`.
-  Improves perceived speed on first-ever open and benefits every route.
-- **Files:** `packages/web/src/App.tsx` (lift the shell out of `BundleGate`'s
-  gated region; content area shows a skeleton).
+### 2. Cold-open loading state — decided: branded loading shell (loading-only)
+- [ ] Replace `BundleGate`'s text `MessageCard` with a branded loading view:
+  an "Atlanta Transit" header strip + a content-area skeleton. Visible only
+  during the cold-open fetch of `stops.json`/`routes.json`; vanishes once the
+  bundle resolves and normal page rendering takes over.
+- **Why loading-only, not a persistent app shell.** The original sketch read as
+  "lift the shell out of `BundleGate`" — implying a persistent app-level header
+  with brand + Settings link on every screen. Dropped after design review:
+  (a) Settings is set-once on a transit app (language + clock format), so an
+  always-visible Settings link spends precious phone-vertical real estate on a
+  feature users rarely re-open; (b) repeating the brand on every screen steals
+  rows from content, the opposite of mobile-first; (c) per-page `← back` headers
+  are direction-specific (e.g. `RouteDetail` → `/routes`) and don't belong
+  inside app chrome. The cold-open problem is real and small — a loading-only
+  shell solves it without imposing permanent cost on every other screen.
+- **A11y:** the loading view is a polite live region announcing "Loading…"
+  (re-use the existing `bundle.loadingTitle` string); skeleton bars are
+  `aria-hidden`. Brand text is a `<span>`, not an `<h1>` — per
+  `ux-guidelines.md` *"every screen has a single h1"*, and we don't want the
+  brand to claim that slot.
+- **TDD:** extract a presentational `LoadingShell` (no async, no hook) so the
+  branded-view test runs without fetch mocking; `BundleGate` then composes it.
+- **Files:** `packages/web/src/App.tsx` (BundleGate swaps `MessageCard` →
+  `LoadingShell`), new `packages/web/src/LoadingShell.tsx` + sibling test.
 
 ### 3. Theme toggle UI (Auto / Light / Dark) in Settings
 - [ ] Add the 3-way selector PRD + `ux-guidelines.md` call for. Dark mode already

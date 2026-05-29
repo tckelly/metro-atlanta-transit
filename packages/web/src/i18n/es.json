@@ -64,7 +64,6 @@
   },
   "bundle": {
     "loadingTitle": "Cargando datos del horario…",
-    "loadingBody": "Un momento.",
     "errorTitle": "No se pudieron cargar los datos del horario"
   },
   "loading": {

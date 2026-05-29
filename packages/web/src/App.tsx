@@ -10,6 +10,7 @@ import { RealtimeFeedProvider } from './features/realtime/RealtimeFeedContext';
 import { RouteChunkFallback } from './features/route-chunk/RouteChunkFallback';
 import { SettingsProvider } from './features/settings/SettingsContext';
 import { ToastProvider } from './features/toast/ToastContext';
+import { LoadingShell } from './LoadingShell';
 import { GtfsRepositoryProvider } from './services/gtfs/GtfsRepositoryContext';
 import {
   HybridGtfsRepository,
@@ -77,7 +78,7 @@ export function App() {
 function BundleGate({ children }: { children: (bundle: SmallGtfsBundle) => ReactNode }) {
   const { t } = useTranslation();
   const { bundle, loading, error } = useSmallGtfsBundle();
-  if (loading) return <MessageCard title={t('bundle.loadingTitle')} body={t('bundle.loadingBody')} />;
+  if (loading) return <LoadingShell />;
   if (error !== null) {
     return <MessageCard title={t('bundle.errorTitle')} body={error.message} />;
   }

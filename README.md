@@ -76,7 +76,7 @@ pnpm install
 pnpm approve-builds       # interactive — approve native build scripts
 ```
 
-`pnpm install` pulls every workspace package's deps. `pnpm approve-builds` then launches an interactive prompt for the three packages that run native build scripts — currently `better-sqlite3`, `esbuild`, and `protobufjs` — and persists your choices to `pnpm-workspace.yaml`. pnpm 10 default-denies these for supply-chain safety; skipping the approval leaves `better-sqlite3` without its native binding, which breaks the GTFS preprocessor in the next step.
+`pnpm install` pulls every workspace package's deps. `pnpm approve-builds` then launches an interactive prompt for any packages that ship install scripts — currently `better-sqlite3` (the one that matters), and possibly `esbuild` and `protobufjs` — and persists your choices to `pnpm-workspace.yaml` under `allowBuilds`. Once that block is committed, future contributors don't have to re-approve; this step is mostly a safety net for adding new native deps later. pnpm 10+ default-denies install scripts for supply-chain safety, so without an approval the GTFS preprocessor's native SQLite binding never gets built.
 
 ### 3. Fetch MARTA's static schedule data
 
@@ -106,10 +106,13 @@ pnpm preprocess-gtfs --force      # refresh MARTA data ignoring the <24h cache
 
 ### Troubleshooting
 
-- **`Could not locate the bindings file` for `better_sqlite3.node`** — your Node version changed since `pnpm install`, so the prebuilt native binding no longer matches the ABI. Fix:
+- **`Could not locate the bindings file` for `better_sqlite3.node`** — pnpm 10+ default-denies install scripts, so the native binding never compiled. `pnpm-workspace.yaml` should already contain `allowBuilds.better-sqlite3: true`; if it does and you're still hitting this, the local install ran before the approval landed. Fix:
   ```bash
-  pnpm rebuild better-sqlite3
+  pnpm install --force     # re-evaluates build queue with the committed approval
   ```
+  `pnpm rebuild better-sqlite3` *looks* like the right command but is a silent no-op when pnpm's `.modules.yaml` cache says nothing is pending — don't be fooled by the lack of error output.
+
+  If `pnpm-workspace.yaml` doesn't yet have `allowBuilds.better-sqlite3`, run `pnpm approve-builds` and commit the resulting change.
 - **`GTFS backend middleware failed: … SQLite file is missing`** — step 3 was skipped or the local DB is stale relative to the schema. Run `pnpm preprocess-gtfs --force`.
 - **`pnpm: command not found`** after `corepack enable` — open a new terminal, or run `hash -r` to clear the shell's command cache.
 - **Stale dev output** — Vite caches aggressively. Hard-refresh (Cmd+Shift+R) or quit and restart `pnpm dev`.

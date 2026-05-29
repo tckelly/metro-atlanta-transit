@@ -54,6 +54,44 @@ async function isBundleFresh(): Promise<boolean> {
   }
 }
 
+/**
+ * Verifies `better-sqlite3`'s native binding loads before we spend
+ * 30 seconds downloading 20 MB of GTFS data only to crash on the
+ * SQLite step. The binding can be missing in three real scenarios:
+ * (1) `pnpm install` ran before `pnpm-workspace.yaml`'s
+ * `allowBuilds.better-sqlite3` approval was in place — pnpm 10+
+ * default-denies install scripts for supply-chain safety; (2) the
+ * active Node version changed since install, leaving an ABI-
+ * mismatched `.node` file; (3) someone deleted the build artifact
+ * directly. All three surface as a `Could not locate the bindings
+ * file` error from the `bindings` package — we catch that and
+ * translate it into a one-line remediation instead of a 30-path
+ * stack trace.
+ *
+ * Note: `pnpm rebuild better-sqlite3` looks like it should fix this
+ * but is a silent no-op when pnpm's `.modules.yaml` cache says
+ * nothing is pending. `pnpm install --force` (or `approve-builds`
+ * followed by reinstall) is what actually moves the needle.
+ */
+function assertBetterSqlite3Ready(): void {
+  try {
+    new Database(':memory:').close();
+  } catch (err) {
+    const detail = err instanceof Error ? err.message.split('\n')[0] : String(err);
+    console.error(
+      `\nbetter-sqlite3 native binding is missing or ABI-mismatched.\n` +
+        `(${detail})\n\n` +
+        `Fix: pnpm install --force   (re-evaluates the build queue)\n` +
+        `If pnpm-workspace.yaml doesn't yet list better-sqlite3 under\n` +
+        `allowBuilds, run \`pnpm approve-builds\` first and commit the\n` +
+        `result. \`pnpm rebuild better-sqlite3\` is a silent no-op when\n` +
+        `pnpm's .modules.yaml cache says nothing is pending — see\n` +
+        `README → Troubleshooting.\n`,
+    );
+    process.exit(1);
+  }
+}
+
 async function downloadZip(url: string): Promise<Uint8Array> {
   console.log(`Downloading ${url}...`);
   const res = await fetch(url);
@@ -71,6 +109,8 @@ async function writeJson(filename: string, data: unknown): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  assertBetterSqlite3Ready();
+
   const force = process.argv.includes('--force');
   if (!force && (await isBundleFresh())) {
     console.log(

@@ -1,10 +1,10 @@
 packages:
   - 'packages/*'
 
-# Native dependencies that may build during install. pnpm requires
-# an explicit allowlist before running each package's lifecycle
-# scripts (default-deny since pnpm 9, for supply-chain safety).
-# `better-sqlite3` ships a native binding for SQLite — needed for
-# the GTFS preprocessor and the backend stop-times function.
-onlyBuiltDependencies:
-  - better-sqlite3
+# Native build-script allowlist. pnpm default-denies install scripts
+# since v9 for supply-chain safety; this map explicitly approves the
+# ones we trust. `pnpm approve-builds` writes here. `better-sqlite3`
+# ships a native binding for SQLite — needed for the GTFS preprocessor
+# and the backend stop-times function.
+allowBuilds:
+  better-sqlite3: true

@@ -18,10 +18,12 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
   home-screen install (verified on device), so the manifest's `sizes: 'any'`
   declaration is acceptable on current iOS — the original blocker premise
   (iOS Safari ignoring SVG home-screen icons) no longer applies.
-- [ ] PNG fallbacks (192, 512, 512-maskable, 180 apple-touch) for older iOS /
-  Android compatibility. Not blocking launch; safe to defer post-v1.
-- **Do (if pursued):** generate PNGs from `icon.svg`, wire into the manifest +
-  `<link rel="apple-touch-icon">`.
+- [x] PNG fallbacks (192, 512, 512-maskable, 180 apple-touch) shipped. SVGs
+  still come first in the manifest icons array so modern browsers stay on
+  vector; PNGs are the safety net for older iOS / Android that ignore SVG
+  icons. `apple-touch-icon` in `index.html` points at the 180 PNG (older iOS
+  required raster). Regeneration recipe in `packages/web/public/icons/README.md`
+  uses macOS `qlmanage` — no build-time dependency added.
 - **Files:** `packages/web/vite.config.ts`, `packages/web/index.html`,
   `packages/web/public/icons/`.
 
@@ -69,7 +71,7 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
   `packages/web/index.html` (shared key contract).
 
 ### 4. Reorder favorites (dogfood finding A)
-- [ ] **Reorder-only.** No rename/add/delete in this mode; removal stays on the
+- [x] **Reorder-only.** No rename/add/delete in this mode; removal stays on the
   stop-detail star. An inline toggle next to the **"My stops"** `<h2>`, labeled
   **"Reorder" → "Done"**, shown only when there are 2+ favorites. In reorder mode,
   cards stop navigating and the right-edge chevron slot swaps to a vertical
@@ -107,7 +109,7 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
   `services/storage.ts` is intentionally unchanged.
 
 ### 5. Downstream stops on an arrival (dogfood finding B)
-- [ ] **Progressive disclosure only.** Default stop view is unchanged; tapping a
+- [x] **Progressive disclosure only.** Default stop view is unchanged; tapping a
   specific arrival row expands *that bus's* downstream stops inline, so a rider can
   confirm it's their branch (a route number can have several headsigns/patterns —
   e.g. 11 → Collier Rd vs → UPS Distribution Ctr — and the headsign alone isn't
@@ -165,23 +167,25 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
   alongside the strikethrough so the visual and screen-reader signal agree.
   Loading state inside an open panel is a polite live region (re-use
   `loading.*` strings).
-- **Per-stop times in the disclosure panel (in progress).** Each downstream
-  stop renders its arrival time *before* the stop name — time-first creates a
-  scannable left-aligned column (`tabular-nums`), and matches the BusRow's own
+- **Per-stop times in the disclosure panel — live path only (shipped).** Each
+  downstream stop renders its arrival time *before* the stop name — time-first
+  creates a scannable left-aligned `tabular-nums` column, matching the BusRow's
   "time-as-primary" pattern. Format is **clock time only** ("12:34" / "1:30 PM"),
-  reusing `useFormatTime` so the user's 12h/24h Settings preference and Atlanta
-  timezone are respected for free. **Both paths show times:** live trips render
-  MARTA's live prediction from `TripUpdate.stopTimeUpdates[].arrival.time`
-  (shifts with the bus's actual position, so a late bus shows later downstream
-  times automatically); scheduled trips render the static GTFS `arrival_time`.
-  Wire-level changes: backend `queryStopsForTrip(tripId, date)` now selects
-  `arrival_time` and converts via `gtfsTimeToUnixSec`; `TripStopWire` and
-  `TripStop` gain `scheduledTime?: number`; handler requires a `date` query
-  param (YYYYMMDD). Client adapter in `StopDetail.tsx` picks
-  `predictedArrivalTime ?? scheduledTime` and feeds the formatted string into
-  `DownstreamStopView.arrivalText` (renamed from `predictedArrivalText` — now
-  carries either path's time). Honest degradation: stops missing both fields
-  render name-only rather than fabricating a time.
+  via `useFormatTime` so the user's 12h/24h Settings preference and Atlanta
+  timezone are respected. Times come from
+  `TripUpdate.stopTimeUpdates[].arrival.time` (shifts with the bus's actual
+  position, so a late bus shows later downstream times automatically). The
+  wiring was already in place; this slice flipped the layout to time-first
+  and added an em-dash placeholder for `NO_DATA` rows (~12% of MARTA's
+  downstream updates per the 2026-05-22 recon — bus still serves the stop,
+  agency just lacks a live prediction), `aria-hidden` so screen readers hear
+  only the stop name.
+- **Deferred (scheduled-path times + rename).** The scheduled / no-live /
+  cancelled paths still render name-only — they had no time data before this
+  slice and still don't. The backend wire change (`TripStopWire.scheduledTime`,
+  `queryStopsForTrip(tripId, date)` selecting `arrival_time` + `gtfsTimeToUnixSec`),
+  the field rename (`predictedArrivalText` → `arrivalText`), and the client
+  `predictedArrivalTime ?? scheduledTime` fallback are all post-v1 work.
 - **Follow-up — match BusRow severity colors on live downstream times.**
   The BusRow itself uses status color to telegraph timing (green for
   early/on-time, yellow for slight delay, red/cancelled for late or

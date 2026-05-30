@@ -102,11 +102,15 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
   `packages/web/src/pages/StopDetail.tsx` + a disclosure component.
 
 ### 6. Scroll-to-top on forward navigation (dogfood finding C)
-- [ ] **Reset `window.scrollTo(0, 0)` on every pathname change.** Without it, a
+- [x] **Reset `window.scrollTo(0, 0)` on every pathname change.** Without it, a
   user who scrolled down on Home to reach the "Browse all routes" or Settings
   link lands part-way down the next page — the document doesn't unmount between
   SPA routes, so the previous scroll position carries over. Expected web UX is
-  that forward navigation lands at the top.
+  that forward navigation lands at the top. Shipped as `ScrollToTop` rendered
+  inside `App`, using `useLayoutEffect` (not `useEffect`) so the scroll happens
+  between commit and paint — `useEffect` lets the new page paint for one frame
+  at the old scroll position, which is perceptible. Deps on pathname only, so
+  search/hash changes (e.g. `?lng=es`) don't yank the scroll.
 - **Scope: forward-only, not full restoration.** Pages in this app are 1–2
   screens; landing-at-top on browser back costs one swipe to recover prior
   scroll, and the simpler "every nav starts at the top" contract is easier to

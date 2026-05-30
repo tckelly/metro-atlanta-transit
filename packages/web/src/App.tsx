@@ -11,6 +11,7 @@ import { RouteChunkFallback } from './features/route-chunk/RouteChunkFallback';
 import { SettingsProvider } from './features/settings/SettingsContext';
 import { ToastProvider } from './features/toast/ToastContext';
 import { LoadingShell } from './LoadingShell';
+import { ScrollToTop } from './ScrollToTop';
 import { GtfsRepositoryProvider } from './services/gtfs/GtfsRepositoryContext';
 import {
   HybridGtfsRepository,
@@ -39,6 +40,7 @@ const StopDetail = lazy(() =>
 export function App() {
   return (
     <I18nextProvider i18n={i18next}>
+      <ScrollToTop />
       <SettingsProvider>
         <ToastProvider>
           <FavoritesProvider>

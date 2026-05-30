@@ -112,14 +112,99 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
   confirm it's their branch (a route number can have several headsigns/patterns —
   e.g. 11 → Collier Rd vs → UPS Distribution Ctr — and the headsign alone isn't
   how riders identify their bus). Map view stays out of scope (v2).
-- **Data:** the query already exists in spirit — `queryRouteDirections` does
-  `SELECT stop_id FROM stop_times WHERE trip_id = ? ORDER BY stop_sequence`. Add a
-  `getStopsForTrip` (optionally `(tripId, fromStopId)` to return downstream only);
-  wire payload is stop IDs, names resolved client-side from the in-memory bundle.
-  Rides the ADR-0006 seam — no new ADR. (~2 days w/ tests.)
-- **Files:** `packages/web/api/gtfs/queries.ts` + a handler/endpoint,
-  `packages/web/src/services/gtfs/GtfsRepository.ts` + `InMemory`/`Hybrid` impls,
-  `packages/web/src/pages/StopDetail.tsx` + a disclosure component.
+- **Two data paths, one shape.** Live trips already carry their downstream stops
+  in `TripUpdate.stopTimeUpdates` — stop IDs, predicted ETAs, *and* per-stop
+  SKIPPED flags, all free from the realtime feed (recon on the 2026-05-22
+  snapshot: median 44 stops/trip, max 94, all forward of the bus's current
+  position). Scheduled / no-live-data / cancelled trips fall back to a new
+  backend endpoint. Both paths normalize into the same `DownstreamStop[]` shape,
+  so the branching lives in one mapper, not in the UI.
+- **Backend: `getStopsForTrip(tripId): Promise<TripStop[]>`** where
+  `TripStop = { stopId, stopSequence }`. Full ordered pattern, no `fromStopId`
+  param — wire payload is ~1 KB and the cache fragments less when the URL
+  doesn't vary by rider stop. Edge cache `s-maxage=300` mirrors
+  `route-directions`. Client slices to downstream via a pure helper. Rides the
+  ADR-0006 seam — no new ADR.
+- **Plumb `stopSequence` through `ScheduledStopVisit` → `ClassifiedBusRow`.**
+  The backend already has it from the `stop_times` join; carrying it costs one
+  field on the wire Zod schema, the type, the classifier, and the in-memory
+  path (~30 min total). MARTA doesn't run loop routes today, but threading the
+  real sequence number is the semantically honest representation (the row *is*
+  a specific occurrence on the trip) and removes a class of subtle bugs that
+  "first-occurrence-by-stopId wins" would otherwise smuggle in.
+- **SKIPPED downstream stops are marked when known.** GTFS-RT publishes
+  `scheduleRelationship: SKIPPED` per stop. For the live path we surface this
+  with strikethrough + a "skipped" label (mirrors how a cancelled arrival row
+  already renders) so a rider whose target stop is being passed by this trip
+  sees it before boarding. The scheduled path has no SKIPPED data — fine; that
+  path already carries less info by definition.
+- **Component placement (per ADR-0003).** `BusRow` in `@atl-transit/components`
+  stays a pure visual atom; the open/close state, `aria-expanded` button, and
+  expanded panel live in a new `BusRowDisclosure` wrapper in
+  `packages/web/src/features/stops/`. Domain interaction stays out of the
+  components library.
+- **Prep commit: Map indexes on the repo impls.** Both `InMemoryGtfsRepository`
+  and `HybridGtfsRepository` resolve `getStop(id)` / `getRoute(id)` via
+  `Array.find()` over ~5k stops today. The disclosure will fire many lookups
+  per open; replace with `Map<id, …>` built once in the constructor (a
+  `private readonly` field — the bundle is immutable for the lifetime of the
+  repo instance, no React memoization needed). One-line `find` → `get` swap
+  per method. Independent benefit: also speeds up existing
+  `getRouteDirections` enrichment.
+- **TDD seams (red first).**
+  Pure `downstreamStops(tripStops, currentStopSequence): TripStop[]` in
+  `features/stops/downstreamStops.ts` — filters to `stopSequence >
+  currentStopSequence`. Sibling test covers: empty when at last stop, missing
+  sequence, loop disambiguation. No fetch mocking.
+  Pure normalizer `liveTripUpdateToTripStops(update): TripStop[]` so the
+  live-path mapper test stays free of realtime fixture wrangling.
+- **A11y.** Disclosure trigger is a `<button>` carrying the trip identity in
+  its `aria-label` ("Show stops for route 11 to UPS Distribution Ctr at 12:34");
+  `aria-expanded` reflects open/closed; the expanded panel is the next sibling
+  with `aria-hidden` toggled. SKIPPED stops get an `sr-only` "skipped" annotation
+  alongside the strikethrough so the visual and screen-reader signal agree.
+  Loading state inside an open panel is a polite live region (re-use
+  `loading.*` strings).
+- **Per-stop times in the disclosure panel (in progress).** Each downstream
+  stop renders its arrival time *before* the stop name — time-first creates a
+  scannable left-aligned column (`tabular-nums`), and matches the BusRow's own
+  "time-as-primary" pattern. Format is **clock time only** ("12:34" / "1:30 PM"),
+  reusing `useFormatTime` so the user's 12h/24h Settings preference and Atlanta
+  timezone are respected for free. **Both paths show times:** live trips render
+  MARTA's live prediction from `TripUpdate.stopTimeUpdates[].arrival.time`
+  (shifts with the bus's actual position, so a late bus shows later downstream
+  times automatically); scheduled trips render the static GTFS `arrival_time`.
+  Wire-level changes: backend `queryStopsForTrip(tripId, date)` now selects
+  `arrival_time` and converts via `gtfsTimeToUnixSec`; `TripStopWire` and
+  `TripStop` gain `scheduledTime?: number`; handler requires a `date` query
+  param (YYYYMMDD). Client adapter in `StopDetail.tsx` picks
+  `predictedArrivalTime ?? scheduledTime` and feeds the formatted string into
+  `DownstreamStopView.arrivalText` (renamed from `predictedArrivalText` — now
+  carries either path's time). Honest degradation: stops missing both fields
+  render name-only rather than fabricating a time.
+- **Follow-up — match BusRow severity colors on live downstream times.**
+  The BusRow itself uses status color to telegraph timing (green for
+  early/on-time, yellow for slight delay, red/cancelled for late or
+  cancelled). The disclosure currently renders all per-stop times in
+  `text-fg-muted` regardless of how the prediction compares to schedule.
+  We should investigate carrying that same severity down to each downstream
+  stop's time: compute per-stop `delaySec = predictedArrivalTime -
+  scheduledTime`, classify via the same thresholds the row classifier uses,
+  and color the time accordingly. Requires the live path to *also* have the
+  scheduled time per stop (currently scheduled lives on the scheduled-path
+  fetch only) — either fold scheduled into the live mapper, or have the
+  disclosure merge both when both are available. Not blocking v0.0.1 launch;
+  capture as a v1.1 polish item.
+- **Files:** `packages/web/api/gtfs/queries.ts` + new `trip-stops.ts` handler,
+  `packages/web/vercel.json` (new function entry),
+  `packages/web/src/services/gtfs/GtfsRepository.ts` +
+  `InMemoryGtfsRepository.ts` + `HybridGtfsRepository.ts`,
+  `packages/web/src/services/gtfsStatic.ts` (stopSequence in the InMemory path),
+  `packages/web/src/features/stops/busRowClassifier.ts` (stopSequence on visit + row),
+  new `packages/web/src/features/stops/downstreamStops.ts` + sibling test,
+  new `packages/web/src/features/stops/BusRowDisclosure.tsx` + sibling test,
+  `packages/web/src/pages/StopDetail.tsx`,
+  `packages/web/src/i18n/en.json` + `es.json`.
 
 ### 6. Scroll-to-top on forward navigation (dogfood finding C)
 - [x] **Reset `window.scrollTo(0, 0)` on every pathname change.** Without it, a

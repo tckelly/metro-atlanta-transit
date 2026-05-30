@@ -121,7 +121,14 @@ export default defineConfig({
       // masks real changes during iterative work. Toggle via
       // ?pwa-dev=true in the URL or this flag if testing locally.
       devOptions: { enabled: false },
-      includeAssets: ['icons/icon.svg', 'icons/maskable-icon.svg'],
+      includeAssets: [
+        'icons/icon.svg',
+        'icons/maskable-icon.svg',
+        'icons/icon-192.png',
+        'icons/icon-512.png',
+        'icons/maskable-icon-512.png',
+        'icons/apple-touch-icon-180.png',
+      ],
       manifest: {
         name: 'Atlanta Transit',
         short_name: 'ATL Transit',
@@ -132,6 +139,10 @@ export default defineConfig({
         display: 'standalone',
         scope: '/',
         start_url: '/',
+        // SVG-first: modern browsers (iOS 26+, current Chrome) pick the
+        // vector entries and stay sharp at any density. PNG fallbacks
+        // exist for older iOS / Android versions that ignore SVG icons
+        // in the manifest. See public/icons/README.md for regen.
         icons: [
           {
             src: '/icons/icon.svg',
@@ -143,6 +154,24 @@ export default defineConfig({
             src: '/icons/maskable-icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
+            purpose: 'maskable',
+          },
+          {
+            src: '/icons/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/icons/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/icons/maskable-icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'maskable',
           },
         ],

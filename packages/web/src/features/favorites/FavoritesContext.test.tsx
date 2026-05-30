@@ -162,6 +162,67 @@ describe('FavoritesContext', () => {
     expect(result.current.favorites).toEqual(seed);
   });
 
+  it('move() shifts a stop up and persists', () => {
+    const seed: Favorite[] = [
+      { stopId: 'a', addedAt: 1 },
+      { stopId: 'b', addedAt: 2 },
+      { stopId: 'c', addedAt: 3 },
+    ];
+    const storage = makeMemoryStorage({
+      [FAVORITES_STORAGE_KEY]: JSON.stringify(seed),
+    });
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: wrapperWith(storage),
+    });
+
+    act(() => {
+      result.current.move('b', 'up');
+    });
+
+    expect(result.current.favorites.map((f) => f.stopId)).toEqual(['b', 'a', 'c']);
+    const persisted = JSON.parse(storage.getItem(FAVORITES_STORAGE_KEY) ?? '[]') as Favorite[];
+    expect(persisted.map((f) => f.stopId)).toEqual(['b', 'a', 'c']);
+  });
+
+  it('move() at the top with up is a no-op and does not rewrite storage', () => {
+    const seed: Favorite[] = [
+      { stopId: 'a', addedAt: 1 },
+      { stopId: 'b', addedAt: 2 },
+    ];
+    const storage = makeMemoryStorage({
+      [FAVORITES_STORAGE_KEY]: JSON.stringify(seed),
+    });
+    const setItemSpy = vi.spyOn(storage, 'setItem');
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: wrapperWith(storage),
+    });
+
+    act(() => {
+      result.current.move('a', 'up');
+    });
+
+    expect(result.current.favorites).toEqual(seed);
+    expect(setItemSpy).not.toHaveBeenCalled();
+  });
+
+  it('move() for an unknown stop is a no-op and does not rewrite storage', () => {
+    const seed: Favorite[] = [{ stopId: 'a', addedAt: 1 }];
+    const storage = makeMemoryStorage({
+      [FAVORITES_STORAGE_KEY]: JSON.stringify(seed),
+    });
+    const setItemSpy = vi.spyOn(storage, 'setItem');
+    const { result } = renderHook(() => useFavorites(), {
+      wrapper: wrapperWith(storage),
+    });
+
+    act(() => {
+      result.current.move('missing', 'down');
+    });
+
+    expect(result.current.favorites).toEqual(seed);
+    expect(setItemSpy).not.toHaveBeenCalled();
+  });
+
   it('remove() of the last favorite clears the storage key', () => {
     const seed: Favorite[] = [{ stopId: 'a', addedAt: 1 }];
     const storage = makeMemoryStorage({

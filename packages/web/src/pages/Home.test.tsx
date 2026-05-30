@@ -22,6 +22,11 @@ import { ToastProvider } from '../features/toast/ToastContext';
 import { SettingsProvider } from '../features/settings/SettingsContext';
 import type { GtfsRepository } from '../services/gtfs/GtfsRepository';
 import type { RouteOut, StopOut } from '../buildtime/preprocessGtfs';
+import {
+  FAVORITES_STORAGE_KEY,
+  type Favorite,
+  type FavoritesStorage,
+} from '../services/storage';
 
 function memoryStorage(): {
   getItem: (k: string) => string | null;
@@ -149,5 +154,142 @@ describe('Home — global stop search', () => {
     await userEvent.type(screen.getByRole('searchbox'), 'memorial');
     const link = screen.getByRole('link', { name: /Memorial Dr SE @ Hill St/ });
     expect(link).toHaveAttribute('href', '/stop/2');
+  });
+});
+
+function seededStorage(initial: Favorite[]): FavoritesStorage {
+  const map = new Map<string, string>();
+  if (initial.length > 0) {
+    map.set(FAVORITES_STORAGE_KEY, JSON.stringify(initial));
+  }
+  return {
+    getItem: (k) => map.get(k) ?? null,
+    setItem: (k, v) => {
+      map.set(k, v);
+    },
+    removeItem: (k) => {
+      map.delete(k);
+    },
+  };
+}
+
+function renderHomeWithFavorites(favorites: Favorite[]): void {
+  render(
+    <MemoryRouter initialEntries={['/']}>
+      <SettingsProvider storage={memoryStorage()}>
+        <ToastProvider>
+          <FavoritesProvider storage={seededStorage(favorites)}>
+            <GtfsRepositoryProvider repository={searchRepo()}>
+              <RealtimeFeedContext.Provider value={feed()}>
+                <Home />
+              </RealtimeFeedContext.Provider>
+            </GtfsRepositoryProvider>
+          </FavoritesProvider>
+        </ToastProvider>
+      </SettingsProvider>
+    </MemoryRouter>,
+  );
+}
+
+describe('Home — reorder favorites', () => {
+  it('hides the Reorder toggle when there are fewer than 2 favorites', () => {
+    renderHomeWithFavorites([{ stopId: '1', addedAt: 1 }]);
+    expect(screen.queryByRole('button', { name: /reorder/i })).not.toBeInTheDocument();
+  });
+
+  it('shows the Reorder toggle when there are 2+ favorites', () => {
+    renderHomeWithFavorites([
+      { stopId: '1', addedAt: 1 },
+      { stopId: '2', addedAt: 2 },
+    ]);
+    expect(screen.getByRole('button', { name: /reorder/i })).toBeInTheDocument();
+  });
+
+  it('entering reorder mode swaps card links for move buttons; Done exits', async () => {
+    renderHomeWithFavorites([
+      { stopId: '1', addedAt: 1 },
+      { stopId: '2', addedAt: 2 },
+    ]);
+    // Browse mode: each favorite card is a link.
+    expect(screen.getByRole('link', { name: /Ponce de Leon Ave/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /reorder/i }));
+
+    // Reorder mode: links gone, move buttons present, toggle label flips to "Done".
+    expect(screen.queryByRole('link', { name: /Ponce de Leon Ave/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Move Ponce de Leon Ave @ Barnett St down/ }),
+    ).toBeInTheDocument();
+    const doneButton = screen.getByRole('button', { name: /^done$/i });
+    expect(doneButton).toBeInTheDocument();
+
+    await userEvent.click(doneButton);
+
+    // Back to browse mode.
+    expect(screen.getByRole('link', { name: /Ponce de Leon Ave/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reorder/i })).toBeInTheDocument();
+  });
+
+  it('clicking move-down on the first favorite swaps it with the second', async () => {
+    renderHomeWithFavorites([
+      { stopId: '1', addedAt: 1 }, // Ponce de Leon …
+      { stopId: '2', addedAt: 2 }, // Memorial Dr …
+    ]);
+    await userEvent.click(screen.getByRole('button', { name: /reorder/i }));
+
+    const list = screen.getByRole('list', { name: /my stops/i });
+    const beforeNames = Array.from(list.querySelectorAll('li')).map((li) => li.textContent);
+    expect(beforeNames[0]).toContain('Ponce de Leon Ave');
+    expect(beforeNames[1]).toContain('Memorial Dr');
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /Move Ponce de Leon Ave @ Barnett St down/ }),
+    );
+
+    const afterNames = Array.from(list.querySelectorAll('li')).map((li) => li.textContent);
+    expect(afterNames[0]).toContain('Memorial Dr');
+    expect(afterNames[1]).toContain('Ponce de Leon Ave');
+  });
+
+  it('disables move-up on the first card and move-down on the last card', async () => {
+    renderHomeWithFavorites([
+      { stopId: '1', addedAt: 1 },
+      { stopId: '2', addedAt: 2 },
+      { stopId: '3', addedAt: 3 },
+    ]);
+    await userEvent.click(screen.getByRole('button', { name: /reorder/i }));
+
+    expect(
+      screen.getByRole('button', { name: /Move Ponce de Leon Ave @ Barnett St up/ }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /Move Peachtree St NW @ 14th St down/ }),
+    ).toBeDisabled();
+    // Middle card has both directions enabled.
+    expect(
+      screen.getByRole('button', { name: /Move Memorial Dr SE @ Hill St up/ }),
+    ).not.toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /Move Memorial Dr SE @ Hill St down/ }),
+    ).not.toBeDisabled();
+  });
+
+  it('announces the move in an sr-only polite live region with stop name + position', async () => {
+    renderHomeWithFavorites([
+      { stopId: '1', addedAt: 1 },
+      { stopId: '2', addedAt: 2 },
+      { stopId: '3', addedAt: 3 },
+    ]);
+    await userEvent.click(screen.getByRole('button', { name: /reorder/i }));
+
+    // status role is one canonical way to expose aria-live=polite to AT.
+    const liveRegion = screen.getByRole('status', { name: /reorder announcements/i });
+    expect(liveRegion).toBeEmptyDOMElement();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /Move Memorial Dr SE @ Hill St down/ }),
+    );
+
+    expect(liveRegion).toHaveTextContent(/Memorial Dr SE @ Hill St moved to position 3 of 3/);
   });
 });

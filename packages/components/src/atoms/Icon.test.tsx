@@ -60,4 +60,18 @@ describe('Icon', () => {
     expect(svg).toHaveAttribute('data-icon', 'close');
     expect(svg?.children.length).toBeGreaterThan(0);
   });
+
+  it('renders the chevron-up icon with actual path content', () => {
+    const { container } = render(<Icon name="chevron-up" />);
+    const svg = container.querySelector('svg');
+    expect(svg).toHaveAttribute('data-icon', 'chevron-up');
+    expect(svg?.children.length).toBeGreaterThan(0);
+  });
+
+  it('renders the chevron-down icon with actual path content', () => {
+    const { container } = render(<Icon name="chevron-down" />);
+    const svg = container.querySelector('svg');
+    expect(svg).toHaveAttribute('data-icon', 'chevron-down');
+    expect(svg?.children.length).toBeGreaterThan(0);
+  });
 });

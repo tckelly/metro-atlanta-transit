@@ -15,6 +15,7 @@ import {
   type Favorite,
   type FavoritesStorage,
 } from '../../services/storage';
+import { moveFavorite, type MoveDirection } from './reorder';
 
 export interface FavoritesContextValue {
   favorites: Favorite[];
@@ -27,6 +28,11 @@ export interface FavoritesContextValue {
   add: (stopId: string) => boolean;
   /** Remove a stop from favorites. No-op when the stop isn't favorited. */
   remove: (stopId: string) => void;
+  /**
+   * Shift a favorite one position up or down. No-op (and no storage write)
+   * when the move would run off either end or the stopId isn't favorited.
+   */
+  move: (stopId: string, direction: MoveDirection) => void;
   /** Whether a stop is currently favorited. */
   has: (stopId: string) => boolean;
 }
@@ -75,6 +81,20 @@ export function FavoritesProvider({ children, storage }: FavoritesProviderProps)
     [storage],
   );
 
+  const move = useCallback(
+    (stopId: string, direction: MoveDirection) => {
+      setFavorites((current) => {
+        const next = moveFavorite(current, stopId, direction);
+        // `moveFavorite` returns the same reference on no-ops, so identity
+        // equality is enough to skip the storage write.
+        if (next === current) return current;
+        saveFavorites(next, storage);
+        return next;
+      });
+    },
+    [storage],
+  );
+
   const has = useCallback(
     (stopId: string) => favorites.some((f) => f.stopId === stopId),
     [favorites],
@@ -86,9 +106,10 @@ export function FavoritesProvider({ children, storage }: FavoritesProviderProps)
       isFull: favorites.length >= MAX_FAVORITES,
       add,
       remove,
+      move,
       has,
     }),
-    [favorites, add, remove, has],
+    [favorites, add, remove, move, has],
   );
 
   return <FavoritesContext.Provider value={value}>{children}</FavoritesContext.Provider>;

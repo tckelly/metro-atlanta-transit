@@ -70,21 +70,41 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
 
 ### 4. Reorder favorites (dogfood finding A)
 - [ ] **Reorder-only.** No rename/add/delete in this mode; removal stays on the
-  stop-detail star. A header toggle labeled **"Reorder favorites" → "Done"**,
-  shown only when there are 2+ favorites. In reorder mode, cards stop navigating
-  and show `↑`/`↓` move buttons (disabled at the ends). No drag-and-drop in v1.
-- **Logic (TDD, red first):** pure `moveFavorite(list, stopId, 'up'|'down')` —
-  bounds and unknown-id are no-ops; `FavoritesContext` action persists the
-  reordered array (storage Zod `max(10)` unchanged).
+  stop-detail star. An inline toggle next to the **"My stops"** `<h2>`, labeled
+  **"Reorder" → "Done"**, shown only when there are 2+ favorites. In reorder mode,
+  cards stop navigating and the right-edge chevron slot swaps to a vertical
+  `↑`/`↓` pair (disabled at the ends). No drag-and-drop in v1.
+- **No app-level header.** The original sketch said "header toggle." We decided
+  against an app chrome header when shipping `LoadingShell` (#2 above), so the
+  toggle lives inline with the `My stops` heading, not in an app-wide bar.
+- **Smooth in/out of reorder mode.** The card preserves its dimensions across
+  the toggle: same height, same width, same arrival preview. Only the right-edge
+  slot's content changes (`›` chevron → ↑/↓ pair) and the card stops being a
+  `<Link>`. No skeleton reflow, no card-height jump. Reorder mode is local state
+  on `Home`; navigating away or dropping below 2 favorites ends it.
+- **Logic (TDD, red first):** pure `moveFavorite(list, stopId, 'up'|'down'):
+  Favorite[]` in `features/favorites/reorder.ts` — bounds and unknown-id return
+  the same array reference (lets React short-circuit); `FavoritesContext.move`
+  calls it inside `setFavorites` and persists via the existing `saveFavorites`.
+  No new persistence code, no Zod changes (`max(10)` already covers it).
 - **A11y (required):** move buttons carry the stop identity in their label
-  (`"Move Ponce @ Barnett up"`); a polite live region announces the result
-  (`"position 2 of 4"`); focus stays on the pressed button after the DOM reorders;
-  list is semantic `<ul>/<li>`. (No formal ARIA "reorder" widget exists — labels +
-  result announcement carry recognizability; this is the standard DnD-accessible
-  alternative.)
-- **Files:** `packages/web/src/features/favorites/FavoritesContext.tsx`,
-  `FavoriteStopCard.tsx`, `packages/web/src/pages/Home.tsx`,
-  `packages/web/src/services/storage.ts`.
+  (`"Move Ponce @ Barnett up"`); a visually-hidden polite live region announces
+  the full result (`"Ponce @ Barnett moved to position 2 of 4"`) so screen-reader
+  users get the same confirmation sighted users get from the visible move; focus
+  stays on the pressed button after the DOM reorders; list stays semantic
+  `<ul>/<li>`. No visible toast — the move itself is the confirmation. (No
+  formal ARIA "reorder" widget exists; labels + live region carry recognizability,
+  the standard DnD-accessible alternative.)
+- **New `Icon` glyphs.** Extend the icon atom with `chevron-up`/`chevron-down`
+  rather than Unicode arrows — Unicode arrow weight varies across host fonts
+  (heavier on Android, lighter on iOS) and would look inconsistent next to
+  the existing icon vocabulary (`refresh`, `close`, `star`). The SVG path keeps
+  stroke-width and size consistent with the rest of the system.
+- **Files:** new `packages/web/src/features/favorites/reorder.ts` + sibling test,
+  `packages/web/src/features/favorites/FavoritesContext.tsx`, `FavoriteStopCard.tsx`,
+  `packages/web/src/pages/Home.tsx`, `packages/components/src/atoms/Icon.tsx`
+  (+ test), `packages/web/src/i18n/en.json` + `es.json`.
+  `services/storage.ts` is intentionally unchanged.
 
 ### 5. Downstream stops on an arrival (dogfood finding B)
 - [ ] **Progressive disclosure only.** Default stop view is unchanged; tapping a

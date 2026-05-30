@@ -8,7 +8,16 @@
  * to *be* the accessible label, wrap it in an element with `aria-label`.
  */
 
-export type IconName = 'clock' | 'warning' | 'refresh' | 'star' | 'star-filled' | 'search' | 'close';
+export type IconName =
+  | 'clock'
+  | 'warning'
+  | 'refresh'
+  | 'star'
+  | 'star-filled'
+  | 'search'
+  | 'close'
+  | 'chevron-up'
+  | 'chevron-down';
 
 export interface IconProps {
   name: IconName;
@@ -64,6 +73,8 @@ export function Icon({ name }: IconProps) {
           <line x1="6" y1="6" x2="18" y2="18" />
         </>
       )}
+      {name === 'chevron-up' && <polyline points="18 15 12 9 6 15" />}
+      {name === 'chevron-down' && <polyline points="6 9 12 15 18 9" />}
     </svg>
   );
 }

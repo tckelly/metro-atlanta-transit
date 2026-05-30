@@ -55,8 +55,13 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
   `LoadingShell`), new `packages/web/src/LoadingShell.tsx` + sibling test.
 
 ### 3. Theme toggle UI (Auto / Light / Dark) in Settings
-- [ ] Add the 3-way selector PRD + `ux-guidelines.md` call for. Dark mode already
+- [x] Add the 3-way selector PRD + `ux-guidelines.md` call for. Dark mode already
   renders (the `index.html` bootstrap follows OS preference); this adds the control.
+  Shipped as `useThemePreference` (sibling-tested hook, no Context — single
+  consumer) + Zod-validated `themeStorage` + pure `resolveEffectiveMode`, with a
+  `ThemeSection` rendered first in `Settings.tsx`. Storage key shared verbatim
+  with the bootstrap script; `matchMedia` listener subscribed only while in Auto
+  so an OS-level toggle propagates without a reload.
 - **Subtlety:** the React control must write `atl-transit:theme` and toggle
   `<html class="dark">` in a way the bootstrap script also respects on next load
   (no flash-of-wrong-theme). No reload required to apply.
@@ -95,6 +100,23 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
 - **Files:** `packages/web/api/gtfs/queries.ts` + a handler/endpoint,
   `packages/web/src/services/gtfs/GtfsRepository.ts` + `InMemory`/`Hybrid` impls,
   `packages/web/src/pages/StopDetail.tsx` + a disclosure component.
+
+### 6. Scroll-to-top on forward navigation (dogfood finding C)
+- [ ] **Reset `window.scrollTo(0, 0)` on every pathname change.** Without it, a
+  user who scrolled down on Home to reach the "Browse all routes" or Settings
+  link lands part-way down the next page — the document doesn't unmount between
+  SPA routes, so the previous scroll position carries over. Expected web UX is
+  that forward navigation lands at the top.
+- **Scope: forward-only, not full restoration.** Pages in this app are 1–2
+  screens; landing-at-top on browser back costs one swipe to recover prior
+  scroll, and the simpler "every nav starts at the top" contract is easier to
+  predict than per-key scroll-position persistence. Promote to full
+  `ScrollRestoration` only if back-button dogfooding shows it's actually
+  annoying.
+- **Implementation:** a tiny `ScrollToTop` component using `useLocation` +
+  `useEffect`, rendered inside `App` (under the existing `BrowserRouter`).
+  ~10 lines.
+- **Files:** `packages/web/src/App.tsx`.
 
 ## Accepted as-is for v1 (revisit post-launch)
 

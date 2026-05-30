@@ -152,6 +152,10 @@
   "settings": {
     "title": "Settings",
     "backToHome": "Back to home",
+    "themeHeading": "Theme",
+    "themeAuto": "Follow system",
+    "themeLight": "Light",
+    "themeDark": "Dark",
     "languageHeading": "Language",
     "languageEnglish": "English",
     "languageSpanish": "Español",

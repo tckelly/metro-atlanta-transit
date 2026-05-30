@@ -16,3 +16,21 @@ import './i18n/init';
 // real-browser pass (Lighthouse, axe DevTools, or future Playwright +
 // @axe-core/playwright) for contrast and focus-order verification.
 expect.extend(matchers);
+
+// jsdom does not implement `matchMedia`. Provide a benign default so
+// components that read `prefers-color-scheme` (e.g. `useThemePreference`)
+// don't crash in tests that don't care about theme behavior. Tests that
+// do care install their own stub on top — see `useThemePreference.test.ts`.
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+  window.matchMedia = (query: string): MediaQueryList =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }) as unknown as MediaQueryList;
+}

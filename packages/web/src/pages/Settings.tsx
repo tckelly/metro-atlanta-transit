@@ -2,15 +2,12 @@
  * Settings page — user preferences live here.
  *
  * v1 surfaces:
+ *  - Theme (auto / light / dark) — useThemePreference, mirrored with
+ *    the `index.html` bootstrap script.
  *  - Language (en / es) — routes through useLocale; persisted by i18n
  *    init module.
  *  - Clock format (12h / 24h / auto) — SettingsContext.
  *  - About card with attribution + disclaimer + version.
- *
- * Theme toggle is deferred — the existing index.html bootstrap script
- * already handles system / saved preference, but a UI control for it
- * would need a React-side mirror that the bootstrap also respects.
- * Marked as a future addition in roadmap.md.
  */
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +18,8 @@ import {
   useSettings,
   type ClockFormat,
 } from '../features/settings/SettingsContext';
+import { useThemePreference } from '../features/settings/useThemePreference';
+import type { ThemePreference } from '../features/settings/resolveEffectiveMode';
 import { version as APP_VERSION } from '../../package.json';
 
 export function Settings() {
@@ -35,10 +34,35 @@ export function Settings() {
         <h1 className="text-xl font-bold">{t('settings.title')}</h1>
       </header>
 
+      <ThemeSection />
       <LanguageSection />
       <ClockFormatSection />
       <AboutSection />
     </div>
+  );
+}
+
+function ThemeSection() {
+  const { t } = useTranslation();
+  const { preference, setPreference } = useThemePreference();
+
+  const options: Array<{ value: ThemePreference; label: string }> = [
+    { value: 'auto', label: t('settings.themeAuto') },
+    { value: 'light', label: t('settings.themeLight') },
+    { value: 'dark', label: t('settings.themeDark') },
+  ];
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-lg font-semibold">{t('settings.themeHeading')}</h2>
+      <RadioGroup
+        legend={t('settings.themeHeading')}
+        name="theme"
+        value={preference}
+        options={options}
+        onChange={setPreference}
+      />
+    </section>
   );
 }
 

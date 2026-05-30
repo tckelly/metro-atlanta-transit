@@ -152,6 +152,10 @@
   "settings": {
     "title": "Configuración",
     "backToHome": "Volver al inicio",
+    "themeHeading": "Tema",
+    "themeAuto": "Seguir el sistema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
     "languageHeading": "Idioma",
     "languageEnglish": "English",
     "languageSpanish": "Español",

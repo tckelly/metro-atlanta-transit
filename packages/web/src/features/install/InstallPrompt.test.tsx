@@ -6,17 +6,20 @@ import { InstallPrompt } from './InstallPrompt';
 import type { InstallEnvironment } from './useInstallPrompt';
 
 function envFor(opts: {
-  platform: 'ios' | 'android' | 'desktop';
+  platform: 'ios' | 'android' | 'android-firefox' | 'desktop';
   standalone?: boolean;
 }): InstallEnvironment {
   const uaByPlatform = {
     ios: 'Mozilla/5.0 (iPhone) AppleWebKit/605',
     android: 'Mozilla/5.0 (Linux; Android 14) Chrome/120.0',
+    'android-firefox':
+      'Mozilla/5.0 (Android 14; Mobile; rv:120.0) Gecko/120.0 Firefox/120.0',
     desktop: 'Mozilla/5.0 (Windows NT 10.0) Chrome/120.0',
   };
   const platformByPlatform = {
     ios: 'iPhone',
     android: 'Linux',
+    'android-firefox': 'Linux',
     desktop: 'Win32',
   };
   return {
@@ -52,6 +55,15 @@ describe('InstallPrompt', () => {
       <InstallPrompt environment={envFor({ platform: 'android' })} />,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('renders generic browser-menu instructions on non-Chromium Android (e.g. Firefox)', () => {
+    // Firefox on Android can install PWAs but only via the browser's
+    // overflow menu — no JS API. The card points the rider there
+    // instead of going silent.
+    render(<InstallPrompt environment={envFor({ platform: 'android-firefox' })} />);
+    expect(screen.getByText(/install atlanta transit/i)).toBeInTheDocument();
+    expect(screen.getByText(/browser.*menu/i)).toBeInTheDocument();
   });
 
   it('renders an install button after beforeinstallprompt fires, and calls prompt()', async () => {

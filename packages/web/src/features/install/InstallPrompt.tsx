@@ -30,6 +30,10 @@ export function InstallPrompt({ environment }: InstallPromptProps = {}) {
     return <IOSInstallInstructions />;
   }
 
+  if (state.kind === 'android-generic') {
+    return <AndroidGenericInstructions />;
+  }
+
   return (
     <MessageCard
       title={t('install.title')}
@@ -39,6 +43,22 @@ export function InstallPrompt({ environment }: InstallPromptProps = {}) {
           {t('install.button')}
         </Button>
       }
+    />
+  );
+}
+
+/**
+ * Generic Android fallback: shown on Android browsers that don't fire
+ * `beforeinstallprompt` (Firefox in practice). The install flow there
+ * is "open menu, tap Install" — we can't trigger it programmatically,
+ * but we can at least tell the rider where to find it.
+ */
+function AndroidGenericInstructions() {
+  const { t } = useTranslation();
+  return (
+    <MessageCard
+      title={t('install.androidTitle')}
+      body={t('install.androidBody')}
     />
   );
 }

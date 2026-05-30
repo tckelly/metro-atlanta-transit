@@ -15,7 +15,7 @@
  */
 import { useEffect, useState } from 'react';
 
-import { detectPlatform, type PlatformProbe } from './detectPlatform';
+import { detectPlatform, isLikelyChromium, type PlatformProbe } from './detectPlatform';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -33,6 +33,7 @@ export interface InstallEnvironment {
 export type InstallState =
   | { kind: 'hidden' }
   | { kind: 'ios' }
+  | { kind: 'android-generic' }
   | { kind: 'native'; prompt: () => Promise<void> };
 
 function defaultEnvironment(): InstallEnvironment {
@@ -94,6 +95,13 @@ export function useInstallPrompt(envOverride?: InstallEnvironment): InstallState
       },
     };
   }
-  if (detectPlatform(env.navigator) === 'ios') return { kind: 'ios' };
+  const platform = detectPlatform(env.navigator);
+  if (platform === 'ios') return { kind: 'ios' };
+  // Non-Chromium Android browsers (Firefox in practice) never fire
+  // `beforeinstallprompt`, so we show a generic "install from the
+  // browser menu" card instead of leaving them with no install path.
+  if (platform === 'android' && !isLikelyChromium(env.navigator)) {
+    return { kind: 'android-generic' };
+  }
   return { kind: 'hidden' };
 }

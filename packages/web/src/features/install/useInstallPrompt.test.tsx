@@ -66,7 +66,10 @@ describe('useInstallPrompt — initial state', () => {
     expect(result.current.kind).toBe('ios');
   });
 
-  it('returns "hidden" on Android until beforeinstallprompt fires', () => {
+  it('returns "hidden" on Chromium Android until beforeinstallprompt fires', () => {
+    // Chrome / Samsung Internet / Edge / Brave / Opera will fire the
+    // event; we suppress the generic instructions card until we know
+    // the native flow isn't coming.
     const env = makeEnv({
       navigator: {
         userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/120.0',
@@ -76,6 +79,22 @@ describe('useInstallPrompt — initial state', () => {
     });
     const { result } = renderHook(() => useInstallPrompt(env));
     expect(result.current.kind).toBe('hidden');
+  });
+
+  it('returns "android-generic" on non-Chromium Android (e.g. Firefox)', () => {
+    // Firefox on Android doesn't fire `beforeinstallprompt`, so we show
+    // a generic "install via your browser's menu" card instead of
+    // leaving the rider with no install path at all.
+    const env = makeEnv({
+      navigator: {
+        userAgent:
+          'Mozilla/5.0 (Android 14; Mobile; rv:120.0) Gecko/120.0 Firefox/120.0',
+        platform: 'Linux',
+        maxTouchPoints: 5,
+      },
+    });
+    const { result } = renderHook(() => useInstallPrompt(env));
+    expect(result.current.kind).toBe('android-generic');
   });
 
   it('returns "hidden" on desktop until beforeinstallprompt fires', () => {

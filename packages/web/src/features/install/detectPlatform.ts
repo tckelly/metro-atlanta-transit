@@ -32,3 +32,16 @@ export function detectPlatform(probe: PlatformProbe): Platform {
   }
   return 'desktop';
 }
+
+/**
+ * Heuristic: does the UA suggest a Chromium-based browser?
+ *
+ * Chrome, Samsung Internet, Edge Android, Brave, and Opera all
+ * advertise `Chrome/X.Y` in their UA strings (alongside their own
+ * marker) and fire `beforeinstallprompt`. Firefox does not include
+ * `Chrome/` and does not fire the event — those users need a manual
+ * "install via your browser's menu" fallback instead.
+ */
+export function isLikelyChromium(probe: Pick<PlatformProbe, 'userAgent'>): boolean {
+  return /\bChrome\//.test(probe.userAgent);
+}

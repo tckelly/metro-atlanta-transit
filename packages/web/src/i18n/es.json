@@ -121,6 +121,8 @@
     "title": "Instalar Atlanta Transit",
     "body": "Agrega la app a tu pantalla de inicio para ver llegadas con un toque.",
     "button": "Instalar app",
+    "androidTitle": "Instalar Atlanta Transit",
+    "androidBody": "Abre el menú de tu navegador y elige “Instalar” o “Agregar a la pantalla de inicio” para tener las llegadas a un toque.",
     "iosTitle": "Instalar en iPhone o iPad",
     "iosStep1Lead": "Toca el botón",
     "iosStep1Bold": "Compartir",

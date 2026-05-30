@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { detectPlatform } from './detectPlatform';
+import { detectPlatform, isLikelyChromium } from './detectPlatform';
 
 describe('detectPlatform', () => {
   it('detects iPhone', () => {
@@ -78,5 +78,56 @@ describe('detectPlatform', () => {
         maxTouchPoints: 0,
       }),
     ).toBe('desktop');
+  });
+});
+
+describe('isLikelyChromium', () => {
+  // We use "UA contains Chrome/" as a discriminator for whether the
+  // browser will fire `beforeinstallprompt` — Chrome, Samsung Internet,
+  // Edge Android, Brave, and Opera all advertise `Chrome/X.Y` even when
+  // they also add their own marker. Firefox is the major outlier.
+  it('returns true for Chrome on Android', () => {
+    expect(
+      isLikelyChromium({
+        userAgent:
+          'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120.0',
+      }),
+    ).toBe(true);
+  });
+
+  it('returns true for Samsung Internet (Chromium-based, also has Chrome/)', () => {
+    expect(
+      isLikelyChromium({
+        userAgent:
+          'Mozilla/5.0 (Linux; Android 14; SAMSUNG SM-S908U) AppleWebKit/537.36 SamsungBrowser/24.0 Chrome/115.0',
+      }),
+    ).toBe(true);
+  });
+
+  it('returns true for Edge on Android (EdgA + Chrome/)', () => {
+    expect(
+      isLikelyChromium({
+        userAgent:
+          'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120.0 EdgA/120.0',
+      }),
+    ).toBe(true);
+  });
+
+  it('returns false for Firefox on Android (no Chrome/ marker)', () => {
+    expect(
+      isLikelyChromium({
+        userAgent:
+          'Mozilla/5.0 (Android 14; Mobile; rv:120.0) Gecko/120.0 Firefox/120.0',
+      }),
+    ).toBe(false);
+  });
+
+  it('returns false for iOS Safari', () => {
+    expect(
+      isLikelyChromium({
+        userAgent:
+          'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1',
+      }),
+    ).toBe(false);
   });
 });

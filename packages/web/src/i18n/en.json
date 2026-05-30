@@ -121,6 +121,8 @@
     "title": "Install Atlanta Transit",
     "body": "Add the app to your home screen for one-tap arrivals.",
     "button": "Install app",
+    "androidTitle": "Install Atlanta Transit",
+    "androidBody": "Open your browser's menu and choose “Install” or “Add to Home Screen” to keep arrivals one tap away.",
     "iosTitle": "Install on iPhone or iPad",
     "iosStep1Lead": "Tap the",
     "iosStep1Bold": "Share",

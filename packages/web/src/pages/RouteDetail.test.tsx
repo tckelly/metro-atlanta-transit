@@ -29,6 +29,7 @@ function failingRepo(error: Error): GtfsRepository {
     getScheduledVisitsForStop: () => Promise.reject(error),
     getRouteDirections: () => Promise.reject(error),
     findNearbyStops: () => Promise.resolve([]),
+    getStopsForTrip: () => Promise.resolve([]),
   };
 }
 
@@ -57,6 +58,7 @@ function directionsRepo(directions: RouteDirection[]): GtfsRepository {
     getScheduledVisitsForStop: () => Promise.resolve([]),
     getRouteDirections: () => Promise.resolve(directions),
     findNearbyStops: () => Promise.resolve([]),
+    getStopsForTrip: () => Promise.resolve([]),
   };
 }
 

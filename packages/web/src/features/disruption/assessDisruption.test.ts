@@ -7,6 +7,7 @@ function row(status: ClassifiedBusRow['status'], tripId = String(Math.random()))
   return {
     tripId,
     routeId: '116',
+    stopSequence: 1,
     scheduledTime: 0,
     headsign: 'Decatur',
     status,

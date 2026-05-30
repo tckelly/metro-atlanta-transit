@@ -19,6 +19,7 @@ import type { RouteOut, StopOut } from '../../buildtime/preprocessGtfs';
 import type { ScheduledStopVisit } from '../../features/stops/busRowClassifier';
 import type { NearbyStop } from '../../features/nearby/getNearbyStops';
 import type { RouteDirection } from '../../features/routes/getRouteDirections';
+import type { TripStop } from '../../features/stops/downstreamStops';
 import type { GtfsRepository, ScheduledVisitsQuery } from './GtfsRepository';
 
 export interface SmallGtfsBundle {
@@ -38,6 +39,7 @@ const ScheduledStopVisitSchema = z.object({
   tripId: z.string(),
   routeId: z.string(),
   stopId: z.string(),
+  stopSequence: z.number().int().nonnegative(),
   scheduledTime: z.number(),
   headsign: z.string(),
 });
@@ -51,8 +53,17 @@ const RouteDirectionWireSchema = z.object({
 
 const RouteDirectionsResponseSchema = z.array(RouteDirectionWireSchema);
 
+const TripStopWireSchema = z.object({
+  stopId: z.string(),
+  stopSequence: z.number().int().nonnegative(),
+});
+
+const TripStopsResponseSchema = z.array(TripStopWireSchema);
+
 export class HybridGtfsRepository implements GtfsRepository {
   private readonly fetchFn: typeof globalThis.fetch;
+  private readonly stopsById: Map<string, StopOut>;
+  private readonly routesById: Map<string, RouteOut>;
 
   constructor(private readonly config: HybridGtfsConfig) {
     // Bind to globalThis so the global fetch isn't invoked with `this`
@@ -60,6 +71,12 @@ export class HybridGtfsRepository implements GtfsRepository {
     // other receiver with "Illegal invocation."
     const provided = config.fetch ?? globalThis.fetch;
     this.fetchFn = provided.bind(globalThis);
+    // The small bundle is immutable for the lifetime of the repo, so a
+    // one-shot Map index gives O(1) lookups for sync-metadata reads
+    // that are otherwise hot during enrichment (route directions,
+    // downstream stops, etc.).
+    this.stopsById = new Map(config.bundle.stops.map((s) => [s.stopId, s]));
+    this.routesById = new Map(config.bundle.routes.map((r) => [r.routeId, r]));
   }
 
   private get baseUrl(): string {
@@ -67,11 +84,11 @@ export class HybridGtfsRepository implements GtfsRepository {
   }
 
   getStop(stopId: string): StopOut | undefined {
-    return this.config.bundle.stops.find((s) => s.stopId === stopId);
+    return this.stopsById.get(stopId);
   }
 
   getRoute(routeId: string): RouteOut | undefined {
-    return this.config.bundle.routes.find((r) => r.routeId === routeId);
+    return this.routesById.get(routeId);
   }
 
   listStops(): readonly StopOut[] {
@@ -122,5 +139,14 @@ export class HybridGtfsRepository implements GtfsRepository {
     }));
     ranked.sort((a, b) => a.distanceMeters - b.distanceMeters);
     return ranked.slice(0, count);
+  }
+
+  async getStopsForTrip(tripId: string): Promise<TripStop[]> {
+    const params = new URLSearchParams({ tripId });
+    const res = await this.fetchFn(`${this.baseUrl}/api/gtfs/trip-stops?${params.toString()}`);
+    if (!res.ok) {
+      throw new Error(`trip-stops failed: ${res.status} ${res.statusText}`);
+    }
+    return TripStopsResponseSchema.parse(await res.json());
   }
 }

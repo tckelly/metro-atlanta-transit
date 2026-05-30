@@ -7,6 +7,7 @@ function row(overrides: Partial<ClassifiedBusRow> = {}): ClassifiedBusRow {
   return {
     tripId: 'T',
     routeId: 'R',
+    stopSequence: 1,
     scheduledTime: 0,
     headsign: 'H',
     status: 'no_live_data',

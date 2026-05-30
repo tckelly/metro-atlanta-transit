@@ -1,13 +1,27 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BusRow, Button, Icon, MessageCard, Skeleton } from '@atl-transit/components';
+import type { TFunction } from 'i18next';
+import type { TripUpdate } from '@atl-transit/gtfs';
+import { Button, Icon, MessageCard, Skeleton } from '@atl-transit/components';
 
 import { useArrivals } from '../features/stops/useArrivals';
 import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
+import { useRealtimeFeed } from '../features/realtime/RealtimeFeedContext';
 import { toBusRowProps } from '../features/stops/busRowMapper';
 import { groupRowsByRoute, type RouteGroup } from '../features/stops/groupRowsByRoute';
 import { useFormatTime } from '../i18n/formatters';
+import {
+  BusRowDisclosure,
+  type DownstreamStopView,
+} from '../features/stops/BusRowDisclosure';
+import {
+  downstreamStops,
+  type TripStop,
+} from '../features/stops/downstreamStops';
+import { liveTripUpdateToTripStops } from '../features/stops/liveTripUpdateToTripStops';
+import type { ClassifiedBusRow } from '../features/stops/busRowClassifier';
+import type { GtfsRepository } from '../services/gtfs/GtfsRepository';
 import { FavoriteStarButton } from '../features/favorites/FavoriteStarButton';
 import { assessDisruption } from '../features/disruption/assessDisruption';
 import { DisruptionBadge } from '../features/disruption/DisruptionBadge';
@@ -228,10 +242,20 @@ function RouteSection({ group, nowSec }: { group: RouteGroup; nowSec: number }) 
   const { t } = useTranslation();
   const repo = useGtfsRepository();
   const formatTime = useFormatTime();
+  const feed = useRealtimeFeed();
   const route = repo.getRoute(group.routeId);
   const shortName = route?.shortName ?? group.routeId;
   const level = assessDisruption(group.rows);
   const cancellations = group.rows.filter((r) => r.status === 'cancelled').length;
+
+  // One-shot index of the realtime feed by tripId so each row's
+  // disclosure can pull its live downstream pattern without scanning
+  // the full updates list per render.
+  const tripUpdatesByTripId = useMemo(
+    () => new Map(feed.tripUpdates.map((u) => [u.tripId, u])),
+    [feed.tripUpdates],
+  );
+
   return (
     <section>
       <div className="flex items-center gap-2">
@@ -241,12 +265,124 @@ function RouteSection({ group, nowSec }: { group: RouteGroup; nowSec: number }) 
         <DisruptionBadge level={level} cancellations={cancellations} />
       </div>
       <ul className="mt-2 divide-y divide-divider">
-        {group.rows.map((row) => {
-          const props = toBusRowProps(row, nowSec, { t, formatTime });
-          return <BusRow key={row.tripId} {...props} />;
-        })}
+        {group.rows.map((row) => (
+          <DisclosureBusRow
+            key={row.tripId}
+            row={row}
+            nowSec={nowSec}
+            shortName={shortName}
+            tripUpdate={tripUpdatesByTripId.get(row.tripId)}
+            repo={repo}
+            t={t}
+            formatTime={formatTime}
+          />
+        ))}
       </ul>
     </section>
+  );
+}
+
+interface DisclosureBusRowProps {
+  row: ClassifiedBusRow;
+  nowSec: number;
+  shortName: string;
+  tripUpdate: TripUpdate | undefined;
+  repo: GtfsRepository;
+  t: TFunction;
+  formatTime: (unixSec: number) => string;
+}
+
+/**
+ * Per-row glue between a `ClassifiedBusRow` and `BusRowDisclosure`.
+ *
+ * - Live rows (rt trip update present) derive their downstream stops
+ *   in-memory — no network call, and free SKIPPED flags + predicted
+ *   ETAs come along for the ride.
+ * - Scheduled / no-live / cancelled rows lazy-fetch the trip's stop
+ *   pattern from the backend on first open, then cache the result in
+ *   component state so re-opens don't re-fetch.
+ *
+ * Per-row component (instead of an array of state in the parent) so
+ * each row owns its own open + fetched cache; no cross-row coupling.
+ */
+function DisclosureBusRow({
+  row,
+  nowSec,
+  shortName,
+  tripUpdate,
+  repo,
+  t,
+  formatTime,
+}: DisclosureBusRowProps) {
+  const busRowProps = toBusRowProps(row, nowSec, { t, formatTime });
+
+  // Live path: derive downstream from the realtime trip update.
+  const liveDownstream = useMemo<TripStop[] | undefined>(() => {
+    if (row.status !== 'live' || tripUpdate === undefined) return undefined;
+    return downstreamStops(
+      liveTripUpdateToTripStops(tripUpdate),
+      row.stopSequence,
+    );
+  }, [row.status, row.stopSequence, tripUpdate]);
+
+  // Scheduled path: cache for the lazy fetch + a separate error flag so
+  // a fetch failure renders as an explicit error message instead of
+  // masquerading as a (success-looking) empty downstream list.
+  const [scheduledDownstream, setScheduledDownstream] = useState<
+    TripStop[] | undefined
+  >(undefined);
+  const [fetchStarted, setFetchStarted] = useState(false);
+  const [fetchFailed, setFetchFailed] = useState(false);
+
+  const handleOpen = useCallback(() => {
+    if (liveDownstream !== undefined) return;
+    if (fetchStarted) return;
+    setFetchStarted(true);
+    repo
+      .getStopsForTrip(row.tripId)
+      .then((stops) => {
+        setScheduledDownstream(downstreamStops(stops, row.stopSequence));
+      })
+      .catch((err: unknown) => {
+        // Surface a rider-facing error label; keep technical detail in
+        // the console for developers (never in the DOM on a public site).
+        console.error('DisclosureBusRow: getStopsForTrip failed', err);
+        setFetchFailed(true);
+      });
+  }, [liveDownstream, fetchStarted, repo, row.tripId, row.stopSequence]);
+
+  const sourceDownstream = liveDownstream ?? scheduledDownstream;
+  const downstreamView = useMemo<DownstreamStopView[] | undefined>(() => {
+    if (sourceDownstream === undefined) return undefined;
+    return sourceDownstream.map((s) => {
+      const stop = repo.getStop(s.stopId);
+      const view: DownstreamStopView = {
+        stopId: s.stopId,
+        name: stop?.name ?? s.stopId,
+      };
+      if (s.isSkipped === true) view.isSkipped = true;
+      if (s.predictedArrivalTime !== undefined) {
+        view.predictedArrivalText = formatTime(s.predictedArrivalTime);
+      }
+      return view;
+    });
+  }, [sourceDownstream, repo, formatTime]);
+
+  const time = formatTime(row.scheduledTime);
+  const labelArgs = { shortName, headsign: row.headsign, time };
+
+  return (
+    <BusRowDisclosure
+      busRowProps={busRowProps}
+      downstream={downstreamView}
+      onOpen={handleOpen}
+      triggerLabel={t('stopDetail.disclosureTrigger', labelArgs)}
+      panelLabel={t('stopDetail.disclosurePanel', labelArgs)}
+      loadingLabel={t('stopDetail.disclosureLoading')}
+      lastStopLabel={t('stopDetail.disclosureLastStop')}
+      skippedLabel={t('stopDetail.disclosureSkipped')}
+      {...(fetchFailed ? { errorMessage: t('stopDetail.disclosureLoadError') } : {})}
+    />
   );
 }
 

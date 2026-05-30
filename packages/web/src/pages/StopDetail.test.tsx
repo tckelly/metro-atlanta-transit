@@ -49,6 +49,7 @@ function staticRepo(): GtfsRepository {
     getScheduledVisitsForStop: () => Promise.resolve([]),
     getRouteDirections: () => Promise.resolve([]),
     findNearbyStops: () => Promise.resolve([]),
+    getStopsForTrip: () => Promise.resolve([]),
   };
 }
 

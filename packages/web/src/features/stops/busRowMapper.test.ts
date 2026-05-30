@@ -29,6 +29,7 @@ function liveRow(overrides: Partial<ClassifiedBusRow> = {}): ClassifiedBusRow {
   return {
     tripId: 'T1',
     routeId: 'R36',
+    stopSequence: 1,
     scheduledTime: NOW_SEC + 180, // scheduled 3 min from now
     headsign: 'Decatur Station',
     status: 'live',
@@ -126,6 +127,7 @@ describe('toBusRowProps — cancelled', () => {
     const row: ClassifiedBusRow = {
       tripId: 'T1',
       routeId: 'R36',
+      stopSequence: 1,
       scheduledTime: NOW_SEC + 180,
       headsign: 'Decatur Station',
       status: 'cancelled',
@@ -141,6 +143,7 @@ describe('toBusRowProps — cancelled', () => {
     const row: ClassifiedBusRow = {
       tripId: 'T1',
       routeId: 'R36',
+      stopSequence: 1,
       scheduledTime: NOW_SEC,
       headsign: 'Decatur Station',
       status: 'cancelled',
@@ -222,6 +225,7 @@ describe('toBusRowProps — no live data', () => {
     const row: ClassifiedBusRow = {
       tripId: 'T1',
       routeId: 'R36',
+      stopSequence: 1,
       scheduledTime: NOW_SEC,
       headsign: 'Decatur Station',
       status: 'no_live_data',
@@ -236,6 +240,7 @@ describe('toBusRowProps — no live data', () => {
     const row: ClassifiedBusRow = {
       tripId: 'T1',
       routeId: 'R36',
+      stopSequence: 1,
       scheduledTime: NOW_SEC,
       headsign: 'Decatur Station',
       status: 'no_live_data',

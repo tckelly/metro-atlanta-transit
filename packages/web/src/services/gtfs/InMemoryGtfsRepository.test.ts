@@ -143,6 +143,20 @@ describe('InMemoryGtfsRepository — async queries', () => {
     const repo = new InMemoryGtfsRepository(BUNDLE);
     expect(await repo.findNearbyStops({ lat: 0, lng: 0 }, 0)).toEqual([]);
   });
+
+  it('getStopsForTrip returns the trip’s ordered stop pattern', async () => {
+    const repo = new InMemoryGtfsRepository(BUNDLE);
+    const stops = await repo.getStopsForTrip('T1');
+    expect(stops).toEqual([
+      { stopId: 'S1', stopSequence: 1 },
+      { stopId: 'S2', stopSequence: 2 },
+    ]);
+  });
+
+  it('getStopsForTrip returns empty for an unknown trip', async () => {
+    const repo = new InMemoryGtfsRepository(BUNDLE);
+    expect(await repo.getStopsForTrip('nope')).toEqual([]);
+  });
 });
 
 describe('InMemoryGtfsRepository — sync contract', () => {

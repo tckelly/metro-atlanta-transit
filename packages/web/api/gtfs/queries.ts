@@ -31,6 +31,17 @@ export interface RouteDirectionWire {
   stopIds: string[];
 }
 
+/**
+ * A single stop in a specific trip's ordered pattern. Identified by
+ * `stopSequence` (not just `stopId`) so consumers can slice the
+ * pattern unambiguously even on loop routes where the same `stopId`
+ * appears more than once in a trip.
+ */
+export interface TripStopWire {
+  stopId: string;
+  stopSequence: number;
+}
+
 const WEEKDAY_COLUMNS = [
   'monday',
   'tuesday',
@@ -98,7 +109,7 @@ export function queryScheduledVisits(
   const placeholders = Array.from({ length: activeServices.size }, () => '?').join(',');
   const rows = db
     .prepare(
-      `SELECT t.trip_id, t.route_id, t.headsign, st.arrival_time
+      `SELECT t.trip_id, t.route_id, t.headsign, st.stop_sequence, st.arrival_time
        FROM stop_times st
        JOIN trips t ON t.trip_id = st.trip_id
        WHERE st.stop_id = ? AND t.service_id IN (${placeholders})`,
@@ -107,6 +118,7 @@ export function queryScheduledVisits(
       trip_id: string;
       route_id: string;
       headsign: string;
+      stop_sequence: number;
       arrival_time: string;
     }>;
 
@@ -114,6 +126,7 @@ export function queryScheduledVisits(
     tripId: r.trip_id,
     routeId: r.route_id,
     stopId: params.stopId,
+    stopSequence: r.stop_sequence,
     scheduledTime: gtfsTimeToUnixSec(params.date, r.arrival_time),
     headsign: r.headsign,
   }));
@@ -169,4 +182,26 @@ export function queryRouteDirections(
     directions.push({ headsign, stopIds: stopRows.map((r) => r.stop_id) });
   }
   return directions;
+}
+
+/**
+ * The full ordered stop pattern for a single trip. Used by the
+ * downstream-stops disclosure on the stop-detail page to render
+ * "where this bus is going next" for a specific arrival when no
+ * realtime trip update is available.
+ *
+ * Uses the `(trip_id, stop_sequence)` primary key as an index-only
+ * scan — no table reads beyond the PK itself.
+ */
+export function queryStopsForTrip(
+  db: Database.Database,
+  tripId: string,
+): TripStopWire[] {
+  const rows = db
+    .prepare(
+      'SELECT stop_id, stop_sequence FROM stop_times WHERE trip_id = ? ORDER BY stop_sequence',
+    )
+    .all(tripId) as Array<{ stop_id: string; stop_sequence: number }>;
+
+  return rows.map((r) => ({ stopId: r.stop_id, stopSequence: r.stop_sequence }));
 }

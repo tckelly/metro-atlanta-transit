@@ -60,7 +60,13 @@
     "routeHeader": "Ruta {{shortName}} — {{headsign}}",
     "lastUpdatedPrefix": "Última actualización",
     "lastUpdatedStaleSuffix": " — no se pudo actualizar",
-    "lastUpdatedVeryStaleSuffix": " — los datos podrían ser incorrectos"
+    "lastUpdatedVeryStaleSuffix": " — los datos podrían ser incorrectos",
+    "disclosureTrigger": "Mostrar paradas de la ruta {{shortName}} hacia {{headsign}} a las {{time}}",
+    "disclosurePanel": "Paradas de la ruta {{shortName}} hacia {{headsign}} a las {{time}}",
+    "disclosureLoading": "Cargando paradas posteriores",
+    "disclosureLastStop": "Esta es la última parada del viaje.",
+    "disclosureSkipped": "omitida",
+    "disclosureLoadError": "No se pudo cargar la lista de paradas de este viaje."
   },
   "bundle": {
     "loadingTitle": "Cargando datos del horario…",

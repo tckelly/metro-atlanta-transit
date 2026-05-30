@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
 
 import { buildGtfsSqlite } from '../../src/buildtime/buildGtfsSqlite.js';
-import { queryActiveServiceIds, queryScheduledVisits, queryRouteDirections } from './queries.js';
+import {
+  queryActiveServiceIds,
+  queryScheduledVisits,
+  queryRouteDirections,
+  queryStopsForTrip,
+} from './queries.js';
 import type { GtfsBundle } from '../../src/buildtime/preprocessGtfs.js';
 
 const BUNDLE: GtfsBundle = {
@@ -131,6 +136,17 @@ describe('queryScheduledVisits', () => {
     expect(decatur?.headsign).toBe('Decatur');
   });
 
+  it('carries each visit’s stopSequence so consumers can slice a trip pattern unambiguously', () => {
+    // TA1 visits S1 at sequence 1; TB1 visits S1 at sequence 3. Carrying
+    // the actual sequence (not assuming "always 1") matters when the
+    // downstream-stops disclosure needs to slice the trip pattern at
+    // the right position.
+    const db = buildSeededDb();
+    const visits = queryScheduledVisits(db, { stopId: 'S1', date: '20260105' });
+    expect(visits.find((v) => v.tripId === 'TA1')?.stopSequence).toBe(1);
+    expect(visits.find((v) => v.tripId === 'TB1')?.stopSequence).toBe(3);
+  });
+
   it('applies the count + window filter when nowSec is supplied', () => {
     const db = buildSeededDb();
     // 06:00 EDT on 2026-01-05 = 1767610800 Unix seconds.
@@ -167,5 +183,31 @@ describe('queryRouteDirections', () => {
   it('returns empty for an unknown route', () => {
     const db = buildSeededDb();
     expect(queryRouteDirections(db, 'NOPE')).toEqual([]);
+  });
+});
+
+describe('queryStopsForTrip', () => {
+  it('returns the trip’s stops as {stopId, stopSequence}[] in sequence order', () => {
+    const db = buildSeededDb();
+    expect(queryStopsForTrip(db, 'TA1')).toEqual([
+      { stopId: 'S1', stopSequence: 1 },
+      { stopId: 'S2', stopSequence: 2 },
+      { stopId: 'S3', stopSequence: 3 },
+    ]);
+  });
+
+  it('honors stop_sequence — a trip that visits the same stops in the opposite direction returns them reversed', () => {
+    // TB1 is Avondale: S3 → S2 → S1 (sequences 1, 2, 3).
+    const db = buildSeededDb();
+    expect(queryStopsForTrip(db, 'TB1')).toEqual([
+      { stopId: 'S3', stopSequence: 1 },
+      { stopId: 'S2', stopSequence: 2 },
+      { stopId: 'S1', stopSequence: 3 },
+    ]);
+  });
+
+  it('returns empty for an unknown tripId', () => {
+    const db = buildSeededDb();
+    expect(queryStopsForTrip(db, 'NOPE')).toEqual([]);
   });
 });

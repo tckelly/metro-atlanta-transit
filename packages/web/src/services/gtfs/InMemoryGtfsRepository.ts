@@ -1,11 +1,10 @@
 /**
  * `GtfsRepository` backed by a fully-loaded in-memory bundle.
  *
- * This is the legacy implementation made interface-compliant — every
- * call delegates to existing pure helpers in `gtfsStatic.ts`,
- * `getNearbyStops`, and `getRouteDirections`. Tests for those modules
- * cover the behavior; this class is the thin adapter that exposes
- * them through the `GtfsRepository` contract.
+ * Async methods delegate to pure helpers in `gtfsStatic.ts`,
+ * `getNearbyStops`, and `getRouteDirections`. Sync metadata reads use
+ * Map indexes built once in the constructor — the bundle is immutable
+ * for the lifetime of the repo instance, so the maps are valid forever.
  *
  * Async methods resolve immediately — wrapping with `async` is free
  * here, and matters because production may swap in a backend impl
@@ -19,22 +18,25 @@ import {
   getRouteDirections,
   type RouteDirection,
 } from '../../features/routes/getRouteDirections';
-import {
-  getRouteMetadata,
-  getScheduledVisitsForStop,
-  getStopMetadata,
-} from '../gtfsStatic';
+import type { TripStop } from '../../features/stops/downstreamStops';
+import { getScheduledVisitsForStop } from '../gtfsStatic';
 import type { GtfsRepository, ScheduledVisitsQuery } from './GtfsRepository';
 
 export class InMemoryGtfsRepository implements GtfsRepository {
-  constructor(private readonly bundle: GtfsBundle) {}
+  private readonly stopsById: Map<string, StopOut>;
+  private readonly routesById: Map<string, RouteOut>;
+
+  constructor(private readonly bundle: GtfsBundle) {
+    this.stopsById = new Map(bundle.stops.map((s) => [s.stopId, s]));
+    this.routesById = new Map(bundle.routes.map((r) => [r.routeId, r]));
+  }
 
   getStop(stopId: string): StopOut | undefined {
-    return getStopMetadata(this.bundle, stopId);
+    return this.stopsById.get(stopId);
   }
 
   getRoute(routeId: string): RouteOut | undefined {
-    return getRouteMetadata(this.bundle, routeId);
+    return this.routesById.get(routeId);
   }
 
   listStops(): readonly StopOut[] {
@@ -59,5 +61,12 @@ export class InMemoryGtfsRepository implements GtfsRepository {
 
   async findNearbyStops(position: LatLng, count: number): Promise<NearbyStop[]> {
     return getNearbyStops(this.bundle, position, count);
+  }
+
+  async getStopsForTrip(tripId: string): Promise<TripStop[]> {
+    return this.bundle.stopTimes
+      .filter((st) => st.tripId === tripId)
+      .sort((a, b) => a.stopSequence - b.stopSequence)
+      .map((st) => ({ stopId: st.stopId, stopSequence: st.stopSequence }));
   }
 }

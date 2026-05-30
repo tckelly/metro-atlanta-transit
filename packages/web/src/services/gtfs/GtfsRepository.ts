@@ -25,6 +25,7 @@ import type { StopOut, RouteOut } from '../../buildtime/preprocessGtfs';
 import type { ScheduledStopVisit } from '../../features/stops/busRowClassifier';
 import type { NearbyStop } from '../../features/nearby/getNearbyStops';
 import type { RouteDirection } from '../../features/routes/getRouteDirections';
+import type { TripStop } from '../../features/stops/downstreamStops';
 
 export interface ScheduledVisitsQuery {
   stopId: string;
@@ -88,4 +89,15 @@ export interface GtfsRepository {
    * with `distanceMeters`.
    */
   findNearbyStops(position: LatLng, count: number): Promise<NearbyStop[]>;
+
+  /**
+   * The full ordered stop pattern for a single trip — used by the
+   * downstream-stops disclosure on the stop-detail page to render
+   * "where this bus is going next" when the rider taps an arrival.
+   *
+   * Live rows on the stop-detail page derive their downstream stops
+   * from the realtime feed directly; this method is the scheduled-
+   * path fallback for arrivals that have no live trip update.
+   */
+  getStopsForTrip(tripId: string): Promise<TripStop[]>;
 }

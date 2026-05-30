@@ -7,6 +7,9 @@
     },
     "api/gtfs/route-directions.ts": {
       "includeFiles": "api/_data/**"
+    },
+    "api/gtfs/trip-stops.ts": {
+      "includeFiles": "api/_data/**"
     }
   }
 }

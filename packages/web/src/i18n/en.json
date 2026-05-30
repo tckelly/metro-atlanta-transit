@@ -60,7 +60,13 @@
     "routeHeader": "Route {{shortName}} — {{headsign}}",
     "lastUpdatedPrefix": "Last updated",
     "lastUpdatedStaleSuffix": " — couldn’t refresh",
-    "lastUpdatedVeryStaleSuffix": " — data may be wrong"
+    "lastUpdatedVeryStaleSuffix": " — data may be wrong",
+    "disclosureTrigger": "Show stops for route {{shortName}} to {{headsign}} at {{time}}",
+    "disclosurePanel": "Stops for route {{shortName}} to {{headsign}} at {{time}}",
+    "disclosureLoading": "Loading downstream stops",
+    "disclosureLastStop": "This is the last stop on this trip.",
+    "disclosureSkipped": "skipped",
+    "disclosureLoadError": "Couldn’t load stop list for this trip."
   },
   "bundle": {
     "loadingTitle": "Loading schedule data…",

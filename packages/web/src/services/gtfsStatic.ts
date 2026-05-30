@@ -10,8 +10,6 @@
 
 import type {
   GtfsBundle,
-  StopOut,
-  RouteOut,
   TripOut,
 } from '../buildtime/preprocessGtfs.js';
 import type { ScheduledStopVisit } from '../features/stops/busRowClassifier.js';
@@ -165,6 +163,7 @@ export function getScheduledVisitsForStop(
       tripId: trip.tripId,
       routeId: trip.routeId,
       stopId: st.stopId,
+      stopSequence: st.stopSequence,
       scheduledTime: gtfsTimeToUnixSec(date, st.arrivalTime),
       headsign: trip.headsign,
     });
@@ -177,13 +176,5 @@ export function getScheduledVisitsForStop(
   const max = window.windowSec !== undefined ? window.nowSec + window.windowSec : Infinity;
   const count = window.count ?? DEFAULT_COUNT;
   return sorted.filter((v) => v.scheduledTime >= min && v.scheduledTime <= max).slice(0, count);
-}
-
-export function getStopMetadata(bundle: GtfsBundle, stopId: string): StopOut | undefined {
-  return bundle.stops.find((s) => s.stopId === stopId);
-}
-
-export function getRouteMetadata(bundle: GtfsBundle, routeId: string): RouteOut | undefined {
-  return bundle.routes.find((r) => r.routeId === routeId);
 }
 

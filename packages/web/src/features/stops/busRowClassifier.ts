@@ -18,6 +18,13 @@ export interface ScheduledStopVisit {
   tripId: string;
   routeId: string;
   stopId: string;
+  /**
+   * 1-based position of this stop within the trip's pattern. Carried
+   * through so consumers (e.g., the downstream-stops disclosure) can
+   * slice a trip's stop list unambiguously even on loop routes where
+   * the same `stopId` appears twice.
+   */
+  stopSequence: number;
   /** Unix seconds — the published scheduled arrival time at this stop. */
   scheduledTime: number;
   /** Human-readable destination, e.g., "Decatur Station". */
@@ -31,6 +38,7 @@ export interface ScheduledStopVisit {
 export interface ClassifiedBusRow {
   tripId: string;
   routeId: string;
+  stopSequence: number;
   scheduledTime: number;
   headsign: string;
   status: BusRowStatus;
@@ -68,6 +76,7 @@ export function classifyBusRows(input: ClassifyInput): ClassifiedBusRow[] {
     const baseRow = {
       tripId: visit.tripId,
       routeId: visit.routeId,
+      stopSequence: visit.stopSequence,
       scheduledTime: visit.scheduledTime,
       headsign: visit.headsign,
     };

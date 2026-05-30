@@ -63,6 +63,7 @@ describe('HybridGtfsRepository — getScheduledVisitsForStop', () => {
         tripId: 'T1',
         routeId: '116',
         stopId: 'S1',
+        stopSequence: 1,
         scheduledTime: 1767611400,
         headsign: 'Decatur',
       },
@@ -160,6 +161,39 @@ describe('HybridGtfsRepository — getRouteDirections', () => {
     });
     const repo = new HybridGtfsRepository({ bundle: BUNDLE, fetch });
     await expect(repo.getRouteDirections('116')).rejects.toThrow();
+  });
+});
+
+describe('HybridGtfsRepository — getStopsForTrip', () => {
+  it('fetches /api/gtfs/trip-stops with the tripId and returns the wire payload', async () => {
+    const wire = [
+      { stopId: 'S1', stopSequence: 1 },
+      { stopId: 'S2', stopSequence: 2 },
+    ];
+    const fetch = fakeFetch({ '/api/gtfs/trip-stops': jsonResponse(wire) });
+    const repo = new HybridGtfsRepository({ bundle: BUNDLE, fetch });
+
+    const stops = await repo.getStopsForTrip('T1');
+    expect(stops).toEqual(wire);
+
+    const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0]);
+    expect(calledUrl).toContain('tripId=T1');
+  });
+
+  it('throws on non-2xx backend response', async () => {
+    const fetch = fakeFetch({
+      '/api/gtfs/trip-stops': new Response('', { status: 500 }),
+    });
+    const repo = new HybridGtfsRepository({ bundle: BUNDLE, fetch });
+    await expect(repo.getStopsForTrip('T1')).rejects.toThrow(/500/);
+  });
+
+  it('rejects a response whose shape doesn’t match the schema', async () => {
+    const fetch = fakeFetch({
+      '/api/gtfs/trip-stops': jsonResponse([{ stopId: 'S1' /* missing stopSequence */ }]),
+    });
+    const repo = new HybridGtfsRepository({ bundle: BUNDLE, fetch });
+    await expect(repo.getStopsForTrip('T1')).rejects.toThrow();
   });
 });
 

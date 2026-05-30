@@ -50,6 +50,8 @@ async function gtfsBackendMiddleware(
       handler = (await import('./api/gtfs/stop-times.ts')).handleStopTimes;
     } else if (url.startsWith('/api/gtfs/route-directions')) {
       handler = (await import('./api/gtfs/route-directions.ts')).handleRouteDirections;
+    } else if (url.startsWith('/api/gtfs/trip-stops')) {
+      handler = (await import('./api/gtfs/trip-stops.ts')).handleTripStops;
     }
     if (handler === null) {
       next();

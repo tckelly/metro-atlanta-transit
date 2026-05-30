@@ -166,7 +166,26 @@ export function BusRowDisclosure({
               {downstream !== undefined && downstream.length > 0 && (
                 <ul className="space-y-1">
                   {downstream.map((s) => (
-                    <li key={s.stopId} className="text-sm">
+                    <li
+                      key={s.stopId}
+                      className="flex items-baseline gap-3 text-sm"
+                    >
+                      {s.predictedArrivalText !== undefined ? (
+                        <span className="min-w-[3.5rem] shrink-0 tabular-nums text-fg-muted">
+                          {s.predictedArrivalText}
+                        </span>
+                      ) : (
+                        // NO_DATA from the realtime feed — bus still serves the
+                        // stop, just no live prediction. Em-dash keeps the
+                        // column aligned and signals "no live time" without
+                        // implying cancellation.
+                        <span
+                          aria-hidden="true"
+                          className="min-w-[3.5rem] shrink-0 tabular-nums text-fg-muted"
+                        >
+                          —
+                        </span>
+                      )}
                       <span
                         className={
                           s.isSkipped
@@ -177,13 +196,8 @@ export function BusRowDisclosure({
                         {s.name}
                       </span>
                       {s.isSkipped && skippedLabel !== undefined && (
-                        <span className="ml-1 text-fg-muted">
+                        <span className="text-fg-muted">
                           ({skippedLabel})
-                        </span>
-                      )}
-                      {s.predictedArrivalText !== undefined && (
-                        <span className="ml-2 text-fg-muted">
-                          · {s.predictedArrivalText}
                         </span>
                       )}
                     </li>

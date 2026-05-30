@@ -193,6 +193,57 @@ describe('BusRowDisclosure', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders the predicted arrival time before the stop name (time-first column layout)', async () => {
+    const user = userEvent.setup();
+    renderInList(
+      <BusRowDisclosure
+        busRowProps={ROW}
+        downstream={[
+          { stopId: 'S2', name: 'Ponce @ Barnett', predictedArrivalText: '12:34' },
+          { stopId: 'S3', name: 'Decatur Station', predictedArrivalText: '12:36' },
+        ]}
+        triggerLabel="Show stops"
+        panelLabel="Downstream stops"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Show stops' }));
+
+    // Time-first so sighted riders can scan a left-aligned column and
+    // screen readers hear the time before the name ("12:34, Ponce @ Barnett").
+    const time = screen.getByText('12:34');
+    const name = screen.getByText('Ponce @ Barnett');
+    expect(
+      time.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('renders an em-dash placeholder when a downstream stop has no predicted time', async () => {
+    const user = userEvent.setup();
+    renderInList(
+      <BusRowDisclosure
+        busRowProps={ROW}
+        downstream={[
+          { stopId: 'S2', name: 'Has Time', predictedArrivalText: '12:34' },
+          { stopId: 'S3', name: 'No Time' },
+        ]}
+        triggerLabel="Show stops"
+        panelLabel="Downstream stops"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Show stops' }));
+
+    // NO_DATA rows (~12% of MARTA's downstream updates) lack a live
+    // prediction but the bus is still expected to serve the stop. An em-dash
+    // keeps the column aligned and signals "no live time" without implying
+    // the stop is cancelled. Hidden from screen readers so listeners just
+    // hear the stop name.
+    const dash = screen.getByText('—');
+    expect(dash).toBeInTheDocument();
+    expect(dash).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('renders the BusRow’s primary and secondary text on the trigger', () => {
     renderInList(
       <BusRowDisclosure

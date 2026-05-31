@@ -221,12 +221,6 @@ If after two weeks the app is stable and the feedback loop is healthy, declare v
 
 Smaller product items deferred from v0.0.1 — surface in v0.0.2 as bandwidth and adjacent feedback allow. No trigger conditions; these are taste/clarity calls, not evidence-gated.
 
-### Flip downstream stops disclosure to name-first
-
-The `BusRowDisclosure` per-stop list currently renders arrival time first, stop name second — chosen to match the BusRow header's "time-as-primary" pattern. After dogfood, name-first reads better in this context: when a rider expands a specific trip the question is *which stops does this bus serve* (am I on the right branch?), so the stop name is the primary scan target and the time is supplementary confirmation. Swap to stop name in the left column, arrival time right-aligned in a second column; keep `tabular-nums` so the time column still aligns vertically.
-
-**Files:** `packages/web/src/features/stops/BusRowDisclosure.tsx` + sibling test.
-
 ### Match BusRow severity colors on live downstream times
 
 The BusRow uses status color to telegraph timing (green early/on-time, yellow slight delay, red late/cancelled). The disclosure currently renders all per-stop times in `text-fg-muted` regardless of how each prediction compares to schedule. Carry the same severity down per-stop: compute `delaySec = predictedArrivalTime - scheduledTime` per downstream stop, classify via the same thresholds the row classifier uses, and color the time accordingly. Blocker: scheduled times currently only ride the scheduled-path fetch — either fold scheduled into the live mapper, or have the disclosure merge both when both are available. Naturally pairs with the scheduled-path-times item below.

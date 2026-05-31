@@ -193,7 +193,7 @@ describe('BusRowDisclosure', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the predicted arrival time before the stop name (time-first column layout)', async () => {
+  it('renders the stop name before the predicted arrival time (name-first column layout)', async () => {
     const user = userEvent.setup();
     renderInList(
       <BusRowDisclosure
@@ -209,12 +209,14 @@ describe('BusRowDisclosure', () => {
 
     await user.click(screen.getByRole('button', { name: 'Show stops' }));
 
-    // Time-first so sighted riders can scan a left-aligned column and
-    // screen readers hear the time before the name ("12:34, Ponce @ Barnett").
-    const time = screen.getByText('12:34');
+    // Name-first: when a rider expands a specific trip the question is
+    // "which stops does this bus serve" (am I on the right branch?), so
+    // the stop name is the primary scan target and the time is supplementary
+    // confirmation. Screen readers hear "Ponce @ Barnett, 12:34".
     const name = screen.getByText('Ponce @ Barnett');
+    const time = screen.getByText('12:34');
     expect(
-      time.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING,
+      name.compareDocumentPosition(time) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

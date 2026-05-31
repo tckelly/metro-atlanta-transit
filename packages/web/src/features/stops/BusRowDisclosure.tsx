@@ -170,34 +170,36 @@ export function BusRowDisclosure({
                       key={s.stopId}
                       className="flex items-baseline gap-3 text-sm"
                     >
+                      <span className="flex min-w-0 flex-1 items-baseline gap-2">
+                        <span
+                          className={
+                            s.isSkipped
+                              ? 'text-fg-muted line-through'
+                              : 'text-fg'
+                          }
+                        >
+                          {s.name}
+                        </span>
+                        {s.isSkipped && skippedLabel !== undefined && (
+                          <span className="text-fg-muted">
+                            ({skippedLabel})
+                          </span>
+                        )}
+                      </span>
                       {s.predictedArrivalText !== undefined ? (
-                        <span className="min-w-[3.5rem] shrink-0 tabular-nums text-fg-muted">
+                        <span className="shrink-0 tabular-nums text-fg-muted">
                           {s.predictedArrivalText}
                         </span>
                       ) : (
                         // NO_DATA from the realtime feed — bus still serves the
                         // stop, just no live prediction. Em-dash keeps the
-                        // column aligned and signals "no live time" without
-                        // implying cancellation.
+                        // time column aligned and signals "no live time"
+                        // without implying cancellation.
                         <span
                           aria-hidden="true"
-                          className="min-w-[3.5rem] shrink-0 tabular-nums text-fg-muted"
+                          className="shrink-0 tabular-nums text-fg-muted"
                         >
                           —
-                        </span>
-                      )}
-                      <span
-                        className={
-                          s.isSkipped
-                            ? 'text-fg-muted line-through'
-                            : 'text-fg'
-                        }
-                      >
-                        {s.name}
-                      </span>
-                      {s.isSkipped && skippedLabel !== undefined && (
-                        <span className="text-fg-muted">
-                          ({skippedLabel})
                         </span>
                       )}
                     </li>

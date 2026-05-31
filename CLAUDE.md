@@ -4,7 +4,7 @@
 
 **Atlanta Transit** is a Progressive Web App (PWA) for real-time MARTA bus tracking in metro Atlanta. The goal is best-in-class real-time bus support — better UX than MARTA's website, faster than Google Maps, and more focused than generic transit apps.
 
-- **Status:** Pre-launch (v0.0.1) — the three core jobs are built; currently in M5/M6 polish + launch-prep (see `docs/roadmap.md`)
+- **Status:** Pre-launch (v0.0.1) — the three core jobs are built; currently in M5/M6 polish + launch-prep (see `docs/roadmap.md`). *Update this line once v0.0.1 ships.*
 - **Audience:** Atlanta bus commuters; solo dev project, open source
 - **Docs:** Authoritative info lives in `docs/` — see the Docs Map below.
 
@@ -16,11 +16,14 @@
 - `docs/product-requirements.md` — v1 features with acceptance criteria
 - `docs/ux-guidelines.md` — visual system, components, screens
 - `docs/architecture.md` — workspace layout, data flow, polling lifecycle
-- `docs/adr/` — Nygard-style ADRs for load-bearing decisions; see `docs/adr/README.md` for format and process
+- `docs/adr/` — Nygard-style ADRs for load-bearing decisions; see `docs/adr/README.md` for format, process, and the index of decisions
 - `docs/roadmap.md` — v1 milestones, launch criteria, v2 horizons
 - `docs/launch-checklist.md` — operational punch-list guiding v0.0.1 development (short-lived; clear at launch)
+- `sample-data/` — committed MARTA feed snapshots; canonical fixtures for tests
 
 `docs/marta-project-spec.md` is the original brain dump, kept as historical context.
+
+**Before non-trivial work:** read the relevant section of `product-requirements.md` and any ADR governing the area you're touching (the ADR index in `docs/adr/README.md` is the fastest way to find which). Reading is cheap; working against a recorded decision is the expensive mistake.
 
 ## Tech Stack
 
@@ -96,7 +99,7 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 
 - **Modular components.** Separate presentational (dumb) and container (smart) components.
 - **Atomic design in `@atl-transit/components`.** Atoms, molecules, organisms. Props are visual-semantic only (`severity`, `primaryStyle`, `icon`) — never domain (`isCancelled`, MARTA-specific status). The web package maps domain status to visual props at the boundary (see `packages/web/src/features/stops/busRowMapper.ts` and ADR-0003).
-- **Reusable UI components.** Build a component library mindset — extract and reuse.
+- **Check `@atl-transit/components` before building a new UI primitive.** A pattern used in 2+ places belongs in the library — centralizing it keeps i18n strings, a11y wiring, and visual-semantic props (ADR-0003) in one place rather than scattered across pages, where they drift. Don't preemptively extract single-use components (see *No premature abstraction*); promote once a second consumer appears.
 - **Pure business logic.** Keep business logic in framework-agnostic utility functions (`utils/`), not embedded in React components.
 - **Feature-based organization.** Group by feature/domain where it makes sense.
 - **Files under 500 lines.** If a file grows beyond this, break it up.

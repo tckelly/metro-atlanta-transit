@@ -217,6 +217,30 @@ If after two weeks the app is stable and the feedback loop is healthy, declare v
 
 ---
 
+## Post-launch polish backlog
+
+Smaller product items deferred from v0.0.1 — surface in v0.0.2 as bandwidth and adjacent feedback allow. No trigger conditions; these are taste/clarity calls, not evidence-gated.
+
+### Flip downstream stops disclosure to name-first
+
+The `BusRowDisclosure` per-stop list currently renders arrival time first, stop name second — chosen to match the BusRow header's "time-as-primary" pattern. After dogfood, name-first reads better in this context: when a rider expands a specific trip the question is *which stops does this bus serve* (am I on the right branch?), so the stop name is the primary scan target and the time is supplementary confirmation. Swap to stop name in the left column, arrival time right-aligned in a second column; keep `tabular-nums` so the time column still aligns vertically.
+
+**Files:** `packages/web/src/features/stops/BusRowDisclosure.tsx` + sibling test.
+
+### Match BusRow severity colors on live downstream times
+
+The BusRow uses status color to telegraph timing (green early/on-time, yellow slight delay, red late/cancelled). The disclosure currently renders all per-stop times in `text-fg-muted` regardless of how each prediction compares to schedule. Carry the same severity down per-stop: compute `delaySec = predictedArrivalTime - scheduledTime` per downstream stop, classify via the same thresholds the row classifier uses, and color the time accordingly. Blocker: scheduled times currently only ride the scheduled-path fetch — either fold scheduled into the live mapper, or have the disclosure merge both when both are available. Naturally pairs with the scheduled-path-times item below.
+
+**Files:** `packages/web/src/features/stops/BusRowDisclosure.tsx`, the row classifier, plus whichever mapper acquires the scheduled-time merge.
+
+### Scheduled-path downstream times + `arrivalText` rename
+
+The scheduled / no-live / cancelled disclosure paths render name-only — they had no time data at launch. The work: add `TripStopWire.scheduledTime` to the wire schema, have `queryStopsForTrip(tripId, date)` select `arrival_time` and convert via `gtfsTimeToUnixSec`, rename `predictedArrivalText` → `arrivalText` on the client, and fall back `predictedArrivalTime ?? scheduledTime` in the formatter. Unblocks the severity-coloring item above.
+
+**Files:** `packages/web/api/gtfs/trip-stops.ts`, `packages/web/src/features/stops/BusRowDisclosure.tsx`, and the relevant Zod schema / formatter modules.
+
+---
+
 ## Post-launch optimization candidates
 
 Items identified during v0.0.1 development that don't ship in the launch build but are worth revisiting once real usage data exists. Each lists what, why, the trigger condition that justifies the work, and rough cost. Promote to a real implementation pass — with its own ADR at the time of commitment — only when the trigger fires. Until then, these stay aspirational so we don't optimize ahead of evidence.

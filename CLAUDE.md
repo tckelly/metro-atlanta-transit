@@ -124,6 +124,7 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 ## Testing
 
 - **TDD for non-trivial logic — run the failing test before writing the implementation.** A test that's never been red doesn't prove it can catch a regression; it only proves the assertion matches today's code. Tests-after is fine for UI components and trivial glue.
+- **Run the test file (or package) you're touching while iterating; run `pnpm test`, `pnpm typecheck`, and `pnpm lint` before committing.** Single-file runs are fast feedback, but they won't catch cross-package fallout from `eslint-plugin-boundaries` or strict TypeScript.
 - **Focus areas:** API response parsing, cache logic, geolocation calculations, arrival time formatting, error/edge cases.
 - **Don't skip type safety for convenience.** Tests should use proper types, not `any` shortcuts.
 - **Tests should not rewrite the module graph.** Reaching into another module's identity to swap it out couples the test to import paths and consumer wiring, and usually signals that the unit under test has no seam to receive its dependencies — pass collaborators in instead. `vi.mock` is a last resort; when you reach for it, leave a comment naming the seam that was missing.

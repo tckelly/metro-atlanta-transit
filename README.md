@@ -2,7 +2,7 @@
 
 An open-source Progressive Web App for real-time MARTA bus tracking in metro Atlanta — designed to answer one question fast: **"Is my bus actually coming?"**
 
-> ⚠️ **Early development.** Not publicly launched yet. The three v1 jobs — live arrivals, route-disruption signal, and nearby stops — work end-to-end and are in dogfood. Polish, PWA install, i18n, and a minimal backend proxy are next. See the [roadmap](./docs/roadmap.md).
+> 🚌 **Live at [metro-atlanta-transit.vercel.app](https://metro-atlanta-transit.vercel.app).** v0.0.1 is the first public release — three jobs ship for MARTA bus: live arrivals, route-disruption signal, and nearby stops. Rail to follow. See the [roadmap](./docs/roadmap.md) for what's next.
 
 ## Why this exists
 

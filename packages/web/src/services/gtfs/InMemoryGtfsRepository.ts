@@ -19,7 +19,7 @@ import {
   type RouteDirection,
 } from '../../features/routes/getRouteDirections';
 import type { TripStop } from '../../features/stops/downstreamStops';
-import { getScheduledVisitsForStop } from '../gtfsStatic';
+import { getScheduledVisitsForStop, gtfsTimeToUnixSec } from '../gtfsStatic';
 import type { GtfsRepository, ScheduledVisitsQuery } from './GtfsRepository';
 
 export class InMemoryGtfsRepository implements GtfsRepository {
@@ -63,10 +63,14 @@ export class InMemoryGtfsRepository implements GtfsRepository {
     return getNearbyStops(this.bundle, position, count);
   }
 
-  async getStopsForTrip(tripId: string): Promise<TripStop[]> {
+  async getStopsForTrip(tripId: string, date: string): Promise<TripStop[]> {
     return this.bundle.stopTimes
       .filter((st) => st.tripId === tripId)
       .sort((a, b) => a.stopSequence - b.stopSequence)
-      .map((st) => ({ stopId: st.stopId, stopSequence: st.stopSequence }));
+      .map((st) => ({
+        stopId: st.stopId,
+        stopSequence: st.stopSequence,
+        scheduledTime: gtfsTimeToUnixSec(date, st.arrivalTime),
+      }));
   }
 }

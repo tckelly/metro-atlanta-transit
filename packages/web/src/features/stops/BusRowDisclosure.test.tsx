@@ -199,8 +199,8 @@ describe('BusRowDisclosure', () => {
       <BusRowDisclosure
         busRowProps={ROW}
         downstream={[
-          { stopId: 'S2', name: 'Ponce @ Barnett', predictedArrivalText: '12:34' },
-          { stopId: 'S3', name: 'Decatur Station', predictedArrivalText: '12:36' },
+          { stopId: 'S2', name: 'Ponce @ Barnett', arrivalText: '12:34' },
+          { stopId: 'S3', name: 'Decatur Station', arrivalText: '12:36' },
         ]}
         triggerLabel="Show stops"
         panelLabel="Downstream stops"
@@ -226,7 +226,7 @@ describe('BusRowDisclosure', () => {
       <BusRowDisclosure
         busRowProps={ROW}
         downstream={[
-          { stopId: 'S2', name: 'Has Time', predictedArrivalText: '12:34' },
+          { stopId: 'S2', name: 'Has Time', arrivalText: '12:34' },
           { stopId: 'S3', name: 'No Time' },
         ]}
         triggerLabel="Show stops"

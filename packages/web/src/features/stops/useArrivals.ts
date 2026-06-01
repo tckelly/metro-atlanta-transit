@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { useGtfsRepository } from '../../services/gtfs/GtfsRepositoryContext';
+import { todayServiceDate } from '../../utils/serviceDate';
 import { useNowSec } from '../../utils/useNowSec';
 import { useRealtimeFeed } from '../realtime/RealtimeFeedContext';
 import { classifyBusRows, type ClassifiedBusRow, type ScheduledStopVisit } from './busRowClassifier';
@@ -42,21 +43,11 @@ export interface UseArrivalsResult {
   refresh: () => Promise<void>;
 }
 
-function todayYYYYMMDD(): string {
-  const fmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/New_York',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-  return fmt.format(new Date()).replace(/-/g, '');
-}
-
 export function useArrivals(
   stopId: string,
   options: { date?: string } = {},
 ): UseArrivalsResult {
-  const date = options.date ?? todayYYYYMMDD();
+  const date = options.date ?? todayServiceDate();
   const repo = useGtfsRepository();
   const feed = useRealtimeFeed();
   const nowSec = useNowSec(WINDOW_TICK_MS);

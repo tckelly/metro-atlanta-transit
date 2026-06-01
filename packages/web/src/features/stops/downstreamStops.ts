@@ -8,11 +8,15 @@
  *
  * `predictedArrivalTime` and `isSkipped` are optional enrichment from
  * the live realtime path (`liveTripUpdateToTripStops`); the scheduled
- * backend path leaves them undefined.
+ * backend path leaves them undefined but carries `scheduledTime` so
+ * the disclosure can render clock times for both paths from a single
+ * shape.
  */
 export interface TripStop {
   stopId: string;
   stopSequence: number;
+  /** Static-schedule arrival in Unix seconds — scheduled path only. */
+  scheduledTime?: number;
   /** Predicted arrival time in Unix seconds — live path only. */
   predictedArrivalTime?: number;
   /** True when the live trip update marks this stop SKIPPED for this trip. */

@@ -27,6 +27,7 @@ import { assessDisruption } from '../features/disruption/assessDisruption';
 import { DisruptionBadge } from '../features/disruption/DisruptionBadge';
 import { formatLastUpdated } from '../utils/formatLastUpdated';
 import { freshnessTier, type FreshnessTier } from '../utils/freshnessTier';
+import { todayServiceDate } from '../utils/serviceDate';
 import { useNowSec } from '../utils/useNowSec';
 import { usePullToRefresh } from '../features/pull-to-refresh/usePullToRefresh';
 import { ARMED_THRESHOLD_PX, type PtrState } from '../features/pull-to-refresh/ptrReducer';
@@ -339,7 +340,7 @@ function DisclosureBusRow({
     if (fetchStarted) return;
     setFetchStarted(true);
     repo
-      .getStopsForTrip(row.tripId)
+      .getStopsForTrip(row.tripId, todayServiceDate())
       .then((stops) => {
         setScheduledDownstream(downstreamStops(stops, row.stopSequence));
       })
@@ -361,8 +362,11 @@ function DisclosureBusRow({
         name: stop?.name ?? s.stopId,
       };
       if (s.isSkipped === true) view.isSkipped = true;
-      if (s.predictedArrivalTime !== undefined) {
-        view.predictedArrivalText = formatTime(s.predictedArrivalTime);
+      // Live predictions take precedence; scheduled is the fallback
+      // so scheduled / no_live / cancelled rows show clock times too.
+      const arrivalTime = s.predictedArrivalTime ?? s.scheduledTime;
+      if (arrivalTime !== undefined) {
+        view.arrivalText = formatTime(arrivalTime);
       }
       return view;
     });

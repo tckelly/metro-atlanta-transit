@@ -165,19 +165,20 @@ describe('HybridGtfsRepository — getRouteDirections', () => {
 });
 
 describe('HybridGtfsRepository — getStopsForTrip', () => {
-  it('fetches /api/gtfs/trip-stops with the tripId and returns the wire payload', async () => {
+  it('fetches /api/gtfs/trip-stops with tripId + date and returns the wire payload', async () => {
     const wire = [
-      { stopId: 'S1', stopSequence: 1 },
-      { stopId: 'S2', stopSequence: 2 },
+      { stopId: 'S1', stopSequence: 1, scheduledTime: 1779444000 },
+      { stopId: 'S2', stopSequence: 2, scheduledTime: 1779444300 },
     ];
     const fetch = fakeFetch({ '/api/gtfs/trip-stops': jsonResponse(wire) });
     const repo = new HybridGtfsRepository({ bundle: BUNDLE, fetch });
 
-    const stops = await repo.getStopsForTrip('T1');
+    const stops = await repo.getStopsForTrip('T1', '20260522');
     expect(stops).toEqual(wire);
 
     const calledUrl = String(vi.mocked(fetch).mock.calls[0]?.[0]);
     expect(calledUrl).toContain('tripId=T1');
+    expect(calledUrl).toContain('date=20260522');
   });
 
   it('throws on non-2xx backend response', async () => {
@@ -185,15 +186,17 @@ describe('HybridGtfsRepository — getStopsForTrip', () => {
       '/api/gtfs/trip-stops': new Response('', { status: 500 }),
     });
     const repo = new HybridGtfsRepository({ bundle: BUNDLE, fetch });
-    await expect(repo.getStopsForTrip('T1')).rejects.toThrow(/500/);
+    await expect(repo.getStopsForTrip('T1', '20260522')).rejects.toThrow(/500/);
   });
 
   it('rejects a response whose shape doesn’t match the schema', async () => {
     const fetch = fakeFetch({
-      '/api/gtfs/trip-stops': jsonResponse([{ stopId: 'S1' /* missing stopSequence */ }]),
+      '/api/gtfs/trip-stops': jsonResponse([
+        { stopId: 'S1', stopSequence: 1 /* missing scheduledTime */ },
+      ]),
     });
     const repo = new HybridGtfsRepository({ bundle: BUNDLE, fetch });
-    await expect(repo.getStopsForTrip('T1')).rejects.toThrow();
+    await expect(repo.getStopsForTrip('T1', '20260522')).rejects.toThrow();
   });
 });
 

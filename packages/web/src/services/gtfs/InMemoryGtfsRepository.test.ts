@@ -144,18 +144,20 @@ describe('InMemoryGtfsRepository — async queries', () => {
     expect(await repo.findNearbyStops({ lat: 0, lng: 0 }, 0)).toEqual([]);
   });
 
-  it('getStopsForTrip returns the trip’s ordered stop pattern', async () => {
+  it('getStopsForTrip returns the trip’s ordered stop pattern with scheduledTime', async () => {
+    // 06:00 ET on 2026-05-22 → 2026-05-22T10:00:00Z (DST, UTC-4).
+    const S1_UNIX = Date.UTC(2026, 4, 22, 10, 0, 0) / 1000;
     const repo = new InMemoryGtfsRepository(BUNDLE);
-    const stops = await repo.getStopsForTrip('T1');
+    const stops = await repo.getStopsForTrip('T1', '20260522');
     expect(stops).toEqual([
-      { stopId: 'S1', stopSequence: 1 },
-      { stopId: 'S2', stopSequence: 2 },
+      { stopId: 'S1', stopSequence: 1, scheduledTime: S1_UNIX },
+      { stopId: 'S2', stopSequence: 2, scheduledTime: S1_UNIX + 5 * 60 },
     ]);
   });
 
   it('getStopsForTrip returns empty for an unknown trip', async () => {
     const repo = new InMemoryGtfsRepository(BUNDLE);
-    expect(await repo.getStopsForTrip('nope')).toEqual([]);
+    expect(await repo.getStopsForTrip('nope', '20260522')).toEqual([]);
   });
 });
 

@@ -187,27 +187,32 @@ describe('queryRouteDirections', () => {
 });
 
 describe('queryStopsForTrip', () => {
-  it('returns the trip’s stops as {stopId, stopSequence}[] in sequence order', () => {
+  // 06:00 ET on 2026-05-22 → 2026-05-22T10:00:00Z (DST, UTC-4).
+  const TA1_06_00_UNIX = Date.UTC(2026, 4, 22, 10, 0, 0) / 1000;
+  const TA1_06_05_UNIX = TA1_06_00_UNIX + 5 * 60;
+  const TA1_06_10_UNIX = TA1_06_00_UNIX + 10 * 60;
+
+  it('returns the trip’s stops with scheduledTime in sequence order', () => {
     const db = buildSeededDb();
-    expect(queryStopsForTrip(db, 'TA1')).toEqual([
-      { stopId: 'S1', stopSequence: 1 },
-      { stopId: 'S2', stopSequence: 2 },
-      { stopId: 'S3', stopSequence: 3 },
+    expect(queryStopsForTrip(db, 'TA1', '20260522')).toEqual([
+      { stopId: 'S1', stopSequence: 1, scheduledTime: TA1_06_00_UNIX },
+      { stopId: 'S2', stopSequence: 2, scheduledTime: TA1_06_05_UNIX },
+      { stopId: 'S3', stopSequence: 3, scheduledTime: TA1_06_10_UNIX },
     ]);
   });
 
   it('honors stop_sequence — a trip that visits the same stops in the opposite direction returns them reversed', () => {
     // TB1 is Avondale: S3 → S2 → S1 (sequences 1, 2, 3).
     const db = buildSeededDb();
-    expect(queryStopsForTrip(db, 'TB1')).toEqual([
-      { stopId: 'S3', stopSequence: 1 },
-      { stopId: 'S2', stopSequence: 2 },
-      { stopId: 'S1', stopSequence: 3 },
+    expect(queryStopsForTrip(db, 'TB1', '20260522')).toEqual([
+      { stopId: 'S3', stopSequence: 1, scheduledTime: TA1_06_00_UNIX },
+      { stopId: 'S2', stopSequence: 2, scheduledTime: TA1_06_05_UNIX },
+      { stopId: 'S1', stopSequence: 3, scheduledTime: TA1_06_10_UNIX },
     ]);
   });
 
   it('returns empty for an unknown tripId', () => {
     const db = buildSeededDb();
-    expect(queryStopsForTrip(db, 'NOPE')).toEqual([]);
+    expect(queryStopsForTrip(db, 'NOPE', '20260522')).toEqual([]);
   });
 });

@@ -227,11 +227,13 @@ The BusRow uses status color to telegraph timing (green early/on-time, yellow sl
 
 **Files:** `packages/web/src/features/stops/BusRowDisclosure.tsx`, the row classifier, plus whichever mapper acquires the scheduled-time merge.
 
-### Scheduled-path downstream times + `arrivalText` rename
+### Scheduled-path downstream times + `arrivalText` rename — **shipped 2026-05-31 (v0.0.2)**
 
 The scheduled / no-live / cancelled disclosure paths render name-only — they had no time data at launch. The work: add `TripStopWire.scheduledTime` to the wire schema, have `queryStopsForTrip(tripId, date)` select `arrival_time` and convert via `gtfsTimeToUnixSec`, rename `predictedArrivalText` → `arrivalText` on the client, and fall back `predictedArrivalTime ?? scheduledTime` in the formatter. Unblocks the severity-coloring item above.
 
 **Files:** `packages/web/api/gtfs/trip-stops.ts`, `packages/web/src/features/stops/BusRowDisclosure.tsx`, and the relevant Zod schema / formatter modules.
+
+**As-shipped notes.** Implemented as one PR with two logical commits (data-path + UI). Backend handler now also requires a `date=YYYYMMDD` query param; the existing `s-maxage=300` edge cache stays valid because real users only ever ask for today's date. `InMemoryGtfsRepository` mirrors the conversion so dev mode matches prod. Service-date logic that was inlined in `useArrivals` was lifted to a shared `utils/serviceDate.ts` so the disclosure call site can stay in sync with what "today" means in `America/New_York`. Verified on a scheduled bus with no live data — clock times now render in the disclosure.
 
 ---
 

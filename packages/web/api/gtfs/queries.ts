@@ -36,10 +36,16 @@ export interface RouteDirectionWire {
  * `stopSequence` (not just `stopId`) so consumers can slice the
  * pattern unambiguously even on loop routes where the same `stopId`
  * appears more than once in a trip.
+ *
+ * `scheduledTime` is the absolute Unix-seconds timestamp for the stop's
+ * static-schedule arrival on the requested service date. The disclosure
+ * uses it as the time fallback when the live realtime feed has no
+ * per-stop prediction.
  */
 export interface TripStopWire {
   stopId: string;
   stopSequence: number;
+  scheduledTime: number;
 }
 
 const WEEKDAY_COLUMNS = [
@@ -185,23 +191,32 @@ export function queryRouteDirections(
 }
 
 /**
- * The full ordered stop pattern for a single trip. Used by the
- * downstream-stops disclosure on the stop-detail page to render
- * "where this bus is going next" for a specific arrival when no
- * realtime trip update is available.
+ * The full ordered stop pattern for a single trip on a given service
+ * date. Used by the downstream-stops disclosure on the stop-detail
+ * page to render "where this bus is going next" for a specific
+ * arrival when no realtime trip update is available.
  *
- * Uses the `(trip_id, stop_sequence)` primary key as an index-only
- * scan — no table reads beyond the PK itself.
+ * `date` is a GTFS service date ("YYYYMMDD"). It does not constrain
+ * which rows are returned — `stop_times` is the same regardless of
+ * date — but it anchors each row's `arrival_time` ("HH:MM:SS",
+ * possibly > 24:00:00 for post-midnight trips) to an absolute Unix
+ * timestamp so the disclosure can display clock times without a
+ * second round-trip.
  */
 export function queryStopsForTrip(
   db: Database.Database,
   tripId: string,
+  date: string,
 ): TripStopWire[] {
   const rows = db
     .prepare(
-      'SELECT stop_id, stop_sequence FROM stop_times WHERE trip_id = ? ORDER BY stop_sequence',
+      'SELECT stop_id, stop_sequence, arrival_time FROM stop_times WHERE trip_id = ? ORDER BY stop_sequence',
     )
-    .all(tripId) as Array<{ stop_id: string; stop_sequence: number }>;
+    .all(tripId) as Array<{ stop_id: string; stop_sequence: number; arrival_time: string }>;
 
-  return rows.map((r) => ({ stopId: r.stop_id, stopSequence: r.stop_sequence }));
+  return rows.map((r) => ({
+    stopId: r.stop_id,
+    stopSequence: r.stop_sequence,
+    scheduledTime: gtfsTimeToUnixSec(date, r.arrival_time),
+  }));
 }

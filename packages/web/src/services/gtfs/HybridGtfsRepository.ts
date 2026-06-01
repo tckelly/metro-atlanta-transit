@@ -56,6 +56,7 @@ const RouteDirectionsResponseSchema = z.array(RouteDirectionWireSchema);
 const TripStopWireSchema = z.object({
   stopId: z.string(),
   stopSequence: z.number().int().nonnegative(),
+  scheduledTime: z.number(),
 });
 
 const TripStopsResponseSchema = z.array(TripStopWireSchema);
@@ -141,8 +142,8 @@ export class HybridGtfsRepository implements GtfsRepository {
     return ranked.slice(0, count);
   }
 
-  async getStopsForTrip(tripId: string): Promise<TripStop[]> {
-    const params = new URLSearchParams({ tripId });
+  async getStopsForTrip(tripId: string, date: string): Promise<TripStop[]> {
+    const params = new URLSearchParams({ tripId, date });
     const res = await this.fetchFn(`${this.baseUrl}/api/gtfs/trip-stops?${params.toString()}`);
     if (!res.ok) {
       throw new Error(`trip-stops failed: ${res.status} ${res.statusText}`);

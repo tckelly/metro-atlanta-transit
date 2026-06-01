@@ -10,8 +10,12 @@
  *
  * Query params:
  *   - tripId  (required) GTFS trip_id
+ *   - date    (required) GTFS service date "YYYYMMDD"; anchors the
+ *             stop_times "HH:MM:SS" arrival times to absolute Unix
+ *             seconds so the client can show clock times directly.
  *
- * Response shape: `{ stopId, stopSequence }[]` in stop_sequence order.
+ * Response shape: `{ stopId, stopSequence, scheduledTime }[]` in
+ * stop_sequence order.
  */
 import { z } from 'zod';
 import type Database from 'better-sqlite3';
@@ -21,6 +25,7 @@ import { queryStopsForTrip } from './queries.js';
 
 const ParamsSchema = z.object({
   tripId: z.string().min(1),
+  date: z.string().regex(/^\d{8}$/, 'date must be YYYYMMDD'),
 });
 
 export async function handleTripStops(
@@ -38,6 +43,8 @@ export async function handleTripStops(
   const candidate: Record<string, string> = {};
   const tripId = url.searchParams.get('tripId');
   if (tripId !== null) candidate.tripId = tripId;
+  const date = url.searchParams.get('date');
+  if (date !== null) candidate.date = date;
 
   const parsed = ParamsSchema.safeParse(candidate);
   if (!parsed.success) {
@@ -47,7 +54,7 @@ export async function handleTripStops(
     });
   }
 
-  const stops = queryStopsForTrip(db, parsed.data.tripId);
+  const stops = queryStopsForTrip(db, parsed.data.tripId, parsed.data.date);
 
   return new Response(JSON.stringify(stops), {
     status: 200,

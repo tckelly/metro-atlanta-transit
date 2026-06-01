@@ -180,12 +180,14 @@ Status legend: `[ ]` open · `[x]` done · `[~]` accepted as-is for v1 (no work 
   downstream updates per the 2026-05-22 recon — bus still serves the stop,
   agency just lacks a live prediction), `aria-hidden` so screen readers hear
   only the stop name.
-- **Deferred (scheduled-path times + rename).** The scheduled / no-live /
-  cancelled paths still render name-only — they had no time data before this
-  slice and still don't. The backend wire change (`TripStopWire.scheduledTime`,
+- **Deferred (scheduled-path times + rename) — shipped 2026-05-31 in v0.0.2.**
+  The scheduled / no-live / cancelled paths originally rendered name-only because
+  they had no time data at launch. Resolved post-launch (same day) with the
+  backend wire change (`TripStopWire.scheduledTime`,
   `queryStopsForTrip(tripId, date)` selecting `arrival_time` + `gtfsTimeToUnixSec`),
   the field rename (`predictedArrivalText` → `arrivalText`), and the client
-  `predictedArrivalTime ?? scheduledTime` fallback are all post-v1 work.
+  `predictedArrivalTime ?? scheduledTime` fallback. See `roadmap.md` post-launch
+  polish backlog entry for the full as-shipped notes.
 - **Follow-up — match BusRow severity colors on live downstream times.**
   The BusRow itself uses status color to telegraph timing (green for
   early/on-time, yellow for slight delay, red/cancelled for late or

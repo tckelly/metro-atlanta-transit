@@ -91,13 +91,16 @@ export interface GtfsRepository {
   findNearbyStops(position: LatLng, count: number): Promise<NearbyStop[]>;
 
   /**
-   * The full ordered stop pattern for a single trip — used by the
-   * downstream-stops disclosure on the stop-detail page to render
-   * "where this bus is going next" when the rider taps an arrival.
+   * The full ordered stop pattern for a single trip on `date` — used
+   * by the downstream-stops disclosure on the stop-detail page to
+   * render "where this bus is going next" when the rider taps an
+   * arrival.
    *
    * Live rows on the stop-detail page derive their downstream stops
    * from the realtime feed directly; this method is the scheduled-
-   * path fallback for arrivals that have no live trip update.
+   * path fallback for arrivals that have no live trip update. Each
+   * stop carries `scheduledTime` (Unix seconds), so the disclosure
+   * can show clock times without a second round-trip.
    */
-  getStopsForTrip(tripId: string): Promise<TripStop[]>;
+  getStopsForTrip(tripId: string, date: string): Promise<TripStop[]>;
 }

@@ -24,10 +24,12 @@ export interface DownstreamStopView {
    */
   isSkipped?: boolean;
   /**
-   * Pre-formatted predicted arrival text (e.g. "12:34" or "3 min").
-   * Live path only — the scheduled path leaves this undefined.
+   * Pre-formatted clock time for this stop (e.g. "12:34" / "1:30 PM").
+   * On the live path this is a predicted arrival; on the scheduled
+   * path it's the static-schedule time. Undefined when no time is
+   * available (e.g. live NO_DATA from the realtime feed).
    */
-  predictedArrivalText?: string;
+  arrivalText?: string;
 }
 
 export interface BusRowDisclosureProps {
@@ -186,9 +188,9 @@ export function BusRowDisclosure({
                           </span>
                         )}
                       </span>
-                      {s.predictedArrivalText !== undefined ? (
+                      {s.arrivalText !== undefined ? (
                         <span className="shrink-0 tabular-nums text-fg-muted">
-                          {s.predictedArrivalText}
+                          {s.arrivalText}
                         </span>
                       ) : (
                         // NO_DATA from the realtime feed — bus still serves the

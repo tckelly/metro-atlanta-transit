@@ -32,7 +32,7 @@ The [vision doc](./docs/vision.md) goes into more depth.
 - **pnpm monorepo** with four packages: `web`, `components`, `gtfs`, `utils`
 - **Atomic-design** components library — atoms, molecules, organisms — visual-semantics props only
 - **Vitest** + **React Testing Library** for tests; **MSW** for hook tests when needed
-- **Vercel** hosting; v1 ships a minimal serverless proxy for MARTA's GTFS-RT feeds (added after CORS testing showed browser-direct fetches aren't allowed). Static GTFS is still preprocessed at build time today.
+- **Vercel** hosting; v1 ships a minimal serverless backend that proxies MARTA's GTFS-RT feeds (CORS made browser-direct fetches impossible) and serves the large static GTFS tables (`trips`, `stop_times`) from a bundled SQLite. Small reference data (`stops`, `routes`) precaches client-side. See [ADR-0005](./docs/adr/ADR-0005-minimal-backend-proxy.md) and [ADR-0006](./docs/adr/ADR-0006-split-static-gtfs-client-and-backend.md).
 - **GitHub Actions** for CI + nightly rebuilds against MARTA's feeds
 
 Decisions with substantive trade-offs are captured in [architecture decision records](./docs/adr/).

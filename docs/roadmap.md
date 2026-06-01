@@ -221,11 +221,13 @@ If after two weeks the app is stable and the feedback loop is healthy, declare v
 
 Smaller product items deferred from v0.0.1 — surface in v0.0.2 as bandwidth and adjacent feedback allow. No trigger conditions; these are taste/clarity calls, not evidence-gated.
 
-### Match BusRow severity colors on live downstream times
+### Match BusRow severity colors on live downstream times — **deferred 2026-06-01**
 
 The BusRow uses status color to telegraph timing (green early/on-time, yellow slight delay, red late/cancelled). The disclosure currently renders all per-stop times in `text-fg-muted` regardless of how each prediction compares to schedule. Carry the same severity down per-stop: compute `delaySec = predictedArrivalTime - scheduledTime` per downstream stop, classify via the same thresholds the row classifier uses, and color the time accordingly. Blocker: scheduled times currently only ride the scheduled-path fetch — either fold scheduled into the live mapper, or have the disclosure merge both when both are available. Naturally pairs with the scheduled-path-times item below.
 
 **Files:** `packages/web/src/features/stops/BusRowDisclosure.tsx`, the row classifier, plus whichever mapper acquires the scheduled-time merge.
+
+**Deferral note.** Investigated 2026-06-01 and decided not to ship. The row-level severity color is the dominant signal — riders open the disclosure to confirm "is my target stop on this branch?", not to inspect per-stop timing divergence. MARTA's realtime predictions propagate delay roughly linearly across a trip's downstream stops, so per-stop coloring would mostly restate the row-level signal. The cost is non-trivial: live rows currently derive downstream stops in-memory with zero backend cost on disclosure open; per-stop severity requires fetching the trip's static schedule (`/api/gtfs/trip-stops`) to obtain `scheduledTime` for the delay computation. Adding that fetch on every live disclosure open runs against the bandwidth-reduction motivation behind the *Server-side trip-update filtering* and *Polling cadence tuning* candidates below. Revisit only if real user feedback specifically asks for per-stop timing detail in the disclosure.
 
 ### Scheduled-path downstream times + `arrivalText` rename — **shipped 2026-05-31 (v0.0.2)**
 
@@ -260,7 +262,7 @@ Items identified during v0.0.1 development that don't ship in the launch build b
 
 **Note on client-side perf work.** A Lighthouse audit during v0.0.1 surfaced ~85 KiB of unused JavaScript in the entry bundle, partly attributable to the protobuf decoder and MARTA fetch helpers being eagerly imported by `RealtimeFeedProvider`. We considered lazy-loading those modules client-side, but decided to wait — server-side filtering would move the decoder off the client entirely, so the lazy-loading work would be redundant. Implementing this filtering pass first lets us measure the post-filtering bundle and revisit any remaining client-side optimization with better information.
 
-### Polling cadence tuning (v0.0.2 candidate, ~5-minute change)
+### Polling cadence tuning (v0.0.2 candidate, ~5-minute change) — **deferred 2026-06-01**
 
 **What.** Drop `POLL_INTERVAL_MS` from 60 s → 90 s.
 
@@ -269,6 +271,8 @@ Items identified during v0.0.1 development that don't ship in the launch build b
 **Trigger.** Same as above, or simply "no real user feedback says 60 s feels essential."
 
 **Cost.** One constant, one test update. Trivially revertable.
+
+**Deferral note.** Considered 2026-06-01 and held. This is a solo hobby project with effectively zero users on day one of launch — there is no meaningful bandwidth or invocation cost to reduce, and no UX signal saying 60 s feels too fast or too slow. Changing the constant now would be evidence-free optimization against an imaginary load profile. Revisit if/when real usage data shows function invocations or outbound bandwidth trending toward Hobby-tier limits, or if a user reports the refresh cadence feels off.
 
 ### Background-bfcache friendliness
 

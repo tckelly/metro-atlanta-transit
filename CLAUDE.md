@@ -4,7 +4,7 @@
 
 **Atlanta Transit** is a Progressive Web App (PWA) for real-time MARTA bus tracking in metro Atlanta. The goal is best-in-class real-time bus support — better UX than MARTA's website, faster than Google Maps, and more focused than generic transit apps.
 
-- **Status:** Launch-ready (v0.0.1) — three core jobs built, M5/M6 polish and `docs/launch-checklist.md` complete; awaiting tag/release. *Update this line once v0.0.1 ships.*
+- **Status:** Shipped v0.0.1 on 2026-05-31 — first public release with the three core jobs. v0.0.2 is the post-launch iteration cycle (see `docs/roadmap.md`).
 - **Audience:** Atlanta bus commuters; solo dev project, open source
 - **Docs:** Authoritative info lives in `docs/` — see the Docs Map below.
 

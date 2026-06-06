@@ -1,6 +1,6 @@
 # Roadmap
 
-What gets built in what order, and what "done" looks like at each step. Organized by **milestone**, not by calendar week — schedules slip, dependencies don't.
+The forward view: what's queued next and where it sits on the time horizon. v0.0.1 shipped 2026-05-31 — its milestone plan, launch criteria, and first-two-weeks iteration plan are archived verbatim in [`history/v0.0.1.md`](./history/v0.0.1.md). This doc covers v0.0.2 onward.
 
 ## North star (one-line reminder)
 
@@ -15,207 +15,6 @@ We're pre-stable. Semver's `0.x.y` space says "developing, breaking changes allo
 - **v1.0.0** — first *stable* release. Declared only when (a) the v1 jobs are battle-tested across a meaningful user base, (b) the API / UX surfaces are something we'd commit to keeping stable, and (c) we'd be comfortable users link to and depend on the app.
 
 Continuing to patch-bump (instead of jumping to `0.1.0` or `1.0.0`) keeps the signal honest: this is still software being shaped by its first users, not a mature product. The conversation's earlier shorthand of "v1 / v2" maps to "v0.0.1 / v0.0.2" without ambiguity.
-
-## v1 — the milestones
-
-Each milestone has a definition-of-done. Milestones are *roughly* sequential, but the dependencies are what bind them — re-order freely where deps allow.
-
----
-
-### M0 — Foundations (engineering only)
-
-Set up the workspace and confirm the deploy pipeline before any product code lands.
-
-**Done when:**
-
-- pnpm workspace initialized with the four packages (`web`, `components`, `gtfs`, `utils`).
-- Shared `tsconfig.base.json`, ESLint config with `eslint-plugin-boundaries`, Tailwind preset exported from `components`.
-- Vite dev server runs in `packages/web`; renders a placeholder.
-- Vercel deploys the placeholder from `main` on push. Custom domain optional.
-- GitHub Actions workflow exists for lint + typecheck + test on PR (even though nothing meaningful runs yet).
-
-**Why first:** the cost of getting tooling wrong scales with how much code is on top of it. Lock the foundation while the codebase is empty.
-
-**Depends on:** nothing.
-
----
-
-### M1 — Data plumbing
-
-The full data pipeline working end-to-end, tested, *with no UI*. Most of the business logic complexity lives here.
-
-**Done when:**
-
-- `@atl-transit/gtfs` decodes real `vehicle_positions.pb`, `trip_updates.pb`, and `alerts.pb` into typed objects. `sample-data/marta-gtfs-rt-2026-05-22/*.pb` serve as test fixtures.
-- `scripts/preprocess-gtfs.ts` downloads, parses, and emits trimmed JSON. Wired into `pnpm --filter @atl-transit/web prebuild`.
-- `services/martaRealtime.ts`, `services/gtfsStatic.ts` working in `packages/web`. Zod schemas validate external data on read.
-- `useArrivals(stopId)` hook returns the discriminated state shape (`loading | success | error | empty`) with live ETA / cancelled / no-live-data classification per ADR-0004's data shape.
-- Polling lifecycle works: 30s when visible, pauses on tab blur, cancels on unmount, shared cache prevents duplicate fetches.
-- The status-classification logic is fully unit-tested. *This is the business-logic core.*
-
-**Why before UI:** if the data layer is solid, the UI is a thin shell. If the data layer is leaky, every UI feature has to compensate.
-
-**Depends on:** M0.
-
----
-
-### M2 — First vertical slice: stop detail (Job 1, basic)
-
-The first user-visible thing. Not pretty yet, but functionally complete for *one* stop view.
-
-**Done when:**
-
-- `BusRow` component exists in `@atl-transit/components` with all four visual variants (live on-time, live delayed, cancelled, no-live-data). Storybook-style isolated rendering works (we won't ship Storybook, but components must render in isolation in dev).
-- `packages/web/src/features/stops/` has the domain-to-visual mapper (`busRowMapper.ts`) per ADR-0003.
-- A `/stop/:stopId` route renders live arrivals for any stop, grouped by route, with route headsigns from static GTFS.
-- "Last updated N sec ago" indicator works including its three freshness states.
-- Auto-refresh and pull-to-refresh both work.
-- Occupancy status displays when present, omitted when absent.
-- **Dogfoodable.** You can manually URL into `/stop/<favorite-stop-id>` and use it for your morning commute.
-
-**Why this slice:** Job 1 is the dominant job. Getting it functional end-to-end early — even with rough edges — proves the architecture works and starts producing real-world signal.
-
-**Depends on:** M1.
-
----
-
-### M3 — Home: favorites view (Job 1, complete)
-
-Make the stop detail reachable without typing URLs.
-
-**Done when:**
-
-- `services/storage.ts` with Zod-validated localStorage for favorites (max 10).
-- `FavoritesContext` exposes add/remove/list operations.
-- Star toggle on stop detail.
-- Home screen (`/`) renders the favorites list as stop cards, each showing the next 1–2 buses with status.
-- Empty state when no favorites yet, with a clear CTA toward nearby stops or browse-routes.
-- Adding/removing a favorite has an undo toast.
-
-**Done means:** the commute workflow works from a cold open. Open app → see favorites → tap → see arrivals.
-
-**Depends on:** M2.
-
----
-
-### M4 — Nearby stops (Job 3) + route disruption indicator (Job 2)
-
-The two remaining v1 jobs.
-
-**Done when:**
-
-- `services/geolocation.ts` wraps the browser API with explicit permission handling and graceful denial.
-- In-app permission explanation screen ("Find stops near you") shows *before* the browser prompt fires.
-- Nearby stops list on the home screen, sorted by walking distance (Haversine), top 5.
-- Distance shown as walking minutes, not raw meters.
-- Route disruption signal: soft warning at 1 cancellation in next 5 trips at a stop, strong warning at 2+. Thresholds live in a constants module.
-- Browse-by-route entry point (the "should-have" feature) and route detail view.
-
-**Done means:** all three jobs from `personas-and-jobs.md` work end-to-end.
-
-**Depends on:** M3 (for the home screen shell). M4 internal items can ship in any order.
-
----
-
-### M5 — Polish, accessibility, PWA, i18n, **and the backend proxy**
-
-The "this is shippable, not just functional" pass. Now includes a small backend, which became necessary once CORS testing revealed MARTA's realtime endpoints don't allow browser-direct fetches (originally assumed in ADR-0001). Dev currently uses a Vite proxy as a stopgap.
-
-**Done when:**
-
-- Accessibility audit completed: keyboard nav, screen reader on three core flows, WCAG 2.2 AA contrast verified in both light and dark modes, ARIA live regions on the "last updated" indicator and disruption badges.
-- Dark mode QA on every screen.
-- All user-facing strings in `i18n/en.json` and `i18n/es.json`. Spanish translations reviewed (ideally by a native speaker; minimally by careful review against a glossary).
-- Error boundaries at every route. Network failure, geolocation denial, static GTFS missing all have explicit UX states.
-- Loading skeletons on first load; subtle progress indicator on refresh; no full blanking.
-- Service worker configured via `vite-plugin-pwa`: precache app shell + GTFS bundle, NetworkOnly with 5s timeout + cache fallback for real-time.
-- "Add to Home Screen" prompt on second visit (Android), iOS install instructions.
-- Theme bootstrap script in `index.html` prevents flash-of-wrong-theme.
-- Settings screen complete (theme, language, About, attribution, disclaimer, version).
-- Scheduled rebuild cron (`.github/workflows/nightly-rebuild.yml`) at 08:00 UTC.
-- **Backend proxy** (Vercel serverless function) proxies MARTA's GTFS-RT feeds, replacing the dev-only Vite proxy. Same shape as the existing `martaRealtime.ts` client; adds short edge caching for politeness. Documented in a new ADR that supersedes ADR-0001.
-- Static GTFS migrated to the backend at the same time (supersedes ADR-0004), so the deploy is self-contained and the data is continuously fresh rather than nightly-rebuilt.
-
-**Done means:** shippable to strangers, not just to yourself.
-
-**Depends on:** M2, M3, M4 (whatever they cover gets polished here).
-
----
-
-### M6 — Launch prep
-
-The pre-flight checks before any public link goes out.
-
-**Done when:**
-
-- `README.md` with screenshots, setup instructions, contribution guide.
-- Screenshots taken on actual phones (iOS Safari + Android Chrome).
-- Legal pages confirmed: "Not affiliated with MARTA" disclaimer in Settings, "Data provided by MARTA" attribution. No use of MARTA logo or name in app branding.
-- Privacy: no analytics by default in v1 (we have no backend to collect anything; if we add analytics, it's privacy-friendly like Plausible). Decision documented.
-- License: MIT in repo root.
-- Final dogfood week — use it for *every* commute, fix bugs as they surface. No "but it usually works" excuses.
-- Custom domain pointed at Vercel.
-
-**Done means:** ready to post to r/Atlanta and r/MARTA.
-
-**Depends on:** M5.
-
----
-
-### M7 — Soft launch
-
-The public reveal, scaled to expectations.
-
-**Done when:**
-
-- Reddit posts on r/Atlanta and r/MARTA, framed as "frustrated commuter built a thing, feedback welcome." Per the spec's template: honest, humble, not overselling.
-- First-day monitoring: refresh logs, watch for reports of broken stops, broken routes, crashes.
-- Hotfix readiness: you can deploy a fix within an hour of seeing a critical issue.
-- Response plan for comments: reply to feedback within 24h for the first week.
-
-**Done means:** v1 is live, in real users' hands, generating signal.
-
-**Depends on:** M6.
-
----
-
-## v1 launch criteria (the gate before M7)
-
-These must all be true before any public link goes out. Treat as a non-negotiable checklist.
-
-- [ ] All three jobs work end-to-end on an actual phone (not just the dev's MacBook).
-- [ ] Cold-open to first useful answer in under 2 seconds on mid-range Android over 4G. Measured, not assumed.
-- [ ] Zero unhandled errors in production. Every async state has loading/success/error/empty.
-- [ ] Dark mode works on every screen with verified contrast.
-- [ ] Both languages render fully without English fallback for shipped strings.
-- [ ] Accessibility audit complete on the three core flows.
-- [ ] App installable as a PWA on iOS and Android.
-- [ ] Used by the dev for 5+ consecutive commutes without a critical bug surfacing.
-- [ ] Disclaimer and attribution visible in Settings.
-- [ ] README clear enough that a stranger could clone and run locally.
-
----
-
-## First two weeks post-launch (the iteration plan)
-
-The roadmap doesn't end at launch — it continues with whatever the world tells us. Plan to **expect surprises**, not to execute a pre-baked feature list.
-
-**Week 1:**
-
-- Triage every reported bug within 24h.
-- Hotfix path: small bugs ship same-day; bigger issues get a fix branch and a quick PR.
-- Monitor: do users report things we already know? Or unknown unknowns? The ratio tells you something.
-- No new features unless a bug fix naturally pulls one in.
-
-**Week 2:**
-
-- Reconcile the route disruption thresholds (the heuristic from `product-requirements.md`) against real-world cancellation patterns we've now observed.
-- Reconcile the "2-second cold-open" target against real-world device data.
-- Identify the top 2-3 user-requested features and decide for each: ship in v1.x, defer to v2, or never.
-
-If after two weeks the app is stable and the feedback loop is healthy, declare v1 done and start the v2 conversation.
-
----
 
 ## Post-launch polish backlog
 
@@ -286,6 +85,24 @@ Items identified during v0.0.1 development that don't ship in the launch build b
 
 ---
 
+## Next-up major features (v0.0.2+)
+
+Distinct from the polish backlog and optimization candidates above: these are new product capabilities under active design. Each has its own design doc in `docs/features/`; this section is the time-ordering pointer.
+
+### Service alerts surfacing — design in [`features/alerts.md`](./features/alerts.md)
+
+Surface MARTA's `alerts.pb` feed (planned detours, station closures, weather-driven changes). The decoder shipped in M1 but nothing in the UI consumes it. v0.0.1's "route disruption signal" is cancellation-derived heuristics, not the agency's own message — alerts adds the missing channel.
+
+**Status.** Design open. Data path exists end-to-end up to the decoder; UI placement and noise/relevance filtering are the unresolved questions.
+
+### Real-time rail — design in [`features/rail.md`](./features/rail.md)
+
+Promoted out of v2 Tier 3. MARTA Rail has a separate API (free, registration-gated) covering the 4 heavy-rail lines. Different shape from the bus GTFS-RT feeds — JSON not protobuf, separate auth model, almost certainly needs a backend proxy that composes with the bus backend.
+
+**Status.** Design open, gated on registering for the API key to learn the data shape. Until that lands, the UX questions are speculative.
+
+---
+
 ## v2 horizons
 
 What's *next* after v1, in rough priority order. Each gets a deeper conversation when v1 stabilizes.
@@ -308,7 +125,6 @@ These together justify standing up the v2 backend:
 
 ### Tier 3 — speculative
 
-- Rail integration (re-evaluate scope vs. Terminus app's coverage).
 - Capacitor wrapper for App Store presence.
 - Trip history / commute tracking.
 - Crowdsourced bus fullness reports.

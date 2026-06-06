@@ -17,13 +17,14 @@
 - `docs/ux-guidelines.md` — visual system, components, screens
 - `docs/architecture.md` — workspace layout, data flow, polling lifecycle
 - `docs/adr/` — Nygard-style ADRs for load-bearing decisions; see `docs/adr/README.md` for format, process, and the index of decisions
-- `docs/roadmap.md` — v1 milestones, launch criteria, v2 horizons
-- `docs/launch-checklist.md` — operational punch-list guiding v0.0.1 development (short-lived; clear at launch)
+- `docs/features/` — per-feature design conversations for in-flight major work (Problem / Data / UX / Open questions); load-bearing decisions spawn ADRs, linked inline from the relevant section
+- `docs/roadmap.md` — forward view: polish backlog, optimization candidates, next-up major features, v2 horizons
+- `docs/history/` — frozen verbatim roadmap + launch-checklist content for shipped versions (`v0.0.1.md` etc.); not maintained
 - `sample-data/` — committed MARTA feed snapshots; canonical fixtures for tests
 
-`docs/marta-project-spec.md` is the original brain dump, kept as historical context.
+`docs/origin-spec.md` is the original Claude Sonnet conversation that produced the project — pre-dates the current docs system, kept as origin material.
 
-**Before non-trivial work:** read the relevant section of `product-requirements.md` and any ADR governing the area you're touching (the ADR index in `docs/adr/README.md` is the fastest way to find which). Reading is cheap; working against a recorded decision is the expensive mistake.
+**Before non-trivial work:** read the relevant section of `product-requirements.md`, any ADR governing the area you're touching (the ADR index in `docs/adr/README.md` is the fastest way to find which), and any `docs/features/` design doc if the area has one in flight. Reading is cheap; working against a recorded decision is the expensive mistake.
 
 ## Tech Stack
 

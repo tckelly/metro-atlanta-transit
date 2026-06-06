@@ -4,7 +4,7 @@
 
 **Atlanta Transit** is a Progressive Web App (PWA) for real-time MARTA bus tracking in metro Atlanta. The goal is best-in-class real-time bus support — better UX than MARTA's website, faster than Google Maps, and more focused than generic transit apps.
 
-- **Status:** Shipped v0.0.1 on 2026-05-31 — first public release with the three core jobs. v0.0.2 is the post-launch iteration cycle (see `docs/roadmap.md`).
+- **Status:** Live and iterating; see `docs/roadmap.md` for current work and `docs/history/` for shipped versions.
 - **Audience:** Atlanta bus commuters; solo dev project, open source
 - **Docs:** Authoritative info lives in `docs/` — see the Docs Map below.
 
@@ -31,7 +31,7 @@
 - **Framework:** React 18+ with TypeScript (strict mode)
 - **Build:** Vite
 - **Styling:** Tailwind CSS (mobile-first, utility-first)
-- **State:** React Context API (MVP); evaluate alternatives as complexity grows
+- **State:** React Context API for now; revisit as state complexity grows
 - **i18n:** react-i18next (English + Spanish)
 - **Hosting:** Vercel (free tier)
 - **Data:** MARTA GTFS-Realtime feeds (Protocol Buffers, no auth for bus data)
@@ -139,7 +139,7 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 - **Branches:** `main` (production), `feature/*` (individual work)
 - **Small, focused commits.** One logical change per commit.
 - **Squash merge** feature branches to main.
-- **Commit locally, but don't push during a work session.** Vercel rebuilds on every push to GitHub, and this is a free hobby-tier app, so pushes are batched. Make focused local commits as work progresses; the maintainer pushes to remote at the end.
+- **Commit locally, but don't push during a work session.** Each push to GitHub triggers a Vercel rebuild; pushes are batched to keep rebuilds deliberate. Make focused local commits as work progresses; the maintainer pushes to remote at the end.
 
 ## Documentation
 

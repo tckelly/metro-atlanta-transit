@@ -15,7 +15,6 @@
   "dependencies": {
     "@atl-transit/components": "workspace:*",
     "@atl-transit/gtfs": "workspace:*",
-    "@atl-transit/utils": "workspace:*",
     "i18next": "^26.2.0",
     "jszip": "^3.10.0",
     "papaparse": "^5.4.0",

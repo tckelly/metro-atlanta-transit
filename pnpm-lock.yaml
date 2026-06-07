@@ -41,9 +41,6 @@ importers:
 
   packages/components:
     dependencies:
-      '@atl-transit/utils':
-        specifier: workspace:*
-        version: link:../utils
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
@@ -81,17 +78,12 @@ importers:
 
   packages/gtfs:
     dependencies:
-      '@atl-transit/utils':
-        specifier: workspace:*
-        version: link:../utils
       gtfs-realtime-bindings:
         specifier: ^2.0.0
         version: 2.0.0
       zod:
         specifier: ^3.23.0
         version: 3.25.76
-
-  packages/utils: {}
 
   packages/web:
     dependencies:
@@ -101,9 +93,6 @@ importers:
       '@atl-transit/gtfs':
         specifier: workspace:*
         version: link:../gtfs
-      '@atl-transit/utils':
-        specifier: workspace:*
-        version: link:../utils
       i18next:
         specifier: ^26.2.0
         version: 26.2.0(typescript@5.9.3)

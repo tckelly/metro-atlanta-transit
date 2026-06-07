@@ -96,7 +96,6 @@ export default tseslint.config(
     plugins: { boundaries },
     settings: {
       'boundaries/elements': [
-        { type: 'utils', pattern: 'packages/utils/**' },
         { type: 'gtfs', pattern: 'packages/gtfs/**' },
         { type: 'components', pattern: 'packages/components/**' },
         { type: 'web', pattern: 'packages/web/**' },
@@ -108,10 +107,9 @@ export default tseslint.config(
         {
           default: 'disallow',
           rules: [
-            { from: 'utils', allow: [] },
-            { from: 'gtfs', allow: ['utils'] },
-            { from: 'components', allow: ['utils'] },
-            { from: 'web', allow: ['utils', 'gtfs', 'components'] },
+            { from: 'gtfs', allow: [] },
+            { from: 'components', allow: [] },
+            { from: 'web', allow: ['gtfs', 'components'] },
           ],
         },
       ],

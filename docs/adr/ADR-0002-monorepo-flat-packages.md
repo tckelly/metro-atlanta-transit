@@ -3,6 +3,8 @@
 **Status:** Accepted
 **Date:** 2026-05-23
 
+> **Update 2026-06-06:** The `@atl-transit/utils` package was removed. After shipping v0.0.1, no shared pure helpers had emerged — the package remained empty. The flat `packages/*` decision and ESLint-enforced boundaries stand unchanged; only the package count moved from four to three. If a genuinely shared pure helper appears later, re-add the package and restore its row to the boundaries table.
+
 ## Context
 
 The codebase will contain a PWA (the consumer-facing app), a UI component library (atomic-design atoms/molecules/organisms), GTFS protobuf decoders + types, and pure utility helpers (Haversine, formatters, etc.). These are conceptually distinct concerns with clean dependency edges between them — but they all live in one repository.

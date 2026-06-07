@@ -46,8 +46,7 @@ metro-atlanta-transit/
 ├── packages/
 │   ├── web/                       ← the PWA itself
 │   ├── components/                ← @atl-transit/components (atomic-design UI library)
-│   ├── gtfs/                      ← @atl-transit/gtfs (protobuf decoders + types)
-│   └── utils/                     ← @atl-transit/utils (pure helpers)
+│   └── gtfs/                      ← @atl-transit/gtfs (protobuf decoders + types)
 └── pnpm-workspace.yaml
 ```
 

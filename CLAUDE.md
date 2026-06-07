@@ -40,7 +40,7 @@
 
 ## Project Layout
 
-pnpm monorepo with four packages. Cross-package imports are constrained by ESLint (`eslint-plugin-boundaries`) — respect those boundaries when adding new code.
+pnpm monorepo with three packages. Cross-package imports are constrained by ESLint (`eslint-plugin-boundaries`) — respect those boundaries when adding new code.
 
 ```
 metro-atlanta-transit/
@@ -49,8 +49,7 @@ metro-atlanta-transit/
 ├── packages/
 │   ├── web/             ← the PWA itself (@atl-transit/web)
 │   ├── components/      ← atomic-design UI library (@atl-transit/components)
-│   ├── gtfs/            ← protobuf decoders + types (@atl-transit/gtfs)
-│   └── utils/           ← pure helpers (@atl-transit/utils)
+│   └── gtfs/            ← protobuf decoders + types (@atl-transit/gtfs)
 └── pnpm-workspace.yaml
 ```
 

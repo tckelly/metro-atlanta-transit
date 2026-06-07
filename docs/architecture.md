@@ -18,14 +18,9 @@ A client-side Progressive Web App, structured as a **pnpm monorepo** with flat `
 │  │  ┌──────────────────┐  ┌─────────────────────┐     │  │
 │  │  │ @atl-transit/    │  │ @atl-transit/gtfs   │     │  │
 │  │  │ components       │  │ (decoders, types)   │     │  │
-│  │  │ (atoms/molecules │  └──────────┬──────────┘     │  │
-│  │  │  /organisms)     │             │                │  │
-│  │  └────────┬─────────┘             │                │  │
-│  │           │     consumes ↓                         │  │
-│  │           │   ┌─────────────────────┐              │  │
-│  │           └──►│ @atl-transit/utils  │◄────────────┤  │
-│  │               │ (pure helpers)      │              │  │
-│  │               └─────────────────────┘              │  │
+│  │  │ (atoms/molecules │  └─────────────────────┘     │  │
+│  │  │  /organisms)     │                              │  │
+│  │  └──────────────────┘                              │  │
 │  └────────────────────────────────────────────────────┘  │
 │                                                          │
 │  ┌──────────────────────────────────────────────────┐    │
@@ -111,21 +106,14 @@ metro-atlanta-transit/
     │       ├── tokens/           # color tokens, spacing scale, type ramp
     │       ├── tailwind-preset.ts
     │       └── index.ts
-    ├── gtfs/                     # @atl-transit/gtfs — protobuf decoders + types
-    │   ├── package.json
-    │   ├── tsconfig.json
-    │   └── src/
-    │       ├── vehiclePositions.ts
-    │       ├── tripUpdates.ts
-    │       ├── alerts.ts
-    │       ├── types.ts
-    │       └── index.ts
-    └── utils/                    # @atl-transit/utils — pure helpers
+    └── gtfs/                     # @atl-transit/gtfs — protobuf decoders + types
         ├── package.json
         ├── tsconfig.json
         └── src/
-            ├── haversine.ts
-            ├── formatters.ts
+            ├── vehiclePositions.ts
+            ├── tripUpdates.ts
+            ├── alerts.ts
+            ├── types.ts
             └── index.ts
 ```
 
@@ -273,10 +261,9 @@ The package boundaries are enforced by lint, not honor. Using `eslint-plugin-bou
 
 | Package | May import from |
 |---|---|
-| `@atl-transit/utils` | external deps only |
-| `@atl-transit/gtfs` | `utils`, external deps |
-| `@atl-transit/components` | `utils`, external deps (no domain knowledge, no app code) |
-| `@atl-transit/web` | `components`, `gtfs`, `utils`, external deps |
+| `@atl-transit/gtfs` | external deps only |
+| `@atl-transit/components` | external deps only (no domain knowledge, no app code) |
+| `@atl-transit/web` | `components`, `gtfs`, external deps |
 
 A violation is a build-blocking error in CI. This is what makes the architecture *real* rather than aspirational.
 
@@ -459,7 +446,6 @@ Per CLAUDE.md, TDD for complex logic, tests-after for UI. Coverage focus:
 - **Must have tests:**
   - `@atl-transit/gtfs` decoders — `sample-data/` snapshots are the fixtures.
   - `packages/web/src/services/storage.ts` — favorites validation edge cases.
-  - `@atl-transit/utils` — Haversine, formatters.
   - The status-classification logic in the bus-row mapper. *The* business-logic core.
 - **Should have tests:**
   - Component tests for the four bus row variants (live / live-delayed / cancelled / no-live-data).

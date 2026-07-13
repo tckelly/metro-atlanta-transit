@@ -76,11 +76,16 @@ Informed by the recon; final calls wait on the live data and dogfooding.
 ## Recon log
 
 - **2026-07-13** — Phase-1 recon from MARTA's public developer docs: endpoint, query-param auth, JSON format, and the field list above. No live call (no key yet). Registration page and process documented (Getting the key).
-- **TODO — Phase-2 recon (needs key).** Once the key arrives: fetch the live endpoint once, snapshot the raw JSON response into `sample-data/marta-rail-YYYY-MM-DD/` (parallel to the GTFS-RT snapshots — a new snapshot family since this isn't protobuf), and write the curated findings README. This verifies the documented shape, pins down `IS_REALTIME`/`DELAY` semantics and enum values, reveals fields the docs omit, and gives us real fixtures to build the schema and mappers against (per CLAUDE.md "prefer real fixtures").
+- **2026-07-13 — Phase-2 recon done.** Fetched the live endpoint via the local dev proxy and snapshotted the verbatim response into [`sample-data/marta-rail-2026-07-13/`](../../sample-data/marta-rail-2026-07-13/README.md) (492 records, system-wide). Curated findings in that README. Headlines that correct/confirm Phase-1:
+  - **Every field is a JSON string** (numbers, booleans, coordinates all stringified) — the doc-table types were guesses; parse at the boundary.
+  - **`DELAY` / `LATITUDE` / `LONGITUDE` appear iff `IS_REALTIME === "true"`** (missing on all 214 scheduled records, present on all 278 live ones) → schema-optional, and **a map view is inherently real-time-only**.
+  - **`DELAY` is a signed duration `T<seconds>S`** (`T45S`, `T-7S`, `T0S`) — parseable, so it *is* a viable severity input (the Phase-1 "unconfirmed" flag is resolved), though wiring to color stays a later UX call.
+  - **`LINE` is exactly `RED`/`GOLD`/`BLUE`/`GREEN`**; `WAITING_TIME` uses `"Arriving"` as its low-end sentinel; `EVENT_TIME`/`NEXT_ARR` are US-format, not ISO.
+  - **No occupancy, no downstream-stops** — confirms the arrival-at-station-centric shape.
 
 ## Open questions
 
-- _Is the API shape rich enough to support our existing UX patterns (status classification, downstream stops, occupancy) or do we need new ones?_ Recon says arrivals + status + position are covered; **no per-train occupancy** field appears (bus has it, rail apparently doesn't), and there's **no obvious "downstream stops on this train's run"** — the feed is arrival-at-station-centric. Confirm in Phase 2.
+- _Is the API shape rich enough to support our existing UX patterns (status classification, downstream stops, occupancy) or do we need new ones?_ **Confirmed in Phase-2 (2026-07-13 snapshot):** arrivals + status + position are covered; **no per-train occupancy** field (bus has it, rail doesn't), and **no "downstream stops on this train's run"** — the feed is arrival-at-station-centric. Any such UX would need a different source.
 - _Scope vs Terminus — do we ship rail because we can, or because we add something Terminus doesn't?_ Provisional answer in Problem: ship it to be viable for multi-modal commuters, keep scope tight, don't try to out-rail anyone.
 - _Auth + key storage — backend proxy is required; how does it compose with the bus backend?_ Answered in Architecture: extends the ADR-0005 proxy but with a new secret-injecting threat model ⇒ **[ADR-0010](../adr/ADR-0010-secret-injecting-rail-proxy.md) (Proposed)**.
 - _Favorites model — do rail stations share the favorites store with bus stops, or live separately?_ Still open; leaning unified for the multi-modal rider, pending the favorites data model review.

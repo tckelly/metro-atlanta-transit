@@ -64,6 +64,8 @@ pnpm --filter @atl-transit/web build            # production bundle
 pnpm --filter @atl-transit/web preprocess-gtfs  # refresh static GTFS from MARTA (~30MB; skipped if <24h old, --force overrides)
 ```
 
+The static-GTFS outputs are **gitignored build artifacts, not committed** — the client bundle (`packages/web/public/gtfs/{stops,routes}.json`) and the backend tables (`packages/web/api/_data/gtfs.sqlite`, holding `trips`/`stop_times`/`calendar`). A fresh checkout won't have them; run `preprocess-gtfs` to generate them (the nightly Vercel rebuild does this in CI via `prebuild`). The committed `sample-data/` snapshots are GTFS-**RT** protobuf, a different feed — there is no committed static GTFS.
+
 ## How to Work With Me
 
 **Collaborative and educational.** Discuss approaches before implementing significant changes. Explain the "why" behind decisions so I learn. Be proactive — suggest improvements, catch issues, propose next steps — but don't implement without discussing first.

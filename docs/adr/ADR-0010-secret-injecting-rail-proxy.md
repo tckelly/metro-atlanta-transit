@@ -72,5 +72,6 @@ This does **not** supersede ADR-0005 — the bus proxy is unchanged. This ADR ex
 
 - **Phase-2 recon lands a real payload.** The Zod schema, `IS_REALTIME`/`DELAY` handling, and cache TTL should be finalized against the snapshot in `sample-data/`, not the documented shape. This ADR's validation/cache specifics are provisional until then.
 - **Payload size justifies server-side `?station=` filtering.** Add it then, not preemptively.
+- **The client's field needs are known.** Narrow the schema's *required* set to the fields the UI actually consumes and make the rest optional — because the proxy drops records that fail validation, requiring an unused field means a drift in that field could silently drop records. Introduce the trimmed/normalized client DTO (parsed numbers, booleans, camelCase, `LINE` → token) at the same time.
 - **A second secret arrives, collaborators join, or rotation/audit becomes a requirement.** At that point re-evaluate a dedicated secrets manager (Doppler/Infisical) over raw Vercel env vars — the trade-off that's over-engineering today.
 - **The secret-injection pattern is needed for a third upstream.** If a general "authenticated upstream proxy" helper would then remove duplication, factor one out — but only once there are two real consumers.

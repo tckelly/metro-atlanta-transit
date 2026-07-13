@@ -164,7 +164,7 @@ Even though this is a client-side PWA consuming public APIs, maintain security-c
 
 - Validate and type-check all external data (API responses, localStorage reads, URL params).
 - Sanitize any user-generated content before rendering.
-- No secrets in source code. MARTA rail API key (if added) goes in `.env.local` (gitignored).
+- No secrets in source code. Secrets (e.g. the MARTA rail API key) go in `.env.local` locally (gitignored) and Vercel Environment Variables for prod/preview — never in the repo or the client bundle. **Server-only:** read via `process.env` in `packages/web/api/**`; never `VITE_`-prefix a secret (Vite exposes `VITE_*` to the client bundle) and never import one into `packages/web/src/**`. A committed `packages/web/.env.example` documents which vars exist without their values.
 - Use HTTPS exclusively for all API calls.
 - Content Security Policy headers via Vercel config.
 - Keep dependencies updated; run `npm audit` regularly.

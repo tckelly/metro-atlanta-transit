@@ -38,7 +38,7 @@ This means we can compute both "ETA" (`time - now`) and "how delayed" (`time - s
 
 ### 3. The alerts feed is currently empty.
 
-`alerts.pb` returned a valid `FeedMessage` with header only — **0 alert entities**. This was a single snapshot, so we can't conclude MARTA's alerts feed is *always* empty, but at the moment we cannot rely on it for service disruption messaging.
+`alerts.pb` returned a valid `FeedMessage` with header only — **0 alert entities**. **Re-sampled 2026-07-13** (`sample-data/marta-gtfs-rt-2026-07-13/`), on a different weekday and time: still **0 entities**, and MARTA's own alerts page (`itsmarta.com/ride/alerts`) also showed 0 at that moment. Two empty samples ~7 weeks apart confirm the feed is empty during *normal operations*; they don't prove it's *never* populated (MARTA near-certainly publishes during real disruptions). At the moment we cannot rely on it for service disruption messaging.
 
 **Implication for Job 2:** v1 should derive route-level disruption from `trip_updates`, not from alerts. Example signal: "Route 36 — 3 of next 5 scheduled trips cancelled." If the alerts feed turns out to publish meaningful data at other times (see open questions), we layer it in as additional context.
 
@@ -133,7 +133,7 @@ Once we want fresher static data, server-side joins, or any logic that doesn't b
 1. **Is the alerts feed ever populated?** Sample at different times of day, and during known disruptions (planned maintenance, weather events). Add follow-up snapshots under `sample-data/` if we find populated data.
 2. **Static GTFS contents and size.** Download once, confirm the file list and sizes, finalize the build-time preprocessing schema.
 3. **Feed freshness behavior.** The snapshot's `header.timestamp` matched across all three feeds — confirm that's MARTA's normal behavior and not a coincidence by sampling more.
-4. **Bus occupancy stability.** ~55% coverage in one snapshot. Worth re-sampling to confirm coverage isn't time-of-day dependent (e.g., higher on rush hour when more vehicles are active).
+4. **Bus occupancy stability.** ~55% coverage in the 2026-05-22 snapshot. **Re-sampled 2026-07-13: coverage was 100%** (`occupancyStatus` and `occupancyPercentage` on all 197 vehicles), with a realistic spread (`EMPTY`/`MANY_SEATS_AVAILABLE` dominant on a light midday load). Either a genuine telemetry improvement or time-of-day variance — two samples can't distinguish. Net: a positive signal for the v1 occupancy feature. Worth continued sampling to confirm the higher coverage holds.
 5. **Do `TranslatedString` fields ever carry real content?** Today MARTA publishes the envelope but the inner text is empty (see finding #5). If MARTA ever populates these — likely candidates: dynamic detour headsigns, special-service destinations, Spanish translations — they'd become genuinely useful and we'd want a custom decoder. Re-check on future snapshots; the trigger to act is non-empty text in any `TranslatedString` field.
 
 ## What this means for product requirements

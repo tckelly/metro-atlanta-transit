@@ -40,6 +40,12 @@ The scheduled / no-live / cancelled disclosure paths render name-only — they h
 
 **As-shipped notes.** Implemented as one PR with two logical commits (data-path + UI). Backend handler now also requires a `date=YYYYMMDD` query param; the existing `s-maxage=300` edge cache stays valid because real users only ever ask for today's date. `InMemoryGtfsRepository` mirrors the conversion so dev mode matches prod. Service-date logic that was inlined in `useArrivals` was lifted to a shared `utils/serviceDate.ts` so the disclosure call site can stay in sync with what "today" means in `America/New_York`. Verified on a scheduled bus with no live data — clock times now render in the disclosure.
 
+### Real-time rail — design in [`features/rail.md`](./features/rail.md)
+
+Promoted out of the design-open "next-up" pool into committed v0.0.2 work. MARTA Rail is 4 heavy-rail lines (Red/Gold/Blue/Green) on a separate API from the bus GTFS-RT feeds — JSON not protobuf, a query-param API key (free, registration-gated), system-wide response. The arrival shape maps cleanly onto our existing bus stop-detail pattern (`WAITING_SECONDS` → ETA, `IS_REALTIME` → status, `DIRECTION` → the ADR-0008 disambiguator, `LINE` → a color token), so rail is an *extension* of the current app rather than a parallel one.
+
+**Status. Design in progress, gated on the API key.** Phase-1 recon is done: the API shape is documented from MARTA's developer resources (endpoint, auth, fields) and written up in the feature doc, along with registration steps. Remaining before build: (1) register for the free key at `itsmarta.com/developer-reg-rtt.aspx`, (2) **Phase-2 recon** — snapshot a live JSON response into `sample-data/marta-rail-YYYY-MM-DD/` (a new, non-protobuf snapshot family) to verify the shape and pin down `IS_REALTIME`/`DELAY` semantics before wiring status/severity, and (3) a **new ADR (Proposed)** for a *secret-injecting* rail proxy — the query-param key can't touch the client, and ADR-0005's proxy was deliberately scoped to public, no-secret, hard-coded URLs, so rail's threat model (never echo the key, don't let callers override it) is a load-bearing extension, not a silent one. UX leaning is a unified station-detail surface mirroring stop-detail; favorites-model and map-view questions stay open in the feature doc.
+
 ---
 
 ## Post-launch polish backlog
@@ -119,11 +125,7 @@ Surface MARTA's `alerts.pb` feed (planned detours, station closures, weather-dri
 
 **Status.** Design open. Data path exists end-to-end up to the decoder; UI placement and noise/relevance filtering are the unresolved questions.
 
-### Real-time rail — design in [`features/rail.md`](./features/rail.md)
-
-Promoted out of v2 Tier 3. MARTA Rail has a separate API (free, registration-gated) covering the 4 heavy-rail lines. Different shape from the bus GTFS-RT feeds — JSON not protobuf, separate auth model, almost certainly needs a backend proxy that composes with the bus backend.
-
-**Status.** Design open, gated on registering for the API key to learn the data shape. Until that lands, the UX questions are speculative.
+> *Real-time rail* previously sat here. It graduated to the **v0.0.2 — in progress** section once Phase-1 API recon landed and we committed to building it — see there and [`features/rail.md`](./features/rail.md).
 
 ---
 

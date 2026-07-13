@@ -22,20 +22,38 @@ import { z } from 'zod';
 const EDGE_CACHE_CONTROL = 's-maxage=10, stale-while-revalidate=30';
 
 /**
- * PROVISIONAL schema — doc-derived (rail.md Data table), not yet verified
- * against a live payload. Deliberately lenient: at this stage its job is to
- * confirm the response is arrival-shaped JSON without rejecting the real
- * payload we're about to capture, so it anchors on the two fields we're
- * confident exist (`STATION`, `LINE`) and passes the rest through untyped.
- * Tighten field types and the `LINE` / `IS_REALTIME` / `DELAY` semantics
- * against the Phase-2 snapshot (`sample-data/marta-rail-*`). See ADR-0010.
+ * One predicted rail arrival, tightened against the Phase-2 snapshot
+ * (`sample-data/marta-rail-2026-07-13`). Every field is a string in the feed
+ * (numbers, booleans, and coordinates are all stringified), so all fields are
+ * typed as strings and parsed at the point of use.
+ *
+ * `LINE` is deliberately kept a plain string, not an enum: it is
+ * RED|GOLD|BLUE|GREEN in the feed today, but mapping the value to a color
+ * token happens at the web boundary (ADR-0003), so an unexpected line value
+ * degrades a single row rather than failing the whole feed.
+ *
+ * `DELAY`, `LATITUDE`, and `LONGITUDE` are optional: the snapshot shows they
+ * appear only when `IS_REALTIME === "true"` — scheduled predictions omit them.
+ * Unknown keys are stripped (Zod default), trimming the payload to a known shape.
  */
-const railArrivalSchema = z
-  .object({
-    STATION: z.string(),
-    LINE: z.string(),
-  })
-  .passthrough();
+const railArrivalSchema = z.object({
+  STATION: z.string(),
+  LINE: z.string(),
+  DIRECTION: z.string(),
+  DESTINATION: z.string(),
+  TRAIN_ID: z.string(),
+  NEXT_ARR: z.string(),
+  WAITING_TIME: z.string(),
+  WAITING_SECONDS: z.string(),
+  IS_REALTIME: z.string(),
+  EVENT_TIME: z.string(),
+  DELAY: z.string().optional(),
+  LATITUDE: z.string().optional(),
+  LONGITUDE: z.string().optional(),
+});
+
+/** A validated rail arrival. Domain values map to visual tokens at the web boundary. */
+export type RailArrival = z.infer<typeof railArrivalSchema>;
 
 export const railArrivalsSchema = z.array(railArrivalSchema);
 
@@ -87,14 +105,21 @@ export async function proxyRailArrivals({
     return plainError(502, 'Rail upstream returned malformed JSON.');
   }
 
-  const parsed = railArrivalsSchema.safeParse(raw);
-  if (!parsed.success) {
+  if (!Array.isArray(raw)) {
     return plainError(502, 'Rail upstream returned an unexpected shape.');
   }
 
+  // Validate per record and keep the valid ones. This is a system-wide feed of
+  // hundreds of arrivals, so one malformed record shouldn't blank the entire
+  // rail view — drop it and serve the rest (graceful degradation).
+  const arrivals = raw.flatMap((item) => {
+    const record = railArrivalSchema.safeParse(item);
+    return record.success ? [record.data] : [];
+  });
+
   // Re-serialize from validated data so only known-shaped fields are emitted
   // and no upstream header (or the key) can ride along.
-  return new Response(JSON.stringify(parsed.data), {
+  return new Response(JSON.stringify(arrivals), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',

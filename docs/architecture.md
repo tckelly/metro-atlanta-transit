@@ -464,6 +464,7 @@ The load-bearing architectural decisions have dedicated ADRs in `docs/adr/`. The
 - **ADR-0005:** Minimal backend proxy for MARTA realtime (Vercel Edge Functions)
 - **ADR-0006:** Split static GTFS — small reference tables client-side, large schedule tables in SQLite behind the backend
 - **ADR-0007:** No analytics, telemetry, or error-tracking in v1
+- **ADR-0008:** Headsign (`route → headsign`) as the stop-direction disambiguator, precomputed onto `StopOut`
 
 Other decisions (PWA-over-native, React-not-Svelte, Context-not-Redux, Tailwind, en+es-only, no-Turborepo, dark-mode-day-one, no-gesture-favorites) are defended in `vision.md`, `architecture.md`, `ux-guidelines.md`, or `product-requirements.md` and don't currently warrant standalone ADRs. If any of them gets seriously challenged, that's the signal to write one.
 

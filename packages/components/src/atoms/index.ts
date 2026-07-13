@@ -12,3 +12,5 @@ export { SearchInput } from './SearchInput';
 export type { SearchInputProps } from './SearchInput';
 export { Skeleton } from './Skeleton';
 export type { SkeletonProps } from './Skeleton';
+export { StatusText } from './StatusText';
+export type { StatusTextProps } from './StatusText';

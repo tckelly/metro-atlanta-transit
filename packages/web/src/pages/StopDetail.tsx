@@ -11,6 +11,8 @@ import { useRealtimeFeed } from '../features/realtime/RealtimeFeedContext';
 import { toBusRowProps } from '../features/stops/busRowMapper';
 import { groupRowsByRoute, type RouteGroup } from '../features/stops/groupRowsByRoute';
 import { useFormatTime } from '../i18n/formatters';
+import { formatDirections, formatDirectionPair, directionsStringsFromT } from '../utils/directionsLabel';
+import { DirectionLabel } from '../features/stops/DirectionLabel';
 import {
   BusRowDisclosure,
   type DownstreamStopView,
@@ -73,6 +75,13 @@ function StopDetailReady({ stopId }: { stopId: string }) {
   const nowSec = useNowSec(15_000);
 
   const stopName = stop?.name ?? `Stop ${stopId}`;
+  const directions = stop
+    ? formatDirections(
+        stop.directions,
+        (routeId) => repo.getRoute(routeId)?.shortName ?? routeId,
+        directionsStringsFromT(t),
+      )
+    : null;
   const tier =
     lastUpdated !== null
       ? freshnessTier({ lastUpdatedSec: lastUpdated, isStale, nowSec })
@@ -98,7 +107,12 @@ function StopDetailReady({ stopId }: { stopId: string }) {
         <Link to="/" aria-label={t('stopDetail.backToHome')} className="text-2xl text-primary">
           ←
         </Link>
-        <h1 className="flex-1 text-xl font-bold">{stopName}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-bold">{stopName}</h1>
+          {directions && (
+            <DirectionLabel value={directions} as="p" className="mt-0.5 text-sm text-fg-muted" />
+          )}
+        </div>
         <FavoriteStarButton stopId={stopId} stopName={stopName} />
       </header>
 
@@ -246,6 +260,7 @@ function RouteSection({ group, nowSec }: { group: RouteGroup; nowSec: number }) 
   const feed = useRealtimeFeed();
   const route = repo.getRoute(group.routeId);
   const shortName = route?.shortName ?? group.routeId;
+  const headerPair = formatDirectionPair(shortName, group.headsign, directionsStringsFromT(t));
   const level = assessDisruption(group.rows);
   const cancellations = group.rows.filter((r) => r.status === 'cancelled').length;
 
@@ -260,9 +275,7 @@ function RouteSection({ group, nowSec }: { group: RouteGroup; nowSec: number }) 
   return (
     <section>
       <div className="flex items-center gap-2">
-        <h2 className="text-base font-semibold text-fg">
-          {t('stopDetail.routeHeader', { shortName, headsign: group.headsign })}
-        </h2>
+        <DirectionLabel value={headerPair} as="h2" className="text-base font-semibold text-fg" />
         <DisruptionBadge level={level} cancellations={cancellations} />
       </div>
       <ul className="mt-2 divide-y divide-divider">

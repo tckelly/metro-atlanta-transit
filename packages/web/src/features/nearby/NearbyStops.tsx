@@ -12,7 +12,7 @@
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, MessageCard } from '@atl-transit/components';
+import { Button, ListItem, MessageCard } from '@atl-transit/components';
 
 import type { NearbyStop } from './getNearbyStops';
 import {
@@ -23,6 +23,8 @@ import {
 import { useGtfsRepository } from '../../services/gtfs/GtfsRepositoryContext';
 import type { GtfsRepository } from '../../services/gtfs/GtfsRepository';
 import { formatWalkingMinutes } from '../../utils/walkingMinutes';
+import { formatDirections, directionsStringsFromT } from '../../utils/directionsLabel';
+import { DirectionLabel } from '../stops/DirectionLabel';
 
 const NEARBY_COUNT = 5;
 
@@ -121,24 +123,40 @@ function IdleView({ onFind }: { onFind: () => void }) {
 
 function StopList({ stops }: { stops: NearbyStop[] }) {
   const { t } = useTranslation();
+  const repo = useGtfsRepository();
+  const strings = directionsStringsFromT(t);
   if (stops.length === 0) {
     return <p className="text-sm text-fg-muted">{t('nearby.noResults')}</p>;
   }
   return (
     <ul className="space-y-2">
-      {stops.map((stop) => (
-        <li key={stop.stopId}>
-          <Link
-            to={`/stop/${stop.stopId}`}
-            className="flex items-baseline justify-between gap-3 rounded border border-divider bg-surface-elevated p-3 transition-colors hover:border-primary"
-          >
-            <span className="min-w-0 truncate font-medium">{stop.name}</span>
-            <span className="whitespace-nowrap text-sm text-fg-muted">
-              {formatWalkingMinutes(stop.distanceMeters, t)}
-            </span>
-          </Link>
-        </li>
-      ))}
+      {stops.map((stop) => {
+        const directions = formatDirections(
+          stop.directions,
+          (routeId) => repo.getRoute(routeId)?.shortName ?? routeId,
+          strings,
+        );
+        return (
+          <li key={stop.stopId}>
+            <Link
+              to={`/stop/${stop.stopId}`}
+              className="group block rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <ListItem
+                variant="card"
+                interactive
+                title={stop.name}
+                secondary={directions ? <DirectionLabel value={directions} /> : undefined}
+                trailing={
+                  <span className="whitespace-nowrap text-sm text-fg-muted">
+                    {formatWalkingMinutes(stop.distanceMeters, t)}
+                  </span>
+                }
+              />
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }

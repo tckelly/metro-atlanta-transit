@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MessageCard, SearchInput, Skeleton } from '@atl-transit/components';
+import { ListItem, MessageCard, SearchInput, Skeleton } from '@atl-transit/components';
 
 import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
 import { matchesQuery } from '../features/search/searchMatch';
@@ -126,9 +126,9 @@ export function RouteDetail() {
                 <li key={stop.stopId}>
                   <Link
                     to={`/stop/${stop.stopId}`}
-                    className="block px-4 py-3 hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
-                    {stop.name}
+                    <ListItem variant="row" interactive title={stop.name} />
                   </Link>
                 </li>
               ))}

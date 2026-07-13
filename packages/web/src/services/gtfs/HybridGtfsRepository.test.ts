@@ -5,9 +5,9 @@ import type { ScheduledStopVisit } from '../../features/stops/busRowClassifier';
 
 const BUNDLE: SmallGtfsBundle = {
   stops: [
-    { stopId: 'S1', name: 'Stop One', lat: 33.7540, lng: -84.3915, routeIds: ['116'] },
-    { stopId: 'S2', name: 'Stop Two', lat: 33.7544, lng: -84.3915, routeIds: ['116'] },
-    { stopId: 'S3', name: 'Far Away', lat: 34.0, lng: -84.0, routeIds: ['999'] },
+    { stopId: 'S1', name: 'Stop One', lat: 33.7540, lng: -84.3915, routeIds: ['116'], directions: [] },
+    { stopId: 'S2', name: 'Stop Two', lat: 33.7544, lng: -84.3915, routeIds: ['116'], directions: [] },
+    { stopId: 'S3', name: 'Far Away', lat: 34.0, lng: -84.0, routeIds: ['999'], directions: [] },
   ],
   routes: [
     { routeId: '116', shortName: '116', longName: 'Decatur via Avondale' },

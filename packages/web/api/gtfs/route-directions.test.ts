@@ -7,8 +7,8 @@ import type { GtfsBundle } from '../../src/buildtime/preprocessGtfs.js';
 
 const BUNDLE: GtfsBundle = {
   stops: [
-    { stopId: 'S1', name: 'A', lat: 0, lng: 0, routeIds: ['R1'] },
-    { stopId: 'S2', name: 'B', lat: 0, lng: 0, routeIds: ['R1'] },
+    { stopId: 'S1', name: 'A', lat: 0, lng: 0, routeIds: ['R1'], directions: [] },
+    { stopId: 'S2', name: 'B', lat: 0, lng: 0, routeIds: ['R1'], directions: [] },
   ],
   routes: [{ routeId: 'R1', shortName: '1', longName: 'One' }],
   trips: [

@@ -21,10 +21,12 @@
  */
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, Skeleton } from '@atl-transit/components';
+import { Button, Icon, Skeleton, StatusText } from '@atl-transit/components';
 
 import { useArrivals } from '../stops/useArrivals';
 import { toBusRowProps } from '../stops/busRowMapper';
+import { DirectionLabel } from '../stops/DirectionLabel';
+import { formatDirectionPair, directionsStringsFromT } from '../../utils/directionsLabel';
 import { useGtfsRepository } from '../../services/gtfs/GtfsRepositoryContext';
 import { useFormatTime } from '../../i18n/formatters';
 import { useNowSec } from '../../utils/useNowSec';
@@ -61,6 +63,7 @@ export function FavoriteStopCard({
   const stop = repo.getStop(stopId);
   const stopName = stop?.name ?? `Stop ${stopId}`;
   const preview = rows.slice(0, PREVIEW_COUNT);
+  const directionStrings = directionsStringsFromT(t);
 
   const body = (
     <div className="flex">
@@ -79,7 +82,7 @@ export function FavoriteStopCard({
             </div>
           )}
           {status === 'error' && (
-            <span className="text-status-cancelled">{t('favorites.loadError')}</span>
+            <StatusText severity="danger">{t('favorites.loadError')}</StatusText>
           )}
           {status === 'success' && preview.length === 0 && (
             <span className="text-fg-muted">{t('favorites.noUpcoming')}</span>
@@ -90,12 +93,15 @@ export function FavoriteStopCard({
                 const route = repo.getRoute(row.routeId);
                 const shortName = route?.shortName ?? row.routeId;
                 const props = toBusRowProps(row, nowSec, { t, formatTime });
+                const pair = formatDirectionPair(shortName, row.headsign, directionStrings);
                 return (
                   <li key={row.tripId} className="flex items-baseline justify-between gap-3">
-                    <span className="min-w-0 truncate text-fg">
-                      {t('favorites.rowPreview', { shortName, headsign: row.headsign })}
+                    <DirectionLabel value={pair} className="min-w-0 truncate text-fg" />
+                    <span className="whitespace-nowrap">
+                      <StatusText severity={props.severity} weight="semibold">
+                        {props.primaryText}
+                      </StatusText>
                     </span>
-                    <span className={severityClass(props.severity)}>{props.primaryText}</span>
                   </li>
                 );
               })}
@@ -172,15 +178,3 @@ function RightSlot({ mode, stopName, canMoveUp, canMoveDown, onMove }: RightSlot
   );
 }
 
-function severityClass(severity: 'success' | 'warning' | 'danger' | 'neutral'): string {
-  switch (severity) {
-    case 'success':
-      return 'whitespace-nowrap font-semibold text-status-live';
-    case 'warning':
-      return 'whitespace-nowrap font-semibold text-status-warn';
-    case 'danger':
-      return 'whitespace-nowrap font-semibold text-status-cancelled';
-    case 'neutral':
-      return 'whitespace-nowrap font-semibold text-fg';
-  }
-}

@@ -12,17 +12,36 @@ import { InMemoryGtfsRepository } from '../../services/gtfs/InMemoryGtfsReposito
 const FIVE_POINTS = { lat: 33.754, lng: -84.391 };
 
 const STOPS: StopOut[] = [
-  { stopId: '1', name: 'Marietta @ Forsyth',     lat: 33.7544, lng: -84.3915, routeIds: ['51'] },
-  { stopId: '2', name: 'Peachtree Center',       lat: 33.7540, lng: -84.3893, routeIds: ['110'] },
-  { stopId: '3', name: 'Five Points Station',    lat: 33.7495, lng: -84.3915, routeIds: ['1'] },
-  { stopId: '4', name: 'CNN Center',             lat: 33.7540, lng: -84.4023, routeIds: ['12'] },
-  { stopId: '5', name: 'Civic Center',           lat: 33.7990, lng: -84.3915, routeIds: ['16'] },
-  { stopId: '6', name: 'Far away',               lat: 34.5000, lng: -84.0000, routeIds: ['99'] },
+  { stopId: '1', name: 'Marietta @ Forsyth',     lat: 33.7544, lng: -84.3915, routeIds: ['51'], directions: [] },
+  { stopId: '2', name: 'Peachtree Center',       lat: 33.7540, lng: -84.3893, routeIds: ['110'], directions: [] },
+  { stopId: '3', name: 'Five Points Station',    lat: 33.7495, lng: -84.3915, routeIds: ['1'], directions: [] },
+  { stopId: '4', name: 'CNN Center',             lat: 33.7540, lng: -84.4023, routeIds: ['12'], directions: [] },
+  { stopId: '5', name: 'Civic Center',           lat: 33.7990, lng: -84.3915, routeIds: ['16'], directions: [] },
+  { stopId: '6', name: 'Far away',               lat: 34.5000, lng: -84.0000, routeIds: ['99'], directions: [] },
 ];
 
 const BUNDLE: GtfsBundle = {
   stops: STOPS,
   routes: [],
+  trips: [],
+  stopTimes: [],
+  calendar: { rules: [], exceptions: [] },
+};
+
+// A single stop carrying one direction, plus the route so routeId → shortName
+// resolves. Used to exercise the disambiguator secondary line.
+const DIRECTIONS_BUNDLE: GtfsBundle = {
+  stops: [
+    {
+      stopId: '1',
+      name: 'Virginia Ave @ Maryland Ave',
+      lat: 33.7544,
+      lng: -84.3915,
+      routeIds: ['R11'],
+      directions: [{ routeId: 'R11', headsign: 'Collier Rd' }],
+    },
+  ],
+  routes: [{ routeId: 'R11', shortName: '11', longName: 'Virginia Highland' }],
   trips: [],
   stopTimes: [],
   calendar: { rules: [], exceptions: [] },
@@ -52,6 +71,32 @@ describe('NearbyStops — idle state', () => {
     expect(screen.getByRole('heading', { name: /nearby stops/i })).toBeInTheDocument();
     expect(screen.getByText(/we use your location/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /find stops near me/i })).toBeInTheDocument();
+  });
+});
+
+describe('NearbyStops — direction disambiguator', () => {
+  it('renders a route → headsign line with an accessible spoken label', async () => {
+    const user = userEvent.setup();
+    renderWithRouter(
+      <NearbyStops
+        geolocation={fakeGeolocation({
+          status: 'success',
+          coords: { ...FIVE_POINTS, accuracyMeters: 10 },
+        })}
+      />,
+      DIRECTIONS_BUNDLE,
+    );
+
+    await user.click(screen.getByRole('button', { name: /find stops near me/i }));
+
+    // Sighted users see the glyph form…
+    expect(await screen.findByText('11 → Collier Rd')).toBeInTheDocument();
+    // …but the "→" reads inconsistently, so the link exposes a spoken form.
+    expect(
+      screen.getByRole('link', {
+        name: /Virginia Ave @ Maryland Ave.*Route 11 toward Collier Rd/,
+      }),
+    ).toBeInTheDocument();
   });
 });
 

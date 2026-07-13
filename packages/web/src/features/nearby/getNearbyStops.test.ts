@@ -18,11 +18,11 @@ function bundleOf(stops: StopOut[]): GtfsBundle {
 // (1° lat ≈ 111 km; 1° lng ≈ 92.5 km).
 const FIVE_POINTS = { lat: 33.7540, lng: -84.3915 };
 const STOPS: StopOut[] = [
-  { stopId: 'A', name: '50 m north', lat: 33.7544, lng: -84.3915, routeIds: ['1'] },
-  { stopId: 'B', name: '200 m east', lat: 33.7540, lng: -84.3893, routeIds: ['2'] },
-  { stopId: 'C', name: '500 m south', lat: 33.7495, lng: -84.3915, routeIds: ['3'] },
-  { stopId: 'D', name: '1 km west', lat: 33.7540, lng: -84.4023, routeIds: ['4'] },
-  { stopId: 'E', name: '5 km north', lat: 33.7990, lng: -84.3915, routeIds: ['5'] },
+  { stopId: 'A', name: '50 m north', lat: 33.7544, lng: -84.3915, routeIds: ['1'], directions: [] },
+  { stopId: 'B', name: '200 m east', lat: 33.7540, lng: -84.3893, routeIds: ['2'], directions: [] },
+  { stopId: 'C', name: '500 m south', lat: 33.7495, lng: -84.3915, routeIds: ['3'], directions: [] },
+  { stopId: 'D', name: '1 km west', lat: 33.7540, lng: -84.4023, routeIds: ['4'], directions: [] },
+  { stopId: 'E', name: '5 km north', lat: 33.7990, lng: -84.3915, routeIds: ['5'], directions: [] },
 ];
 
 describe('getNearbyStops', () => {
@@ -56,7 +56,7 @@ describe('getNearbyStops', () => {
       name: '50 m north',
       lat: 33.7544,
       lng: -84.3915,
-      routeIds: ['1'],
+      routeIds: ['1'], directions: [],
     });
   });
 

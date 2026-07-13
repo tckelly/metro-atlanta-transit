@@ -52,8 +52,8 @@ function makeMemoryStorage(seed: Record<string, string> = {}): MemoryStorage {
 }
 
 const DEFAULT_STOPS: StopOut[] = [
-  { stopId: '902990', name: 'Virginia Ave @ Todd Rd',     lat: 33.754, lng: -84.391, routeIds: ['116'] },
-  { stopId: '904428', name: 'Ponce de Leon @ Barnett St', lat: 33.770, lng: -84.380, routeIds: ['2'] },
+  { stopId: '902990', name: 'Virginia Ave @ Todd Rd',     lat: 33.754, lng: -84.391, routeIds: ['116'], directions: [] },
+  { stopId: '904428', name: 'Ponce de Leon @ Barnett St', lat: 33.770, lng: -84.380, routeIds: ['2'], directions: [] },
 ];
 
 const DEFAULT_ROUTES: RouteOut[] = [

@@ -14,7 +14,7 @@ import type { GtfsBundle } from '../../buildtime/preprocessGtfs';
 
 // Single scheduled visit at 06:01:56 EDT on 2026-05-22 for stop 134013.
 const BUNDLE: GtfsBundle = {
-  stops: [{ stopId: '134013', name: 'Test Stop', lat: 0, lng: 0, routeIds: ['116'] }],
+  stops: [{ stopId: '134013', name: 'Test Stop', lat: 0, lng: 0, routeIds: ['116'], directions: [] }],
   routes: [{ routeId: '116', shortName: '116', longName: 'Test' }],
   trips: [{ tripId: '10802068', routeId: '116', serviceId: 'WEEKDAY', headsign: 'Decatur' }],
   stopTimes: [
@@ -166,7 +166,7 @@ describe('useArrivals', () => {
       ...BUNDLE,
       stops: [
         ...BUNDLE.stops,
-        { stopId: 'other', name: 'Other', lat: 0, lng: 0, routeIds: ['116'] },
+        { stopId: 'other', name: 'Other', lat: 0, lng: 0, routeIds: ['116'], directions: [] },
       ],
       trips: [
         ...BUNDLE.trips,

@@ -96,6 +96,19 @@ For the agent picking this up cold:
 - **Rendering rule:** single-pair → one line `‹shortName› → ‹headsign›` (resolve `routeId`→`shortName` via `routes.json`). Multi-pair → top-N then "+N more" (N is a layout call; truncation is correctness-safe — see Open questions). The connective glyph/words ("→", "via") go through i18n even though the headsign text itself is MARTA data and stays untranslated.
 - **Tests:** `transformGtfs` is a pure function over `GtfsRaw` — TDD it against a small hand-built fixture (run red first), mirroring `preprocessGtfs.test.ts`. Assert rendered text/roles, not class strings (behavior over implementation).
 
+## As built (v0.0.2)
+
+Implemented on the component-library maturation refactor. Decisions locked during implementation:
+
+- **`StopOut` shape:** `directions: { routeId: string; headsign: string }[]`, frequency-ordered (desc count, then routeId, then headsign) in `transformGtfs()`. `directionId` omitted (not human-readable). A `StopDirection` type is exported for consumers.
+- **Mapper:** `utils/directionsLabel.ts` — pure `formatDirections(directions, resolveShortName, strings, maxPairs=2)`, TDD'd. Returns `{ visible, label } | null`; shows up to N pairs then `+N more`.
+- **N (truncation):** **2** on every surface for now (a layout call, correctness-safe per the truncation analysis below).
+- **a11y:** visible text uses the `→` glyph; each line carries an `aria-label` spoken form (`Route 11 toward Collier Rd`), since `→` reads inconsistently. The label folds into the link/​header accessible name.
+- **i18n:** `directions.{pair,pairSpoken,more,moreSpoken}` in en + es; connective/"more" translated, headsign stays untranslated MARTA data.
+- **Surfaces:** Nearby + Search (via `ListItem`'s `secondary` slot) and the StopDetail header. **Favorites** and **RouteDetail** skipped *for the added secondary line* — each already conveys direction (live-arrival headsigns; per-headsign grouping). Search's old routes line was **replaced**.
+- **Validation:** no Zod added — `stops.json` is a trusted first-party build artifact; the recorded stance validates only untrusted boundaries (architecture.md).
+- **Follow-up — shared `DirectionLabel` + format unification.** After the initial rollout, the visible-glyph / spoken-`aria-label` pairing was promoted into a presentational `DirectionLabel` component (router-agnostic, `as='span' | 'p' | 'h2'`), and `formatDirectionPair` was factored out of `formatDirections` so a single `(route, headsign)` can be formatted without the truncation machinery. The canonical `route → headsign` format was then applied to two *existing* direction displays that had drifted into other styles — the StopDetail route-group header (`Route 11 — Executive Park` → `11 → Executive Park`) and the Favorites arrival preview — so every surface that names a direction now renders and speaks it identically. (This is why "Favorites skipped" above is scoped to the *added secondary line*: favorites already showed direction, and this unified its format and a11y.)
+
 ## Open questions
 
 - **Multi-pair rendering & the truncation trap — measured, largely a non-issue.** The worry was that truncating a multi-pair stop to "first 2 + more" could hide the pair that distinguishes it from an adjacent same-name twin. Checked empirically against every adjacent (<200 m) same-name multi-pair collision in the static GTFS: **12 cases where the top-2-by-frequency labels collide, and all 12 have *fully identical* pair sets** — i.e. zero cases where truncation is the culprit. When two adjacent same-name stops show the same top-2, it's because they genuinely serve identical `(route, headsign)` service, not because we hid the differ. So **top-N truncation is safe** (it never suppresses a disambiguating signal), and picking N is a pure layout call. The residual 12 pairs are a *different* problem (below).

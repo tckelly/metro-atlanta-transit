@@ -11,7 +11,7 @@ import {
 import type { GtfsBundle } from '../../src/buildtime/preprocessGtfs.js';
 
 const BUNDLE: GtfsBundle = {
-  stops: [{ stopId: 'S1', name: 'Test', lat: 0, lng: 0, routeIds: ['R1'] }],
+  stops: [{ stopId: 'S1', name: 'Test', lat: 0, lng: 0, routeIds: ['R1'], directions: [] }],
   routes: [{ routeId: 'R1', shortName: '1', longName: 'One' }],
   trips: [
     // R1 → Decatur with 3 stops (the canonical longest pattern)

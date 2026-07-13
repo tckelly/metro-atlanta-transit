@@ -46,7 +46,7 @@ function renderAt(routeId: string, repo: GtfsRepository): void {
 }
 
 function stop(id: string, name: string): StopOut {
-  return { stopId: id, name, lat: 0, lng: 0, routeIds: ['4'] };
+  return { stopId: id, name, lat: 0, lng: 0, routeIds: ['4'], directions: [] };
 }
 
 function directionsRepo(directions: RouteDirection[]): GtfsRepository {

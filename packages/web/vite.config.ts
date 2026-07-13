@@ -177,15 +177,17 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Precache the app shell plus the small GTFS JSON files
-        // (stops + routes only after ADR-0006). The big tables now
-        // live in the backend SQLite — served by /api/gtfs/* with
-        // its own runtime cache rule below.
-        globPatterns: [
-          '**/*.{js,css,html,svg,ico}',
-          'gtfs/routes.json',
-          'gtfs/stops.json',
-        ],
+        // Precache the app shell only. The GTFS JSON (stops + routes)
+        // is deliberately NOT precached: stops.json is ~1.3 MB
+        // uncompressed (its per-stop `directions` pushed it past the
+        // precache size cap below), and precaching would re-download
+        // that copy on every nightly deploy via revision invalidation.
+        // It's owned instead by the StaleWhileRevalidate runtime rule
+        // for /gtfs/*.json further down — cached after the first online
+        // load, revalidated cheaply on return visits. The big schedule
+        // tables live in backend SQLite (ADR-0006), served by
+        // /api/gtfs/* with its own runtime rule.
+        globPatterns: ['**/*.{js,css,html,svg,ico}'],
         // Hard cap — anything larger gets skipped from precache and
         // logged. Set well above our small-file ceiling so we never
         // silently include something gigantic.
@@ -215,11 +217,25 @@ export default defineConfig({
             },
           },
           {
-            // Static GTFS small bundle (stops, routes): precached,
-            // but if the user installs the PWA before the bundle is
-            // in precache (rare), this is the safety net.
+            // Static GTFS small bundle (stops, routes) — the PRIMARY (and
+            // only) cache for these files now that they're out of precache
+            // (see globPatterns above). The app fetches them eagerly at cold
+            // open (BundleGate), so the first online load populates this
+            // cache; every load after that is served instantly from it,
+            // including fully offline.
+            //
+            // StaleWhileRevalidate (not CacheFirst): serve the cached copy
+            // instantly, but refetch in the background so the *next* load
+            // picks up a fresh bundle. The data changes nightly, and its
+            // shape changes across releases — CacheFirst pinned a stale copy
+            // for the full maxAge (up to 7 days), so a returning user could
+            // miss new fields (e.g. per-stop `directions`). SWR keeps the
+            // offline story (cache still serves when the network is down)
+            // without freezing the data behind the TTL; the background
+            // revalidate is a conditional GET, so it's a cheap 304 unless
+            // the bundle actually changed.
             urlPattern: /\/gtfs\/.*\.json$/,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'gtfs-static',
               expiration: {

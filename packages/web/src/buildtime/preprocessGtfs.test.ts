@@ -1,7 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import JSZip from 'jszip';
 
-import { parseGtfsCsvs, transformGtfs, parseGtfsZip } from './preprocessGtfs';
+import { parseGtfsCsvs, transformGtfs, parseGtfsZip, type GtfsRaw } from './preprocessGtfs';
+
+/** Build a full GtfsRaw from a partial, defaulting every table to empty. */
+function rawWith(parts: Partial<GtfsRaw>): GtfsRaw {
+  return {
+    stops: [],
+    routes: [],
+    trips: [],
+    stopTimes: [],
+    calendar: [],
+    calendarDates: [],
+    ...parts,
+  };
+}
 
 // Hand-crafted fixture. Three stops, two routes (one with color), two trips,
 // 6 stop_times, one calendar rule, one calendar exception. Enough to exercise
@@ -127,9 +140,11 @@ describe('transformGtfs', () => {
 
   it('omits route color when the source row had an empty value', () => {
     const bundle = transformGtfs(parseGtfsCsvs(FIXTURE_CSVS));
-    expect(bundle.routes[0]).toMatchObject({ routeId: 'R36', color: '0066CC' });
-    expect(bundle.routes[1]).toMatchObject({ routeId: 'R102' });
-    expect(bundle.routes[1]).not.toHaveProperty('color');
+    const r36 = bundle.routes.find((r) => r.routeId === 'R36');
+    const r102 = bundle.routes.find((r) => r.routeId === 'R102');
+    expect(r36).toMatchObject({ routeId: 'R36', color: '0066CC' });
+    expect(r102).toMatchObject({ routeId: 'R102' });
+    expect(r102).not.toHaveProperty('color');
   });
 
   it('encodes calendar rules as a [mon..sun] boolean tuple', () => {
@@ -148,6 +163,89 @@ describe('transformGtfs', () => {
     const bundle = transformGtfs(parseGtfsCsvs(FIXTURE_CSVS));
     const trip1 = bundle.trips.find((t) => t.tripId === 'T1');
     expect(trip1?.headsign).toBe('Decatur Station');
+  });
+
+  it('computes per-stop (routeId, headsign) direction pairs', () => {
+    const bundle = transformGtfs(parseGtfsCsvs(FIXTURE_CSVS));
+    // S1 is served by both R36 trips (T1 outbound, T2 inbound), so it carries
+    // both directions. Equal frequency (1 each) → deterministic tie-break by
+    // routeId then headsign: "Decatur Station" before "Midtown".
+    const s1 = bundle.stops.find((s) => s.stopId === 'S1');
+    expect(s1?.directions).toEqual([
+      { routeId: 'R36', headsign: 'Decatur Station' },
+      { routeId: 'R36', headsign: 'Midtown' },
+    ]);
+  });
+
+  it('orders stops by stopId regardless of source row order', () => {
+    const raw = rawWith({
+      stops: [
+        { stop_id: 'S3', stop_name: 'Third', stop_lat: 0, stop_lon: 0 },
+        { stop_id: 'S1', stop_name: 'First', stop_lat: 0, stop_lon: 0 },
+        { stop_id: 'S2', stop_name: 'Second', stop_lat: 0, stop_lon: 0 },
+      ],
+    });
+    expect(transformGtfs(raw).stops.map((s) => s.stopId)).toEqual(['S1', 'S2', 'S3']);
+  });
+
+  it('orders routes by routeId regardless of source row order', () => {
+    const raw = rawWith({
+      routes: [
+        { route_id: 'R3', route_short_name: '3', route_long_name: 'Three', route_type: 3 },
+        { route_id: 'R1', route_short_name: '1', route_long_name: 'One', route_type: 3 },
+        { route_id: 'R2', route_short_name: '2', route_long_name: 'Two', route_type: 3 },
+      ],
+    });
+    expect(transformGtfs(raw).routes.map((r) => r.routeId)).toEqual(['R1', 'R2', 'R3']);
+  });
+
+  it('produces byte-identical stops/routes JSON when the same rows arrive shuffled', () => {
+    // The nightly rebuild's ETag should only change when data changes — not
+    // when MARTA happens to reorder rows. Same rows, reversed input order,
+    // must serialize identically. See ADR-0008 caching notes.
+    const stops = [
+      { stop_id: 'S3', stop_name: 'Third', stop_lat: 1, stop_lon: 1 },
+      { stop_id: 'S1', stop_name: 'First', stop_lat: 2, stop_lon: 2 },
+      { stop_id: 'S2', stop_name: 'Second', stop_lat: 3, stop_lon: 3 },
+    ];
+    const routes = [
+      { route_id: 'R2', route_short_name: '2', route_long_name: 'Two', route_type: 3 },
+      { route_id: 'R1', route_short_name: '1', route_long_name: 'One', route_type: 3 },
+    ];
+    const forward = transformGtfs(rawWith({ stops, routes }));
+    const reversed = transformGtfs(
+      rawWith({ stops: [...stops].reverse(), routes: [...routes].reverse() }),
+    );
+    expect(JSON.stringify(reversed.stops)).toEqual(JSON.stringify(forward.stops));
+    expect(JSON.stringify(reversed.routes)).toEqual(JSON.stringify(forward.routes));
+  });
+
+  it('orders a stop\'s directions by descending trip frequency, deduping pairs', () => {
+    // SX: RB→Beta served by 3 trips, RA→Alpha by 1. Frequency-desc must put
+    // Beta first even though RA sorts earlier alphabetically — this is what
+    // makes top-N truncation correctness-safe (ADR-0008). Also proves the
+    // repeated (RB, Beta) pair collapses to a single entry.
+    const raw = rawWith({
+      stops: [{ stop_id: 'SX', stop_name: 'X', stop_lat: 0, stop_lon: 0 }],
+      trips: [
+        { trip_id: 'T1', route_id: 'RA', service_id: 'W', trip_headsign: 'Alpha' },
+        { trip_id: 'T2', route_id: 'RB', service_id: 'W', trip_headsign: 'Beta' },
+        { trip_id: 'T3', route_id: 'RB', service_id: 'W', trip_headsign: 'Beta' },
+        { trip_id: 'T4', route_id: 'RB', service_id: 'W', trip_headsign: 'Beta' },
+      ],
+      stopTimes: ['T1', 'T2', 'T3', 'T4'].map((tripId, i) => ({
+        trip_id: tripId,
+        stop_id: 'SX',
+        stop_sequence: i + 1,
+        arrival_time: '06:00:00',
+        departure_time: '06:00:00',
+      })),
+    });
+    const sx = transformGtfs(raw).stops.find((s) => s.stopId === 'SX');
+    expect(sx?.directions).toEqual([
+      { routeId: 'RB', headsign: 'Beta' },
+      { routeId: 'RA', headsign: 'Alpha' },
+    ]);
   });
 });
 

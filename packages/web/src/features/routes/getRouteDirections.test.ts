@@ -4,11 +4,11 @@ import { getRouteDirections } from './getRouteDirections';
 import type { GtfsBundle, StopOut } from '../../buildtime/preprocessGtfs';
 
 const STOPS: StopOut[] = [
-  { stopId: 'S1', name: 'Stop 1', lat: 0, lng: 0, routeIds: ['116'] },
-  { stopId: 'S2', name: 'Stop 2', lat: 0, lng: 0, routeIds: ['116'] },
-  { stopId: 'S3', name: 'Stop 3', lat: 0, lng: 0, routeIds: ['116'] },
-  { stopId: 'S4', name: 'Stop 4', lat: 0, lng: 0, routeIds: ['116'] },
-  { stopId: 'S5', name: 'Stop 5', lat: 0, lng: 0, routeIds: ['999'] },
+  { stopId: 'S1', name: 'Stop 1', lat: 0, lng: 0, routeIds: ['116'], directions: [] },
+  { stopId: 'S2', name: 'Stop 2', lat: 0, lng: 0, routeIds: ['116'], directions: [] },
+  { stopId: 'S3', name: 'Stop 3', lat: 0, lng: 0, routeIds: ['116'], directions: [] },
+  { stopId: 'S4', name: 'Stop 4', lat: 0, lng: 0, routeIds: ['116'], directions: [] },
+  { stopId: 'S5', name: 'Stop 5', lat: 0, lng: 0, routeIds: ['999'], directions: [] },
 ];
 
 const BASE_BUNDLE: GtfsBundle = {

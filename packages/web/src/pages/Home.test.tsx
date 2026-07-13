@@ -46,11 +46,11 @@ function memoryStorage(): {
 }
 
 const STOPS: StopOut[] = [
-  { stopId: '1', name: 'Ponce de Leon Ave @ Barnett St', lat: 0, lng: 0, routeIds: ['2', '102'] },
-  { stopId: '2', name: 'Memorial Dr SE @ Hill St', lat: 0, lng: 0, routeIds: ['21'] },
-  { stopId: '3', name: 'Peachtree St NW @ 14th St', lat: 0, lng: 0, routeIds: ['110'] },
-  { stopId: '4', name: 'Cherokee Ave @ Ponce Pl', lat: 0, lng: 0, routeIds: ['97'] },
-  { stopId: '5', name: 'Sponcetown Rd @ Old Mill Ln', lat: 0, lng: 0, routeIds: ['180'] },
+  { stopId: '1', name: 'Ponce de Leon Ave @ Barnett St', lat: 0, lng: 0, routeIds: ['2', '102'], directions: [{ routeId: '2', headsign: 'Midtown' }] },
+  { stopId: '2', name: 'Memorial Dr SE @ Hill St', lat: 0, lng: 0, routeIds: ['21'], directions: [] },
+  { stopId: '3', name: 'Peachtree St NW @ 14th St', lat: 0, lng: 0, routeIds: ['110'], directions: [] },
+  { stopId: '4', name: 'Cherokee Ave @ Ponce Pl', lat: 0, lng: 0, routeIds: ['97'], directions: [] },
+  { stopId: '5', name: 'Sponcetown Rd @ Old Mill Ln', lat: 0, lng: 0, routeIds: ['180'], directions: [] },
 ];
 
 const ROUTES: RouteOut[] = [
@@ -127,11 +127,17 @@ describe('Home — global stop search', () => {
     expect(names[names.length - 1]).toContain('Sponcetown');
   });
 
-  it('shows the routes serving each result stop', async () => {
+  it('shows the direction disambiguator (route → headsign) for each result stop', async () => {
     renderHome();
     await userEvent.type(screen.getByRole('searchbox'), 'ponce');
-    // "Ponce de Leon …" is served by routes 2 and 102.
-    expect(screen.getByText(/2, 102|2,\s*102/)).toBeInTheDocument();
+    // "Ponce de Leon …" serves route 2 toward Midtown. Sighted users see the
+    // glyph form; the link exposes a spoken form since "→" reads inconsistently.
+    expect(screen.getByText('2 → Midtown')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: /Ponce de Leon Ave @ Barnett St.*Route 2 toward Midtown/,
+      }),
+    ).toBeInTheDocument();
   });
 
   it('shows an empty-state when no stops match', async () => {

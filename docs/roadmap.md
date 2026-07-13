@@ -20,11 +20,17 @@ Continuing to patch-bump (instead of jumping to `0.1.0` or `1.0.0`) keeps the si
 
 The next patch release. This section holds *committed* work — what we've decided to build, plus what's already shipped toward this release — as distinct from the candidate pools and design-open features below. An item **graduates** here from the backlog / optimization-candidate / major-feature sections once we commit to it, and moves to [`history/`](./history/) when v0.0.2 is cut.
 
+### Component-library maturation — design in [`features/component-library-maturation.md`](./features/component-library-maturation.md)
+
+DRY refactor and prerequisite for the disambiguator below. Vetting that feature surfaced that the stop-row pattern is copy-pasted across 5 surfaces (Nearby, search, favorites, RouteDetail, Routes) and the `severity → color` map across 4 — the rich library ADR-0003 designed was (correctly) deferred as YAGNI at launch, but the 2+-consumer promotion trigger has now fired. Extract the evidence-backed subset only: a router-agnostic `ListItem` molecule (+ `StopCard`/`RouteRow` web wrappers) and a `StatusText` atom; explicitly *not* the rest of ADR-0003's list. Decision recorded in [ADR-0009](./adr/ADR-0009-promote-component-subset.md).
+
+**Status. Built.** Phase A shipped `ListItem` + `StatusText` in `@atl-transit/components` and migrated Search + RouteDetail stops (`variant='row'`), Nearby (`variant='card'`), and FavoriteStopCard (adopts `StatusText`, keeps its bespoke shell). Phase B spiked removing the container-idiom prop and **kept it** — the card-vs-row split is a documented `ux-guidelines.md` distinction, not drift — renaming `density` → `variant`. Two as-built corrections are recorded in the feature doc: `StatusText` landed with one fitting consumer (kept on severity-family / token-centralization grounds, not the 2+ count — ADR-0009's "4 sites" was an overcount), and `Routes` route rows stayed inline (only consumer of that shape). Unblocked the disambiguator below.
+
 ### Nearby stop direction / disambiguation — design in [`features/nearby-stop-direction.md`](./features/nearby-stop-direction.md)
 
 Same-name adjacent stops — the opposite curbs of one intersection — render as indistinguishable duplicate rows in the Nearby list (measured: ~49% of all stops share a name with another stop). Fix: give each stop a `route → headsign` disambiguator (e.g. `11 → Collier Rd`), precomputed onto `StopOut` at build time and shipped in `stops.json` (+~25 KB gzipped, no backend or per-request cost). The feature doc carries the full design conversation — problem, name-collision data, why headsign beats cardinal-direction and route-number-alone, the cost analysis, edge cases, and implementation pointers.
 
-**Status.** Design complete, ready to build. Touches `packages/web/src/buildtime/preprocessGtfs.ts` (the `StopOut` enrichment), the `stops.json` consumers (Nearby, search, favorites, StopDetail header), and the domain→visual mapping at the web boundary (ADR-0003).
+**Status. Built.** Landed on the component-library maturation refactor: `StopOut.directions` is precomputed in `preprocessGtfs.ts` (frequency-ordered so top-N truncation is correctness-safe), and a pure `formatDirections` mapper renders a `route → headsign` secondary line via `ListItem`'s `secondary` slot on Nearby + Search and in the StopDetail header. Favorites and RouteDetail are skipped for the *added secondary line* (each already conveys direction). a11y: visible `→` glyph with an `aria-label` spoken form ("Route 11 toward Collier Rd"). i18n `directions.*` keys added (en + es); the unused `home.searchRoutesLine` was removed. A **follow-up** then extracted a shared `DirectionLabel` component (visible glyph + spoken `aria-label` centralized in one place) and applied the canonical `route → headsign` format to two existing direction displays that had drifted — the StopDetail route-group header (`Route 11 — Executive Park` → `11 → Executive Park`) and the Favorites arrival preview — so every surface that names a direction renders and speaks it identically. As-built notes and the resolved open questions live in [`features/nearby-stop-direction.md`](./features/nearby-stop-direction.md). Two vetting corrections held: no Zod schema exists on `stops.json` to update (trusted first-party build artifact), and search *replaces* its old routes line rather than stacking.
 
 ### Scheduled-path downstream times + `arrivalText` rename — **shipped 2026-05-31**
 
@@ -85,15 +91,21 @@ Items identified during v0.0.1 development that don't ship in the launch build b
 
 **Deferral note.** Considered 2026-06-01 and held. This is a solo hobby project with effectively zero users on day one of launch — there is no meaningful bandwidth or invocation cost to reduce, and no UX signal saying 60 s feels too fast or too slow. Changing the constant now would be evidence-free optimization against an imaginary load profile. Revisit if/when real usage data shows function invocations or outbound bandwidth trending toward Hobby-tier limits, or if a user reports the refresh cadence feels off.
 
-### Background-bfcache friendliness
+### Service-worker freshness & bfcache friendliness
 
-**What.** Investigate whether `vite-plugin-pwa`'s service-worker registration is preventing the browser's back/forward cache (Lighthouse flagged this in earlier audits — partly the HMR WebSocket in dev, but the SW registration may also disqualify the page in some browser/version combinations).
+Grouped here because both are "how the service worker behaves" concerns.
 
-**Why.** bfcache makes back-button navigation feel instant. If the SW is disqualifying us, fixing it is a clean UX win at zero recurring cost.
+**Shipped (v0.0.2) — GTFS static bundle: `StaleWhileRevalidate`, out of precache, deterministic bytes.** Three linked changes to how `/gtfs/{stops,routes}.json` is cached:
 
-**Trigger.** Real-device M6 audit confirms the issue persists in the production bundle.
+1. **`CacheFirst` → `StaleWhileRevalidate`.** `CacheFirst` pinned the bundle for its full 7-day `maxAge`, so a returning user could keep a stale `stops.json` and miss fields added in a later release — surfaced during the per-stop `directions` rollout (an old bundle lacked the field; a defensive guard in `formatDirections` degrades to name-only rather than crash, and the cache change is the real fix). SWR serves the cached copy instantly then refetches in the background, so the next load is fresh while offline still works.
 
-**Cost.** Investigation 1–2 hours; fix could be anything from a vite-plugin-pwa config flag to a deferred-registration tweak.
+2. **Removed the GTFS JSON from the Workbox precache.** Adding `directions` pushed `stops.json` to ~1.3 MB, past the 1 MiB precache size cap — and because the file was named explicitly in `globPatterns`, an oversize match is a *fatal build error*, which broke the nightly Vercel deploy (caught only in CI, since the local `test`/`typecheck`/`lint` gate doesn't run `vite build`). Dropping the two JSON files from `globPatterns` makes the SWR runtime rule their **primary** cache, not a safety net: the app fetches them eagerly at cold open, so the first online load populates the cache and every load after is instant, including offline. This also stops re-precaching 1.3 MB on every nightly deploy via revision invalidation.
+
+3. **Deterministic bundle bytes.** `transformGtfs` now sorts `stops` by `stopId` and `routes` by `routeId`, so identical data always serializes identically regardless of MARTA's CSV row order. The nightly ETag then changes only on a real data change, keeping the SWR background revalidation a cheap `304` the rest of the time (the ~153 KiB gzipped payload only re-downloads when stops actually change).
+
+**No performance regression:** both cache strategies serve cache-first with an identical render path; SWR only adds a *non-blocking background* refetch. Cost is at most a rare background download on metered connections, never UI latency — which is what matters on low-end devices.
+
+**Still open — bfcache.** Investigate whether `vite-plugin-pwa`'s service-worker registration is preventing the browser's back/forward cache (Lighthouse flagged this in earlier audits — partly the HMR WebSocket in dev, but the SW registration may also disqualify the page in some browser/version combinations). bfcache makes back-button navigation feel instant; if the SW is disqualifying us, fixing it is a clean UX win at zero recurring cost. **Trigger:** real-device M6 audit confirms the issue persists in the production bundle. **Cost:** investigation 1–2 hours; fix could be anything from a vite-plugin-pwa config flag to a deferred-registration tweak.
 
 ---
 

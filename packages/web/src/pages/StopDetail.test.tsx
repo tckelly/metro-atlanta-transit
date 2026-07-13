@@ -42,7 +42,7 @@ function noopStorage(): {
 
 function staticRepo(): GtfsRepository {
   return {
-    getStop: (id) => ({ stopId: id, name: 'Test Stop', lat: 0, lng: 0, routeIds: [] }),
+    getStop: (id) => ({ stopId: id, name: 'Test Stop', lat: 0, lng: 0, routeIds: [], directions: [] }),
     getRoute: () => undefined,
     listStops: () => [],
     listRoutes: () => [],
@@ -50,6 +50,24 @@ function staticRepo(): GtfsRepository {
     getRouteDirections: () => Promise.resolve([]),
     findNearbyStops: () => Promise.resolve([]),
     getStopsForTrip: () => Promise.resolve([]),
+  };
+}
+
+// Repo whose stop carries one direction, with the route present so
+// routeId → shortName resolves. Exercises the header disambiguator line.
+function directionsRepo(): GtfsRepository {
+  return {
+    ...staticRepo(),
+    getStop: (id) => ({
+      stopId: id,
+      name: 'Virginia Ave @ Maryland Ave',
+      lat: 0,
+      lng: 0,
+      routeIds: ['R11'],
+      directions: [{ routeId: 'R11', headsign: 'Collier Rd' }],
+    }),
+    getRoute: (routeId) =>
+      routeId === 'R11' ? { routeId: 'R11', shortName: '11', longName: 'Virginia Highland' } : undefined,
   };
 }
 
@@ -65,13 +83,17 @@ function feedInError(error: Error): RealtimeFeedSnapshot {
   };
 }
 
-function renderStopDetail(stopId: string, feed: RealtimeFeedSnapshot): void {
+function renderStopDetail(
+  stopId: string,
+  feed: RealtimeFeedSnapshot,
+  repo: GtfsRepository = staticRepo(),
+): void {
   render(
     <MemoryRouter initialEntries={[`/stop/${stopId}`]}>
       <SettingsProvider storage={noopStorage()}>
         <ToastProvider>
           <FavoritesProvider storage={noopStorage()}>
-            <GtfsRepositoryProvider repository={staticRepo()}>
+            <GtfsRepositoryProvider repository={repo}>
               <RealtimeFeedContext.Provider value={feed}>
                 <Routes>
                   <Route path="/stop/:stopId" element={<StopDetail />} />
@@ -98,5 +120,17 @@ describe('StopDetail — error UX', () => {
     expect(screen.queryByText(/MARTA fetch failed/i)).not.toBeInTheDocument();
 
     expect(screen.getByText(/try again/i)).toBeInTheDocument();
+  });
+});
+
+describe('StopDetail — header direction disambiguator', () => {
+  it('shows a route → headsign line under the stop name with a spoken accessible name', () => {
+    // The header renders regardless of feed status; an error feed is fine here.
+    renderStopDetail('904257', feedInError(new Error('ignored')), directionsRepo());
+
+    const line = screen.getByText('11 → Collier Rd');
+    expect(line).toBeInTheDocument();
+    // "→" is not voiced; the element exposes the spoken form instead.
+    expect(line).toHaveAccessibleName('Route 11 toward Collier Rd');
   });
 });

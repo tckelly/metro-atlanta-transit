@@ -75,12 +75,29 @@ export interface GtfsRaw {
 
 // ---------------- Trimmed output types (what we ship to public/gtfs/) ----------------
 
+/**
+ * One `(route, headsign)` a stop is served by — the disambiguator rendered as
+ * `route → headsign` (e.g. `11 → Collier Rd`) so same-name opposite-curb stops
+ * are distinguishable. See ADR-0008.
+ */
+export interface StopDirection {
+  routeId: string;
+  headsign: string;
+}
+
 export interface StopOut {
   stopId: string;
   name: string;
   lat: number;
   lng: number;
   routeIds: string[];
+  /**
+   * Distinct `(route, headsign)` pairs serving this stop, ordered by descending
+   * trip frequency then routeId then headsign. The frequency order makes top-N
+   * truncation in the UI correctness-safe (ADR-0008). Empty when no trip serves
+   * the stop.
+   */
+  directions: StopDirection[];
 }
 
 export interface RouteOut {
@@ -252,37 +269,83 @@ export function parseGtfsCsvs(csvs: RawCsvs): GtfsRaw {
 
 // ---------------- Transformation ----------------
 
+/** Deterministic lexicographic order, matching Array.prototype.sort's default. */
+function compareStrings(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 export function transformGtfs(raw: GtfsRaw): GtfsBundle {
-  // Build a stopId → Set<routeId> index from trips + stop_times.
-  const tripToRoute = new Map(raw.trips.map((t) => [t.trip_id, t.route_id]));
+  // Index stops from trips + stop_times: the set of routeIds serving each stop,
+  // plus the frequency of each distinct (routeId, headsign) pair for direction
+  // disambiguation (ADR-0008). Both derive from the same stop_times ⋈ trips walk.
+  const tripToInfo = new Map(
+    raw.trips.map((t) => [t.trip_id, { routeId: t.route_id, headsign: t.trip_headsign ?? '' }]),
+  );
   const stopToRoutes = new Map<string, Set<string>>();
+  const stopToDirections = new Map<string, Map<string, StopDirection & { count: number }>>();
   for (const st of raw.stopTimes) {
-    const routeId = tripToRoute.get(st.trip_id);
-    if (!routeId) continue;
+    const info = tripToInfo.get(st.trip_id);
+    if (info === undefined) continue;
+
     let routes = stopToRoutes.get(st.stop_id);
     if (routes === undefined) {
       routes = new Set();
       stopToRoutes.set(st.stop_id, routes);
     }
-    routes.add(routeId);
+    routes.add(info.routeId);
+
+    let directions = stopToDirections.get(st.stop_id);
+    if (directions === undefined) {
+      directions = new Map();
+      stopToDirections.set(st.stop_id, directions);
+    }
+    const key = `${info.routeId} ${info.headsign}`;
+    const existing = directions.get(key);
+    if (existing === undefined) {
+      directions.set(key, { routeId: info.routeId, headsign: info.headsign, count: 1 });
+    } else {
+      existing.count += 1;
+    }
   }
 
-  const stops: StopOut[] = raw.stops.map((s) => ({
-    stopId: s.stop_id,
-    name: s.stop_name,
-    lat: s.stop_lat,
-    lng: s.stop_lon,
-    routeIds: [...(stopToRoutes.get(s.stop_id) ?? [])].sort(),
-  }));
+  function directionsForStop(stopId: string): StopDirection[] {
+    const byKey = stopToDirections.get(stopId);
+    if (byKey === undefined) return [];
+    return [...byKey.values()]
+      .sort(
+        (a, b) =>
+          b.count - a.count ||
+          compareStrings(a.routeId, b.routeId) ||
+          compareStrings(a.headsign, b.headsign),
+      )
+      .map(({ routeId, headsign }) => ({ routeId, headsign }));
+  }
 
-  const routes: RouteOut[] = raw.routes.map((r) => {
-    const base = {
-      routeId: r.route_id,
-      shortName: r.route_short_name,
-      longName: r.route_long_name,
-    };
-    return r.route_color === undefined ? base : { ...base, color: r.route_color };
-  });
+  // Sort the client-facing arrays by primary key so the output bytes are
+  // stable across nightly rebuilds regardless of MARTA's CSV row order. A
+  // reshuffle upstream must not churn the ETag (and force clients to
+  // re-fetch the SWR-cached bundle) when nothing actually changed.
+  const stops: StopOut[] = raw.stops
+    .map((s) => ({
+      stopId: s.stop_id,
+      name: s.stop_name,
+      lat: s.stop_lat,
+      lng: s.stop_lon,
+      routeIds: [...(stopToRoutes.get(s.stop_id) ?? [])].sort(),
+      directions: directionsForStop(s.stop_id),
+    }))
+    .sort((a, b) => compareStrings(a.stopId, b.stopId));
+
+  const routes: RouteOut[] = raw.routes
+    .map((r) => {
+      const base = {
+        routeId: r.route_id,
+        shortName: r.route_short_name,
+        longName: r.route_long_name,
+      };
+      return r.route_color === undefined ? base : { ...base, color: r.route_color };
+    })
+    .sort((a, b) => compareStrings(a.routeId, b.routeId));
 
   const trips: TripOut[] = raw.trips.map((t) => {
     const base = {

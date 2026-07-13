@@ -4,9 +4,9 @@ import { InMemoryGtfsRepository } from './InMemoryGtfsRepository';
 import type { GtfsBundle, StopOut } from '../../buildtime/preprocessGtfs';
 
 const STOPS: StopOut[] = [
-  { stopId: 'S1', name: 'Stop One', lat: 33.7540, lng: -84.3915, routeIds: ['116'] },
-  { stopId: 'S2', name: 'Stop Two', lat: 33.7544, lng: -84.3915, routeIds: ['116'] },
-  { stopId: 'S3', name: 'Far Away',  lat: 34.0000, lng: -84.0000, routeIds: ['999'] },
+  { stopId: 'S1', name: 'Stop One', lat: 33.7540, lng: -84.3915, routeIds: ['116'], directions: [] },
+  { stopId: 'S2', name: 'Stop Two', lat: 33.7544, lng: -84.3915, routeIds: ['116'], directions: [] },
+  { stopId: 'S3', name: 'Far Away',  lat: 34.0000, lng: -84.0000, routeIds: ['999'], directions: [] },
 ];
 
 const BUNDLE: GtfsBundle = {

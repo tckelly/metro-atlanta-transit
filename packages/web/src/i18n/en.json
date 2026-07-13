@@ -12,9 +12,14 @@
     "searchPlaceholder": "Search by stop or street name",
     "searchClearLabel": "Clear search",
     "searchResultsHeading": "Search results",
-    "searchRoutesLine": "Routes {{routes}}",
     "searchNoMatchesTitle": "No matching stops",
     "searchNoMatchesBody": "Nothing matched “{{query}}”. Try a different street or stop name."
+  },
+  "directions": {
+    "pair": "{{route}} → {{headsign}}",
+    "pairSpoken": "Route {{route}} toward {{headsign}}",
+    "more": "+{{count}} more",
+    "moreSpoken": "and {{count}} more"
   },
   "routes": {
     "title": "All routes",
@@ -57,7 +62,6 @@
     "noUpcomingTitle": "No upcoming buses",
     "noUpcomingBody": "No more buses scheduled at this stop today. Check back tomorrow morning, or try a different stop.",
     "refresh": "Refresh",
-    "routeHeader": "Route {{shortName}} — {{headsign}}",
     "lastUpdatedPrefix": "Last updated",
     "lastUpdatedStaleSuffix": " — couldn’t refresh",
     "lastUpdatedVeryStaleSuffix": " — data may be wrong",
@@ -106,8 +110,7 @@
     "reorderDone": "Done",
     "loadingArrivals": "Loading arrivals…",
     "loadError": "Couldn’t load arrivals",
-    "noUpcoming": "No upcoming buses",
-    "rowPreview": "Route {{shortName}} → {{headsign}}"
+    "noUpcoming": "No upcoming buses"
   },
   "disruption": {
     "badge_one": "{{count}} cancelled",

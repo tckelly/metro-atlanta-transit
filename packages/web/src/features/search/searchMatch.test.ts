@@ -16,7 +16,7 @@ import { matchesQuery, rankStops } from './searchMatch';
 import type { StopOut } from '../../buildtime/preprocessGtfs';
 
 function stop(id: string, name: string): StopOut {
-  return { stopId: id, name, lat: 0, lng: 0, routeIds: [] };
+  return { stopId: id, name, lat: 0, lng: 0, routeIds: [], directions: [] };
 }
 
 describe('matchesQuery', () => {

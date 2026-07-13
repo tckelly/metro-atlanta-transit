@@ -11,9 +11,9 @@ import type { GtfsBundle } from '../buildtime/preprocessGtfs';
 // weekends, three stops, calendar exception removing service on July 4.
 const BUNDLE: GtfsBundle = {
   stops: [
-    { stopId: 'S1', name: 'Virginia Ave', lat: 33.78, lng: -84.35, routeIds: ['R36'] },
-    { stopId: 'S2', name: 'Highland Ave', lat: 33.78, lng: -84.35, routeIds: ['R36'] },
-    { stopId: 'S3', name: 'Ponce',        lat: 33.77, lng: -84.36, routeIds: ['R36'] },
+    { stopId: 'S1', name: 'Virginia Ave', lat: 33.78, lng: -84.35, routeIds: ['R36'], directions: [] },
+    { stopId: 'S2', name: 'Highland Ave', lat: 33.78, lng: -84.35, routeIds: ['R36'], directions: [] },
+    { stopId: 'S3', name: 'Ponce',        lat: 33.77, lng: -84.36, routeIds: ['R36'], directions: [] },
   ],
   routes: [
     { routeId: 'R36', shortName: '36', longName: 'Virginia Highland - Decatur' },

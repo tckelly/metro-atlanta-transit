@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, MessageCard, SearchInput } from '@atl-transit/components';
+import { Button, ListItem, MessageCard, SearchInput } from '@atl-transit/components';
 
 import { useFavorites } from '../features/favorites/FavoritesContext';
 import { FavoriteStopCard } from '../features/favorites/FavoriteStopCard';
@@ -9,6 +9,8 @@ import { InstallPrompt } from '../features/install/InstallPrompt';
 import { NearbyStops } from '../features/nearby/NearbyStops';
 import { useGtfsRepository } from '../services/gtfs/GtfsRepositoryContext';
 import { rankStops } from '../features/search/searchMatch';
+import { formatDirections, directionsStringsFromT } from '../utils/directionsLabel';
+import { DirectionLabel } from '../features/stops/DirectionLabel';
 import type { StopOut } from '../buildtime/preprocessGtfs';
 import type { Favorite } from '../services/storage';
 import type { MoveDirection } from '../features/favorites/reorder';
@@ -187,6 +189,7 @@ function FavoritesSection({ favorites }: { favorites: Favorite[] }) {
 function SearchResults({ query, results }: { query: string; results: StopOut[] }) {
   const { t } = useTranslation();
   const repo = useGtfsRepository();
+  const strings = directionsStringsFromT(t);
 
   if (results.length === 0) {
     return (
@@ -204,21 +207,23 @@ function SearchResults({ query, results }: { query: string; results: StopOut[] }
       </h2>
       <ul className="divide-y divide-divider rounded border border-divider bg-surface-elevated">
         {results.map((stop) => {
-          const routeShortNames = stop.routeIds
-            .map((rid) => repo.getRoute(rid)?.shortName ?? rid)
-            .join(', ');
+          const directions = formatDirections(
+            stop.directions,
+            (routeId) => repo.getRoute(routeId)?.shortName ?? routeId,
+            strings,
+          );
           return (
             <li key={stop.stopId}>
               <Link
                 to={`/stop/${stop.stopId}`}
-                className="block px-4 py-3 hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <span className="block text-fg">{stop.name}</span>
-                {routeShortNames !== '' && (
-                  <span className="mt-0.5 block text-xs text-fg-muted">
-                    {t('home.searchRoutesLine', { routes: routeShortNames })}
-                  </span>
-                )}
+                <ListItem
+                  variant="row"
+                  interactive
+                  title={stop.name}
+                  secondary={directions ? <DirectionLabel value={directions} /> : undefined}
+                />
               </Link>
             </li>
           );

@@ -12,9 +12,14 @@
     "searchPlaceholder": "Busca por nombre de parada o calle",
     "searchClearLabel": "Borrar búsqueda",
     "searchResultsHeading": "Resultados de búsqueda",
-    "searchRoutesLine": "Rutas {{routes}}",
     "searchNoMatchesTitle": "No hay paradas que coincidan",
     "searchNoMatchesBody": "Nada coincide con «{{query}}». Prueba con otro nombre de calle o parada."
+  },
+  "directions": {
+    "pair": "{{route}} → {{headsign}}",
+    "pairSpoken": "Ruta {{route}} hacia {{headsign}}",
+    "more": "+{{count}} más",
+    "moreSpoken": "y {{count}} más"
   },
   "routes": {
     "title": "Todas las rutas",
@@ -57,7 +62,6 @@
     "noUpcomingTitle": "No hay próximos autobuses",
     "noUpcomingBody": "No hay más autobuses programados en esta parada hoy. Vuelve mañana por la mañana o prueba con otra parada.",
     "refresh": "Actualizar",
-    "routeHeader": "Ruta {{shortName}} — {{headsign}}",
     "lastUpdatedPrefix": "Última actualización",
     "lastUpdatedStaleSuffix": " — no se pudo actualizar",
     "lastUpdatedVeryStaleSuffix": " — los datos podrían ser incorrectos",
@@ -106,8 +110,7 @@
     "reorderDone": "Listo",
     "loadingArrivals": "Cargando llegadas…",
     "loadError": "No se pudieron cargar las llegadas",
-    "noUpcoming": "No hay próximos autobuses",
-    "rowPreview": "Ruta {{shortName}} → {{headsign}}"
+    "noUpcoming": "No hay próximos autobuses"
   },
   "disruption": {
     "badge_one": "{{count}} cancelado",

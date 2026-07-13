@@ -16,25 +16,37 @@ We're pre-stable. Semver's `0.x.y` space says "developing, breaking changes allo
 
 Continuing to patch-bump (instead of jumping to `0.1.0` or `1.0.0`) keeps the signal honest: this is still software being shaped by its first users, not a mature product. The conversation's earlier shorthand of "v1 / v2" maps to "v0.0.1 / v0.0.2" without ambiguity.
 
-## Post-launch polish backlog
+## v0.0.2 — in progress
 
-Smaller product items deferred from v0.0.1 — surface in v0.0.2 as bandwidth and adjacent feedback allow. No trigger conditions; these are taste/clarity calls, not evidence-gated.
+The next patch release. This section holds *committed* work — what we've decided to build, plus what's already shipped toward this release — as distinct from the candidate pools and design-open features below. An item **graduates** here from the backlog / optimization-candidate / major-feature sections once we commit to it, and moves to [`history/`](./history/) when v0.0.2 is cut.
 
-### Match BusRow severity colors on live downstream times — **deferred 2026-06-01**
+### Nearby stop direction / disambiguation — design in [`features/nearby-stop-direction.md`](./features/nearby-stop-direction.md)
 
-The BusRow uses status color to telegraph timing (green early/on-time, yellow slight delay, red late/cancelled). The disclosure currently renders all per-stop times in `text-fg-muted` regardless of how each prediction compares to schedule. Carry the same severity down per-stop: compute `delaySec = predictedArrivalTime - scheduledTime` per downstream stop, classify via the same thresholds the row classifier uses, and color the time accordingly. Blocker: scheduled times currently only ride the scheduled-path fetch — either fold scheduled into the live mapper, or have the disclosure merge both when both are available. Naturally pairs with the scheduled-path-times item below.
+Same-name adjacent stops — the opposite curbs of one intersection — render as indistinguishable duplicate rows in the Nearby list (measured: ~49% of all stops share a name with another stop). Fix: give each stop a `route → headsign` disambiguator (e.g. `11 → Collier Rd`), precomputed onto `StopOut` at build time and shipped in `stops.json` (+~25 KB gzipped, no backend or per-request cost). The feature doc carries the full design conversation — problem, name-collision data, why headsign beats cardinal-direction and route-number-alone, the cost analysis, edge cases, and implementation pointers.
 
-**Files:** `packages/web/src/features/stops/BusRowDisclosure.tsx`, the row classifier, plus whichever mapper acquires the scheduled-time merge.
+**Status.** Design complete, ready to build. Touches `packages/web/src/buildtime/preprocessGtfs.ts` (the `StopOut` enrichment), the `stops.json` consumers (Nearby, search, favorites, StopDetail header), and the domain→visual mapping at the web boundary (ADR-0003).
 
-**Deferral note.** Investigated 2026-06-01 and decided not to ship. The row-level severity color is the dominant signal — riders open the disclosure to confirm "is my target stop on this branch?", not to inspect per-stop timing divergence. MARTA's realtime predictions propagate delay roughly linearly across a trip's downstream stops, so per-stop coloring would mostly restate the row-level signal. The cost is non-trivial: live rows currently derive downstream stops in-memory with zero backend cost on disclosure open; per-stop severity requires fetching the trip's static schedule (`/api/gtfs/trip-stops`) to obtain `scheduledTime` for the delay computation. Adding that fetch on every live disclosure open runs against the bandwidth-reduction motivation behind the *Server-side trip-update filtering* and *Polling cadence tuning* candidates below. Revisit only if real user feedback specifically asks for per-stop timing detail in the disclosure.
+### Scheduled-path downstream times + `arrivalText` rename — **shipped 2026-05-31**
 
-### Scheduled-path downstream times + `arrivalText` rename — **shipped 2026-05-31 (v0.0.2)**
-
-The scheduled / no-live / cancelled disclosure paths render name-only — they had no time data at launch. The work: add `TripStopWire.scheduledTime` to the wire schema, have `queryStopsForTrip(tripId, date)` select `arrival_time` and convert via `gtfsTimeToUnixSec`, rename `predictedArrivalText` → `arrivalText` on the client, and fall back `predictedArrivalTime ?? scheduledTime` in the formatter. Unblocks the severity-coloring item above.
+The scheduled / no-live / cancelled disclosure paths render name-only — they had no time data at launch. The work: add `TripStopWire.scheduledTime` to the wire schema, have `queryStopsForTrip(tripId, date)` select `arrival_time` and convert via `gtfsTimeToUnixSec`, rename `predictedArrivalText` → `arrivalText` on the client, and fall back `predictedArrivalTime ?? scheduledTime` in the formatter. Unblocks the severity-coloring item below.
 
 **Files:** `packages/web/api/gtfs/trip-stops.ts`, `packages/web/src/features/stops/BusRowDisclosure.tsx`, and the relevant Zod schema / formatter modules.
 
 **As-shipped notes.** Implemented as one PR with two logical commits (data-path + UI). Backend handler now also requires a `date=YYYYMMDD` query param; the existing `s-maxage=300` edge cache stays valid because real users only ever ask for today's date. `InMemoryGtfsRepository` mirrors the conversion so dev mode matches prod. Service-date logic that was inlined in `useArrivals` was lifted to a shared `utils/serviceDate.ts` so the disclosure call site can stay in sync with what "today" means in `America/New_York`. Verified on a scheduled bus with no live data — clock times now render in the disclosure.
+
+---
+
+## Post-launch polish backlog
+
+Smaller product items deferred from v0.0.1 — taste/clarity calls, not evidence-gated, with no trigger conditions. These are *candidates*, not committed: when one is picked up it graduates to the **v0.0.2 — in progress** section above.
+
+### Match BusRow severity colors on live downstream times — **deferred 2026-06-01**
+
+The BusRow uses status color to telegraph timing (green early/on-time, yellow slight delay, red late/cancelled). The disclosure currently renders all per-stop times in `text-fg-muted` regardless of how each prediction compares to schedule. Carry the same severity down per-stop: compute `delaySec = predictedArrivalTime - scheduledTime` per downstream stop, classify via the same thresholds the row classifier uses, and color the time accordingly. Blocker: scheduled times currently only ride the scheduled-path fetch — either fold scheduled into the live mapper, or have the disclosure merge both when both are available. Naturally pairs with the now-shipped scheduled-path-times work (in the v0.0.2 section above), which resolved the data-path blocker.
+
+**Files:** `packages/web/src/features/stops/BusRowDisclosure.tsx`, the row classifier, plus whichever mapper acquires the scheduled-time merge.
+
+**Deferral note.** Investigated 2026-06-01 and decided not to ship. The row-level severity color is the dominant signal — riders open the disclosure to confirm "is my target stop on this branch?", not to inspect per-stop timing divergence. MARTA's realtime predictions propagate delay roughly linearly across a trip's downstream stops, so per-stop coloring would mostly restate the row-level signal. The cost is non-trivial: live rows currently derive downstream stops in-memory with zero backend cost on disclosure open; per-stop severity requires fetching the trip's static schedule (`/api/gtfs/trip-stops`) to obtain `scheduledTime` for the delay computation. Adding that fetch on every live disclosure open runs against the bandwidth-reduction motivation behind the *Server-side trip-update filtering* and *Polling cadence tuning* candidates below. Revisit only if real user feedback specifically asks for per-stop timing detail in the disclosure.
 
 ---
 
@@ -85,9 +97,9 @@ Items identified during v0.0.1 development that don't ship in the launch build b
 
 ---
 
-## Next-up major features (v0.0.2+)
+## Next-up major features (design open, unversioned)
 
-Distinct from the polish backlog and optimization candidates above: these are new product capabilities under active design. Each has its own design doc in `docs/features/`; this section is the time-ordering pointer.
+Distinct from the polish backlog and optimization candidates above: these are new product capabilities under active design, not yet slotted into a specific release. Each has its own design doc in `docs/features/`; this section is the time-ordering pointer. A feature graduates to the **v0.0.2 — in progress** section (or a later version) once its design lands and we commit to building it.
 
 ### Service alerts surfacing — design in [`features/alerts.md`](./features/alerts.md)
 

@@ -123,6 +123,14 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 - Color contrast meeting WCAG 2.2 AA minimum.
 - Screen reader tested for core flows.
 
+## Tool & Command Guidelines
+
+*Worded by capability so it ports across agent harnesses.*
+
+- **Use the agent's built-in file and search tools for reading, finding, and searching files** — not shell utilities. Structured tools don't trigger a per-command approval and return cleaner results.
+- **Keep shell commands simple and predictable.** Avoid pipes (`|`), command substitution (`$(...)`), and loops in a single terminal command. Novel chained one-liners can't be pre-approved, so each one halts the session for manual approval — simple, recurring commands get allowlisted and run without interruption.
+- **Reserve the shell for stateful work it's actually needed for** — builds, tests, linters, git, package managers. Read-only inspection and file parsing should go through built-in tools instead.
+
 ## Testing
 
 - **TDD when developing features and non-trivial logic — run the failing test before writing the implementation.** A test that's never been red doesn't prove it can catch a regression; it only proves the assertion matches today's code. Tests-after is fine for UI components and trivial glue.

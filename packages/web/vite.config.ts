@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -15,10 +15,32 @@ function martaProxy(upstreamPath: string) {
   };
 }
 
+// Rail differs from the bus feeds: MARTA's RTT endpoint is JSON on a
+// non-standard port and requires a secret apiKey as a query param
+// (ADR-0010). The production Edge Function (`api/marta/rail.ts`) injects
+// the key from `process.env`; here we do the local equivalent, reading it
+// from the gitignored `.env.local` so dev hits the same `/api/marta/rail`
+// URL. The key stays server-side — it's only ever in this proxy's rewrite,
+// never in the client bundle.
+function railProxy(apiKey: string) {
+  return {
+    target: 'https://developerservices.itsmarta.com:18096',
+    changeOrigin: true,
+    rewrite: () =>
+      `/itsmarta/railrealtimearrivals/developerservices/traindata?apiKey=${encodeURIComponent(apiKey)}`,
+  };
+}
+
+// `loadEnv('', …, '')` reads `.env`/`.env.local` (mode-agnostic) with no
+// prefix filter, so it picks up the non-`VITE_` server-only rail key that
+// Vite deliberately keeps out of `import.meta.env`.
+const localEnv = loadEnv('development', process.cwd(), '');
+
 const MARTA_PROXY = {
   '/api/marta/tripupdates': martaProxy('/tripupdate/tripupdates.pb'),
   '/api/marta/vehiclepositions': martaProxy('/vehicle/vehiclepositions.pb'),
   '/api/marta/alerts': martaProxy('/alert/alerts.pb'),
+  '/api/marta/rail': railProxy(localEnv.MARTA_RAIL_API_KEY ?? ''),
 };
 
 // Shared GTFS backend middleware. Runs the same `/api/gtfs/*`

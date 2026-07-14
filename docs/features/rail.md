@@ -84,6 +84,7 @@ Informed by the recon; final calls wait on the live data and dogfooding.
   - **`DELAY` is a signed duration `T<seconds>S`** (`T45S`, `T-7S`, `T0S`) — parseable, so it *is* a viable severity input (the Phase-1 "unconfirmed" flag is resolved), though wiring to color stays a later UX call.
   - **`LINE` is exactly `RED`/`GOLD`/`BLUE`/`GREEN`**; `WAITING_TIME` uses `"Arriving"` as its low-end sentinel; `EVENT_TIME`/`NEXT_ARR` are US-format, not ISO.
   - **No occupancy, no downstream-stops** — confirms the arrival-at-station-centric shape.
+- **2026-07-13 — Prod runtime verified.** After deploy, the live `/api/marta/rail` endpoint returned real arrivals in the production app — confirming the Sensitive `MARTA_RAIL_API_KEY` reads at runtime in the deployed Edge Function and that server-side key injection works end-to-end (env var → Edge runtime → upstream `:18096`/CORS path → JSON). This closes ADR-0010's last open risk (the runtime env-read); the Node-serverless-runtime fallback is not needed.
 
 ## Open questions
 

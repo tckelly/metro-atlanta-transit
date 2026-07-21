@@ -1,14 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { BusRowProps } from '@atl-transit/components';
+import type { ArrivalRowProps } from '@atl-transit/components';
 
 import {
   BusRowDisclosure,
   type DownstreamStopView,
 } from './BusRowDisclosure';
 
-const ROW: BusRowProps = {
+const ROW: ArrivalRowProps = {
   primaryText: '3 min',
   secondaryText: 'Scheduled 12:34 · Filling up',
   severity: 'success',
@@ -246,7 +246,7 @@ describe('BusRowDisclosure', () => {
     expect(dash).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('renders the BusRow’s primary and secondary text on the trigger', () => {
+  it('renders the ArrivalRow’s primary and secondary text on the trigger', () => {
     renderInList(
       <BusRowDisclosure
         busRowProps={ROW}
@@ -256,7 +256,7 @@ describe('BusRowDisclosure', () => {
       />,
     );
 
-    // The trigger is a button whose visible content matches what BusRow
+    // The trigger is a button whose visible content matches what ArrivalRow
     // would have rendered — the rider sees the same row, just tappable.
     const trigger = screen.getByRole('button', { name: 'Show stops' });
     expect(trigger).toHaveTextContent('3 min');

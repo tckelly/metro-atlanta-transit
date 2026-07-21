@@ -1,2 +1,2 @@
-export { BusRow } from './BusRow';
-export type { BusRowProps } from './BusRow';
+export { ArrivalRow } from './ArrivalRow';
+export type { ArrivalRowProps } from './ArrivalRow';

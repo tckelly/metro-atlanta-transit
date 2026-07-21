@@ -6,6 +6,7 @@
   "home": {
     "myStops": "Mis paradas",
     "browseRoutes": "Ver todas las rutas →",
+    "railStations": "Estaciones de tren →",
     "favoritesEmptyTitle": "Aún no tienes favoritos",
     "favoritesEmptyBody": "Busca una parada abajo y toca la estrella en su página para guardarla aquí para tu viaje.",
     "searchLabel": "Buscar paradas",
@@ -165,6 +166,38 @@
     "delayEarly_other": "{{count}} min de adelanto",
     "noLiveData": "Programado · Sin datos en tiempo real",
     "cancelled": "Cancelado"
+  },
+  "rail": {
+    "scheduled": "Programado",
+    "towardDestination": "hacia {{destination}}",
+    "line": {
+      "red": "Roja",
+      "gold": "Dorada",
+      "blue": "Azul",
+      "green": "Verde"
+    },
+    "stationDetail": {
+      "back": "Volver al inicio",
+      "loading": "Cargando llegadas de trenes",
+      "errorTitle": "No se pudieron cargar las llegadas",
+      "errorBody": "No pudimos conectar con el servicio de llegadas. Inténtalo de nuevo en un momento.",
+      "emptyTitle": "No hay trenes próximos",
+      "emptyBody": "No hay trenes programados en esta estación en este momento.",
+      "refresh": "Actualizar",
+      "lastUpdatedPrefix": "Actualizado",
+      "noStationTitle": "Estación no encontrada",
+      "noStationBody": "No pudimos encontrar esa estación."
+    },
+    "stationList": {
+      "title": "Estaciones de tren",
+      "back": "Volver al inicio",
+      "loading": "Cargando estaciones",
+      "errorTitle": "No se pudieron cargar las estaciones",
+      "errorBody": "No pudimos conectar con el servicio de tren. Inténtalo de nuevo en un momento.",
+      "emptyTitle": "Sin estaciones",
+      "emptyBody": "No hay estaciones de tren disponibles en este momento.",
+      "refresh": "Actualizar"
+    }
   },
   "settings": {
     "title": "Configuración",

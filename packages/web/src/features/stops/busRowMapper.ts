@@ -1,12 +1,18 @@
-import type { BusRowProps } from '@atl-transit/components';
+import type { ArrivalRowProps } from '@atl-transit/components';
 import type { OccupancyStatus } from '@atl-transit/gtfs';
 import type { TFunction } from 'i18next';
 
 import type { ClassifiedBusRow } from './busRowClassifier';
+import {
+  formatEta,
+  formatDelay,
+  DELAYED_THRESHOLD_SEC,
+  type ArrivalFormatters,
+} from '../../utils/arrivalFormat';
 
 /**
  * Translate a domain-level ClassifiedBusRow into the visual-semantic
- * BusRowProps that the components library expects. Per ADR-0003, the
+ * ArrivalRowProps that the components library expects. Per ADR-0003, the
  * components package knows nothing about MARTA — the mapping happens here.
  *
  * Inputs:
@@ -21,44 +27,12 @@ import type { ClassifiedBusRow } from './busRowClassifier';
  *   typically gets it from `useFormatTime()`.
  */
 
-const DELAYED_THRESHOLD_SEC = 180;
-const ARRIVING_THRESHOLD_SEC = 60;
-const SECONDARY_DELAY_THRESHOLD_SEC = 60;
 /**
- * When the ETA exceeds this many minutes, switch the primary line from
- * a countdown ("98 min") to the clock time ("06:04"). Large minute
- * counts are visually quirky in 32px bold and the user is no longer
- * thinking in countdown terms at that range anyway.
+ * The formatter bundle for the bus mapper. Aliased to the shared
+ * `ArrivalFormatters` (consumed by both the bus and rail mappers) so the
+ * name reads naturally at bus call sites while the type lives in one place.
  */
-const LONG_ETA_THRESHOLD_MIN = 60;
-
-export interface BusRowMapperFormatters {
-  t: TFunction;
-  formatTime: (unixSec: number) => string;
-}
-
-function formatEta(
-  predictedSec: number,
-  nowSec: number,
-  formatters: BusRowMapperFormatters,
-): string {
-  const deltaSec = predictedSec - nowSec;
-  if (deltaSec < ARRIVING_THRESHOLD_SEC) return formatters.t('eta.arriving');
-  const minutes = Math.round(deltaSec / 60);
-  if (minutes >= LONG_ETA_THRESHOLD_MIN) return formatters.formatTime(predictedSec);
-  return formatters.t('eta.minutes', { count: minutes });
-}
-
-function formatDelay(
-  delaySec: number,
-  t: TFunction,
-): string | undefined {
-  if (Math.abs(delaySec) < SECONDARY_DELAY_THRESHOLD_SEC) return undefined;
-  const minutes = Math.round(Math.abs(delaySec) / 60);
-  return delaySec > 0
-    ? t('eta.delayLate', { count: minutes })
-    : t('eta.delayEarly', { count: minutes });
-}
+export type BusRowMapperFormatters = ArrivalFormatters;
 
 /**
  * Translate a GTFS-RT OccupancyStatus into the passenger-facing label per
@@ -93,7 +67,7 @@ export function toBusRowProps(
   row: ClassifiedBusRow,
   nowSec: number,
   formatters: BusRowMapperFormatters,
-): BusRowProps {
+): ArrivalRowProps {
   const { t, formatTime } = formatters;
   const scheduledStr = formatTime(row.scheduledTime);
 

@@ -30,8 +30,18 @@ export const colors = {
   fg:                 { light: '17 24 39',    dark: '249 250 251' },
   'fg-muted':         { light: '107 114 128', dark: '156 163 175' },
 
-  // Lines
+  // Dividers / hairlines
   divider:            { light: '229 231 235', dark: '55 65 81' },
+
+  // Rail line identity — MARTA's official GTFS route colors. Light = exact
+  // (RED #CE242B, GOLD #D4A723, BLUE #0075B2, GREEN #009D4B); dark = hue-matched
+  // lightened variants for legibility on the dark surface, following the
+  // `primary` light→dark convention. Always paired with the line name in
+  // LineIndicator, so they reinforce the label rather than being the sole signal.
+  'line-red':         { light: '206 36 43',   dark: '242 109 109' },
+  'line-gold':        { light: '212 167 35',  dark: '230 190 77' },
+  'line-blue':        { light: '0 117 178',   dark: '79 169 219' },
+  'line-green':       { light: '0 157 75',    dark: '53 199 126' },
 } as const;
 
 export type ColorToken = keyof typeof colors;

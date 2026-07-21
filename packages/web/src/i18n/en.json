@@ -6,6 +6,7 @@
   "home": {
     "myStops": "My stops",
     "browseRoutes": "Browse all routes →",
+    "railStations": "Rail stations →",
     "favoritesEmptyTitle": "No favorites yet",
     "favoritesEmptyBody": "Find a stop below and tap the star on its page to keep it here for your commute.",
     "searchLabel": "Search stops",
@@ -165,6 +166,38 @@
     "delayEarly_other": "{{count}} min early",
     "noLiveData": "Scheduled · No live data",
     "cancelled": "Cancelled"
+  },
+  "rail": {
+    "scheduled": "Scheduled",
+    "towardDestination": "toward {{destination}}",
+    "line": {
+      "red": "Red",
+      "gold": "Gold",
+      "blue": "Blue",
+      "green": "Green"
+    },
+    "stationDetail": {
+      "back": "Back to home",
+      "loading": "Loading train arrivals",
+      "errorTitle": "Couldn't load arrivals",
+      "errorBody": "We couldn't reach the train arrivals feed. Try again in a moment.",
+      "emptyTitle": "No upcoming trains",
+      "emptyBody": "There are no trains scheduled at this station right now.",
+      "refresh": "Refresh",
+      "lastUpdatedPrefix": "Updated",
+      "noStationTitle": "Station not found",
+      "noStationBody": "We couldn't find that station."
+    },
+    "stationList": {
+      "title": "Rail stations",
+      "back": "Back to home",
+      "loading": "Loading stations",
+      "errorTitle": "Couldn't load stations",
+      "errorBody": "We couldn't reach the rail feed. Try again in a moment.",
+      "emptyTitle": "No stations",
+      "emptyBody": "No rail stations are available right now.",
+      "refresh": "Refresh"
+    }
   },
   "settings": {
     "title": "Settings",

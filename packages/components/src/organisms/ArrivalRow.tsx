@@ -30,7 +30,7 @@ const iconWrapper = cva('mt-1 shrink-0', {
   defaultVariants: { severity: 'neutral' },
 });
 
-export interface BusRowProps extends VariantProps<typeof primaryStyles> {
+export interface ArrivalRowProps extends VariantProps<typeof primaryStyles> {
   /**
    * The headline value the user sees first — an ETA ("3 min"), a status
    * word ("Cancelled"), or a scheduled time ("12:34"). Large type.
@@ -50,21 +50,21 @@ export interface BusRowProps extends VariantProps<typeof primaryStyles> {
 }
 
 /**
- * A single bus's row in a stop-detail list. Renders as an `<li>` — the parent
- * is expected to wrap a set of these in `<ul>` so screen readers announce
- * "list, N items."
+ * A single arrival's row in a stop- or station-detail list. Renders as an
+ * `<li>` — the parent is expected to wrap a set of these in `<ul>` so screen
+ * readers announce "list, N items."
  *
- * Visual-semantic props only (per ADR-0003): the consumer maps domain
- * status (live / cancelled / no_live_data) to severity + primaryStyle + icon.
- * See `packages/web/src/features/stops/busRowMapper.ts`.
+ * Visual-semantic props only (per ADR-0003): the consumer maps its domain
+ * status to severity + primaryStyle + icon. Consumed by the bus mapper
+ * (`busRowMapper.ts`) and the rail mapper.
  */
-export function BusRow({
+export function ArrivalRow({
   primaryText,
   primaryStyle = 'normal',
   secondaryText,
   severity,
   icon,
-}: BusRowProps) {
+}: ArrivalRowProps) {
   return (
     <li className="flex gap-3 py-3">
       {icon && (

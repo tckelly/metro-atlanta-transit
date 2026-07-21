@@ -6,6 +6,8 @@ export { ErrorBoundary } from './ErrorBoundary';
 export type { ErrorBoundaryFallback, ErrorBoundaryProps } from './ErrorBoundary';
 export { Icon } from './Icon';
 export type { IconName, IconProps } from './Icon';
+export { LineIndicator } from './LineIndicator';
+export type { LineIndicatorProps } from './LineIndicator';
 export { MessageCard } from './MessageCard';
 export type { MessageCardProps } from './MessageCard';
 export { SearchInput } from './SearchInput';

@@ -31,7 +31,7 @@ describe('ListItem', () => {
 
   // variant and interactive are visual-semantic variants (ADR-0009): they
   // select the container idiom (card vs divided-list) and the hover affordance.
-  // Asserting the distinguishing class is warranted, same as BusRow's variants.
+  // Asserting the distinguishing class is warranted, same as ArrivalRow's variants.
   it('applies the card container in the card variant and not in the row variant', () => {
     const { container, rerender } = render(<ListItem title="x" variant="card" />);
     expect(container.firstChild).toHaveClass('border');

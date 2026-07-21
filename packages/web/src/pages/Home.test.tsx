@@ -106,6 +106,12 @@ function renderHome(): void {
 }
 
 describe('Home — global stop search', () => {
+  it('links to the rail stations directory', () => {
+    renderHome();
+    const link = screen.getByRole('link', { name: /rail stations/i });
+    expect(link).toHaveAttribute('href', '/stations');
+  });
+
   it('renders the normal home content when the query is empty', () => {
     renderHome();
     // Favorites heading is the canonical signal that the default home renders.

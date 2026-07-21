@@ -1,8 +1,8 @@
 /**
- * Interactive wrapper around a BusRow visual: tapping the row reveals
+ * Interactive wrapper around an ArrivalRow visual: tapping the row reveals
  * the downstream stops for that specific trip ("is my target stop on
  * this branch?"). Stays in the web/features layer so the components
- * library's `BusRow` atom remains pure visual (per ADR-0003).
+ * library's `ArrivalRow` remains pure visual (per ADR-0003).
  *
  * Data is supplied by the parent — the live-realtime path computes
  * the downstream stops in-memory and passes them eagerly; the
@@ -10,7 +10,7 @@
  * itself only owns open/close state and a11y wiring.
  */
 import { useCallback, useId, useState } from 'react';
-import { Icon, Skeleton, type BusRowProps } from '@atl-transit/components';
+import { Icon, Skeleton, type ArrivalRowProps } from '@atl-transit/components';
 
 export interface DownstreamStopView {
   /** Unique key for React list rendering — typically the GTFS stop_id. */
@@ -33,8 +33,8 @@ export interface DownstreamStopView {
 }
 
 export interface BusRowDisclosureProps {
-  /** Visual props for the row itself — same shape BusRow consumes. */
-  busRowProps: BusRowProps;
+  /** Visual props for the row itself — same shape ArrivalRow consumes. */
+  busRowProps: ArrivalRowProps;
   /**
    * Downstream stops to render in the open panel. `undefined` means
    * "loading" (shows a skeleton); `[]` means "rider is at the last
@@ -62,14 +62,14 @@ export interface BusRowDisclosureProps {
   errorMessage?: string;
 }
 
-const PRIMARY_SEVERITY_CLASS: Record<BusRowProps['severity'], string> = {
+const PRIMARY_SEVERITY_CLASS: Record<ArrivalRowProps['severity'], string> = {
   success: 'text-status-live',
   warning: 'text-status-warn',
   danger: 'text-status-cancelled',
   neutral: 'text-fg',
 };
 
-const ICON_SEVERITY_CLASS: Record<BusRowProps['severity'], string> = {
+const ICON_SEVERITY_CLASS: Record<ArrivalRowProps['severity'], string> = {
   success: 'text-status-live',
   warning: 'text-status-warn',
   danger: 'text-status-cancelled',

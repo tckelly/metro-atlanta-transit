@@ -164,7 +164,7 @@ function StopDetailReady({ stopId }: { stopId: string }) {
 }
 
 /**
- * Skeleton bars sized to match a real BusRow stack — same icon + two
+ * Skeleton bars sized to match a real ArrivalRow stack — same icon + two
  * lines of text. Wrapped in a polite live region so a screen reader
  * announces "Loading arrivals…" instead of the visual shimmer.
  */

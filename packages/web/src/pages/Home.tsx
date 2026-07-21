@@ -80,6 +80,15 @@ function DefaultHome({ favorites }: { favorites: Favorite[] }) {
         </Link>
       </p>
 
+      <p className="text-sm">
+        <Link
+          to="/stations"
+          className="text-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          {t('home.railStations')}
+        </Link>
+      </p>
+
       <InstallPrompt />
     </>
   );

@@ -36,6 +36,12 @@ const Settings = lazy(() =>
 const StopDetail = lazy(() =>
   import('./pages/StopDetail').then((m) => ({ default: m.StopDetail })),
 );
+const StationDetail = lazy(() =>
+  import('./pages/StationDetail').then((m) => ({ default: m.StationDetail })),
+);
+const RailStations = lazy(() =>
+  import('./pages/RailStations').then((m) => ({ default: m.RailStations })),
+);
 
 export function App() {
   return (
@@ -56,6 +62,8 @@ export function App() {
                             <Route path="/routes" element={<RoutesPage />} />
                             <Route path="/route/:routeId" element={<RouteDetail />} />
                             <Route path="/stop/:stopId" element={<StopDetail />} />
+                            <Route path="/stations" element={<RailStations />} />
+                            <Route path="/station/:stationName" element={<StationDetail />} />
                             <Route path="/settings" element={<Settings />} />
                           </Routes>
                         </Suspense>

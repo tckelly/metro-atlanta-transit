@@ -12,7 +12,7 @@ describe('StatusText', () => {
   // The severity→color mapping is this atom's entire contract (it exists to
   // retire the duplicated `severity → text-status-*` maps per ADR-0009), so
   // asserting the visual-semantic class is warranted here — same rationale as
-  // BusRow's strikethrough test.
+  // ArrivalRow's strikethrough test.
   it('maps each severity to its status color', () => {
     const { rerender } = render(<StatusText severity="success">x</StatusText>);
     expect(screen.getByText('x')).toHaveClass('text-status-live');

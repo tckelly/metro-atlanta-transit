@@ -99,6 +99,7 @@ I want a robust, well-designed app intended for a real audience. Don't treat thi
 
 ### Architecture
 
+- **DRY, loosely coupled, modular** — the umbrella these rules serve. *DRY:* centralize a pattern once it has a second consumer (see *Check `@atl-transit/components`* and *No premature abstraction* — don't DRY speculatively). *Loosely coupled:* pass collaborators in rather than reaching into another module (see the module-graph rule under Testing); a unit should receive its dependencies. *Modular:* separate concerns into small, single-purpose units. The specific rules below operationalize these — prefer them over the slogans when they conflict.
 - **Modular components.** Separate presentational (dumb) and container (smart) components.
 - **Atomic design in `@atl-transit/components`.** Atoms, molecules, organisms. Props are visual-semantic only (`severity`, `primaryStyle`, `icon`) — never domain (`isCancelled`, MARTA-specific status). The web package maps domain status to visual props at the boundary (see `packages/web/src/features/stops/busRowMapper.ts` and ADR-0003).
 - **Check `@atl-transit/components` before building a new UI primitive.** A pattern used in 2+ places belongs in the library — centralizing it keeps i18n strings, a11y wiring, and visual-semantic props (ADR-0003) in one place rather than scattered across pages, where they drift. Don't preemptively extract single-use components (see *No premature abstraction*); promote once a second consumer appears.
